@@ -11,7 +11,7 @@ Geometry::Geometry(G4String detType, const Sizes &ss, G4double temp, G4bool dLED
     nist = G4NistManager::Instance();
     zeroRot = new G4RotationMatrix(0, 0, 0);
 
-    viewDeg = 360 * deg;
+    viewDeg = 180 * deg;
     sizes.tunaCanThick = 2 * mm;
 
     modelSize = G4ThreeVector(0 * mm, 30 * mm + sizes.tunaCanThick, 22.5 * mm + sizes.tunaCanThick / 2.);
@@ -32,15 +32,14 @@ void Geometry::ConstructTunaCan() {
     if (sizes.tunaCanThick <= 0.) return;
 
     G4Material *tunaCanMat = nist->FindOrBuildMaterial("G4_Al");
-    G4ThreeVector tunaCanSize = G4ThreeVector(modelSize.y(), modelSize.y() + sizes.tunaCanThick,
-                                          modelSize.z() + sizes.tunaCanThick / 2.);
+    G4ThreeVector tunaCanSize = G4ThreeVector(detContainerSize.y(), modelSize.y(), modelSize.z());
     G4Tubs *tunaCanTube = new G4Tubs("TunaCanTube", tunaCanSize.x(), tunaCanSize.y(), tunaCanSize.z(), 0, viewDeg);
-    G4Tubs *tunaCanCap = new G4Tubs("TunaCanCap", 0, modelSize.y(), sizes.tunaCanThick / 2., 0, viewDeg);
-    G4ThreeVector tunaCanCapPos = G4ThreeVector(0, 0, modelSize.z());
+    G4Tubs *tunaCanCap = new G4Tubs("TunaCanCap", 0, detContainerSize.y(), sizes.tunaCanThick / 2., 0, viewDeg);
+    G4ThreeVector tunaCanCapPos = G4ThreeVector(0, 0, detContainerSize.z());
     tunaCan = new G4UnionSolid("TunaCan", tunaCanTube, tunaCanCap, zeroRot, tunaCanCapPos);
     tunaCanLV = new G4LogicalVolume(tunaCan, tunaCanMat, "TunaCanLV");
     G4ThreeVector tunaCanPos = G4ThreeVector(detectorPos.x(), detectorPos.y(),
-                                         detectorPos.z() + sizes.tunaCanThick / 2);
+                                             detectorPos.z() + sizes.gapSize / 2 + sizes.tunaCanThick / 2.);
     new G4PVPlacement(zeroRot, tunaCanPos, tunaCanLV, "TunaCanPVPL", worldLV, false, 0, true);
     tunaCanLV->SetVisAttributes(tunaCanVisAttr);
 }

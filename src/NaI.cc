@@ -152,7 +152,7 @@ void NaI::DefineMaterials() {
 
 
 void NaI::Construct() {
-    G4ThreeVector pos = G4ThreeVector(0, 0, -gapSize / 2);
+    G4ThreeVector pos = G4ThreeVector(0, 0, 0);
 
     NaISize = G4ThreeVector(0,
                             detContainerSize.y() - vetoThick - tyvekThick * 2. - gapSize - shellThick,
@@ -171,23 +171,23 @@ void NaI::Construct() {
 
     if (tyvekThick > 0.) {
         G4ThreeVector tyvekOutSize = G4ThreeVector(NaISize.y() + tyvekThick + vetoThick,
-                                                  NaISize.y() + 2. * tyvekThick + vetoThick,
-                                                  NaISize.z() + 2. * tyvekThick + vetoThick);
+                                                   NaISize.y() + 2. * tyvekThick + vetoThick,
+                                                   NaISize.z() + 2. * tyvekThick + vetoThick);
         G4Tubs *tyvekOutTube = new G4Tubs("TyvekOutTube", tyvekOutSize.x(), tyvekOutSize.y(), tyvekOutSize.z(), 0,
-                                         viewDeg);
+                                          viewDeg);
         G4Tubs *tyvekOutTop = new G4Tubs("TyvekOutTop", 0, tyvekOutSize.x(), tyvekThick / 2., 0,
-                                        viewDeg);
+                                         viewDeg);
         G4VSolid *tyvekOutBottom;
         if (doubleLED && LEDSize > 0) {
             G4SubtractionSolid *tyvekOutBottom1 = new G4SubtractionSolid("TyvekOutBottomIncomplete", tyvekOutTop, hole,
-                                                                        nullptr, holePos1);
+                                                                         nullptr, holePos1);
             tyvekOutBottom = new G4SubtractionSolid("TyvekOutBottom", tyvekOutBottom1, hole, nullptr, holePos2);
         } else {
             tyvekOutBottom = new G4Tubs("TyvekOutBottom", LEDSize, tyvekOutSize.x(), tyvekThick / 2., 0, viewDeg);
         }
         G4ThreeVector tyvekOutBottomPos = G4ThreeVector(0, 0, -tyvekOutSize.z() + tyvekThick / 2.);
         G4UnionSolid *tyvekOutIncomplete = new G4UnionSolid("TyvekOutIncomplete", tyvekOutTube, tyvekOutBottom, nullptr,
-                                                           tyvekOutBottomPos);
+                                                            tyvekOutBottomPos);
         G4ThreeVector tyvekOutTopPos = G4ThreeVector(0, 0, tyvekOutSize.z() - tyvekThick / 2.);
         G4UnionSolid *tyvekOut = new G4UnionSolid("TyvekOut", tyvekOutIncomplete, tyvekOutTop, nullptr, tyvekOutTopPos);
         tyvekOutLV = new G4LogicalVolume(tyvekOut, tyvekOutMat, "TyvekOutLV");
@@ -196,23 +196,23 @@ void NaI::Construct() {
 
 
         G4ThreeVector tyvekInSize = G4ThreeVector(NaISize.y(),
-                                                 NaISize.y() + tyvekThick,
-                                                 NaISize.z() + tyvekThick);
+                                                  NaISize.y() + tyvekThick,
+                                                  NaISize.z() + tyvekThick);
         G4Tubs *tyvekInTube = new G4Tubs("TyvekInTube", tyvekInSize.x(), tyvekInSize.y(), tyvekInSize.z(), 0, viewDeg);
 
         G4Tubs *tyvekInTop = new G4Tubs("TyvekInTop", 0, tyvekInSize.x(), tyvekThick / 2., 0,
-                                       viewDeg);
+                                        viewDeg);
         G4VSolid *tyvekInBottom;
         if (doubleLED && LEDSize > 0) {
             G4SubtractionSolid *tyvekInBottom1 = new G4SubtractionSolid("TyvekInBottomIncomplete", tyvekInTop, hole,
-                                                                       nullptr, holePos1);
+                                                                        nullptr, holePos1);
             tyvekInBottom = new G4SubtractionSolid("TyvekInBottom", tyvekInBottom1, hole, nullptr, holePos2);
         } else {
             tyvekInBottom = new G4Tubs("TyvekInBottom", LEDSize, tyvekInSize.x(), tyvekThick / 2., 0, viewDeg);
         }
         G4ThreeVector tyvekInBottomPos = G4ThreeVector(0, 0, -tyvekInSize.z() + tyvekThick / 2.);
         G4UnionSolid *tyvekInIncomplete = new G4UnionSolid("TyvekInIncomplete", tyvekInTube, tyvekInBottom, nullptr,
-                                                          tyvekInBottomPos);
+                                                           tyvekInBottomPos);
         G4ThreeVector tyvekInTopPos = G4ThreeVector(0, 0, tyvekInSize.z() - tyvekThick / 2.);
         G4UnionSolid *tyvekIn = new G4UnionSolid("TyvekIn", tyvekInIncomplete, tyvekInTop, nullptr, tyvekInTopPos);
         tyvekInLV = new G4LogicalVolume(tyvekIn, tyvekInMat, "TyvekInLV");
@@ -287,21 +287,19 @@ void NaI::ConstructLED() {
     if (doubleLED) {
         G4LogicalVolume *LEDLV1 = new G4LogicalVolume(LED, LEDMat, "LEDLV1");
         G4ThreeVector LEDLV1Pos = G4ThreeVector(NaISize.y() / 2, 0,
-                                                -(gapSize / 2 + NaISize.z() + vetoThick / 2. +
-                                                  tyvekThick + shellThick / 2));
+                                                -(NaISize.z() + vetoThick / 2. + tyvekThick + shellThick / 2));
         new G4PVPlacement(nullptr, LEDLV1Pos, LEDLV1, "LEDLV1PVPL", detContainerLV, false, 0, true);
 
         G4LogicalVolume *LEDLV2 = new G4LogicalVolume(LED, LEDMat, "LEDLV2");
         G4ThreeVector LEDLV2Pos = G4ThreeVector(-NaISize.y() / 2, 0,
-                                                -(gapSize / 2 + NaISize.z() + vetoThick / 2. + tyvekThick +
-                                                    shellThick / 2));
+                                                -(NaISize.z() + vetoThick / 2. + tyvekThick + shellThick / 2));
         new G4PVPlacement(nullptr, LEDLV2Pos, LEDLV2, "LEDLV2PVPL", detContainerLV, false, 0, true);
         LEDLV1->SetVisAttributes(visCyan);
         LEDLV2->SetVisAttributes(visCyan);
     } else {
         G4LogicalVolume *LEDLV = new G4LogicalVolume(LED, LEDMat, "LEDLV");
         G4ThreeVector LEDLVPos = G4ThreeVector(
-            0, 0, -(gapSize / 2 + NaISize.z() + vetoThick / 2. + tyvekThick + shellThick / 2));
+            0, 0, -(NaISize.z() + vetoThick / 2. + tyvekThick + shellThick / 2));
         new G4PVPlacement(nullptr, LEDLVPos, LEDLV, "LEDLVPVPL", detContainerLV, false, 0, true);
         LEDLV->SetVisAttributes(visCyan);
     }
