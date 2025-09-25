@@ -8,7 +8,7 @@ NaI::NaI(G4LogicalVolume *detContLV, const G4ThreeVector &detContSize, G4NistMan
     detContainerSize = detContSize;
     nist = nistMan;
     vetoThick = sizes.vetoThick;
-    tapeThick = sizes.tapeThick;
+    tyvekThick = sizes.tyvekThick;
     shellThick = sizes.shellThick;
     gapSize = sizes.gapSize;
     LEDSize = sizes.LEDSize;
@@ -35,20 +35,18 @@ inline void AddProp(G4MaterialPropertiesTable *mpt,
 }
 
 void NaI::DefineMaterials() {
-    // ========= ЭЛЕМЕНТЫ =========
     auto *elH = nist->FindOrBuildElement("H");
     auto *elC = nist->FindOrBuildElement("C");
     auto *elNa = nist->FindOrBuildElement("Na");
     auto *elI = nist->FindOrBuildElement("I");
-    auto *elTl = nist->FindOrBuildElement("Tl"); // для легирования NaI(Tl)
+    auto *elTl = nist->FindOrBuildElement("Tl");
 
-    // ========= NaI(Tl) (кристалл) =========
     {
         const G4double rhoNaI = 3.67 * g / cm3;
         NaIMat = new G4Material("NaIMat", rhoNaI, 3, kStateSolid);
 
-        const G4double wTl = 1.0e-3; // 0.1 wt%
-        const G4double wNa_noTl = 0.153; // массовые доли Na и I в стех. NaI
+        const G4double wTl = 1.0e-3;
+        const G4double wNa_noTl = 0.153;
         const G4double wI_noTl = 0.847;
         const G4double scale = 1.0 - wTl;
 
@@ -56,20 +54,18 @@ void NaI::DefineMaterials() {
         NaIMat->AddElement(elI, wI_noTl * scale);
         NaIMat->AddElement(elTl, wTl);
 
-        // Оптика NaI(Tl)
         const G4int n = 8;
         G4double eph[n] = {
             2.0 * eV, 2.2 * eV, 2.4 * eV, 2.6 * eV, 2.8 * eV, 3.0 * eV, 3.2 * eV, 3.4 * eV
-        }; // ~620–365 nm
+        };
 
         G4double rindex[n];
         G4double abslen[n];
         for (G4int i = 0; i < n; ++i) {
             rindex[i] = 1.85;
-            abslen[i] = 200. * cm; // усреднённая длина поглощения
+            abslen[i] = 200. * cm;
         }
 
-        // Спектр излучения ~415 nm (пик), нормированный профиль
         G4double emitNaI[n] = {0.02, 0.10, 0.50, 1.00, 0.85, 0.45, 0.12, 0.02};
 
         auto *mptNaI = new G4MaterialPropertiesTable();
@@ -83,30 +79,24 @@ void NaI::DefineMaterials() {
 
         NaIMat->SetMaterialPropertiesTable(mptNaI);
 
-        // Для неорганики Birks обычно не применяют
         NaIMat->GetIonisation()->SetBirksConstant(0. * mm / MeV);
     }
 
-    // ========= PVT (поливинилтолуол) — антисовпадение =========
     {
-        // Плотность типично ~1.032 g/cm3
         vetoMat = new G4Material("VetoMat", 1.032 * g / cm3, 2, kStateSolid);
-        // Мономер C9H10
         vetoMat->AddElement(elC, 9);
         vetoMat->AddElement(elH, 10);
 
         const G4int n = 8;
         G4double eph[n] = {2.0 * eV, 2.2 * eV, 2.4 * eV, 2.6 * eV, 2.8 * eV, 3.0 * eV, 3.2 * eV, 3.4 * eV};
 
-        // Оптика PVT-подобного пластика (EJ-200/BC-408 близко по параметрам)
         G4double rindex[n];
         G4double abslen[n];
         for (G4int i = 0; i < n; ++i) {
             rindex[i] = 1.58;
-            abslen[i] = 380. * cm; // поглощение ~3.8 m
+            abslen[i] = 380. * cm;
         }
 
-        // Спектр излучения ~425 nm (пик)
         G4double emitPVT[n] = {0.01, 0.20, 0.60, 1.00, 0.65, 0.25, 0.05, 0.01};
 
         auto *mptVeto = new G4MaterialPropertiesTable();
@@ -120,23 +110,18 @@ void NaI::DefineMaterials() {
 
         vetoMat->SetMaterialPropertiesTable(mptVeto);
 
-        // Birks для органики (классическое значение порядка 0.126 mm/MeV)
         vetoMat->GetIonisation()->SetBirksConstant(0.126 * mm / MeV);
     }
 
-    // ========= Tyvek (объёмно, а не как поверхность) =========
-    // Приблизим Tyvek как вспененный HDPE (полиэтилен высокой плотности) с низкой эффективной плотностью.
-    // Состав (CH2)n, плотность ~0.38 g/cm3. Зададим сильное Рэлеевское рассеяние,
-    // чтобы слой вёл себя диффузно (при желании можно ещё добавить оптическую поверхность с LUT).
     {
         const G4double rhoTyvek = 0.38 * g / cm3;
 
-        tapeInMat = new G4Material("tapeInMat", rhoTyvek, 2, kStateSolid);
-        tapeOutMat = new G4Material("tapeOutMat", rhoTyvek, 2, kStateSolid);
-        tapeInMat->AddElement(elC, 1);
-        tapeInMat->AddElement(elH, 2);
-        tapeOutMat->AddElement(elC, 1);
-        tapeOutMat->AddElement(elH, 2);
+        tyvekInMat = new G4Material("tyvekInMat", rhoTyvek, 2, kStateSolid);
+        tyvekOutMat = new G4Material("tyvekOutMat", rhoTyvek, 2, kStateSolid);
+        tyvekInMat->AddElement(elC, 1);
+        tyvekInMat->AddElement(elH, 2);
+        tyvekOutMat->AddElement(elC, 1);
+        tyvekOutMat->AddElement(elH, 2);
 
         const G4int n = 8;
         G4double eph[n] = {2.0 * eV, 2.2 * eV, 2.4 * eV, 2.6 * eV, 2.8 * eV, 3.0 * eV, 3.2 * eV, 3.4 * eV};
@@ -146,8 +131,8 @@ void NaI::DefineMaterials() {
         G4double rayl[n];
         for (G4int i = 0; i < n; ++i) {
             rindex[i] = 1.50;
-            abslen[i] = 1000. * m; // по сути «прозрачный» в объёме
-            rayl[i] = 10. * um; // сильное Рэлеевское рассеяние => диффузность
+            abslen[i] = 1000. * m;
+            rayl[i] = 10. * um;
         }
 
         auto *mptTyvek = new G4MaterialPropertiesTable();
@@ -155,10 +140,10 @@ void NaI::DefineMaterials() {
         AddProp(mptTyvek, "ABSLENGTH", eph, abslen, n, false, true);
         AddProp(mptTyvek, "RAYLEIGH", eph, rayl, n, false, true);
 
-        tapeInMat->SetMaterialPropertiesTable(mptTyvek);
+        tyvekInMat->SetMaterialPropertiesTable(mptTyvek);
 
         auto *mptTyvekOut = new G4MaterialPropertiesTable(*mptTyvek);
-        tapeOutMat->SetMaterialPropertiesTable(mptTyvekOut);
+        tyvekOutMat->SetMaterialPropertiesTable(mptTyvekOut);
     }
 
     LEDMat = nist->FindOrBuildMaterial("G4_Galactic");
@@ -170,8 +155,8 @@ void NaI::Construct() {
     G4ThreeVector pos = G4ThreeVector(0, 0, -gapSize / 2);
 
     NaISize = G4ThreeVector(0,
-                            detContainerSize.y() - vetoThick - tapeThick * 2. - gapSize - shellThick,
-                            detContainerSize.z() - vetoThick - tapeThick * 2 - gapSize / 2 - shellThick);
+                            detContainerSize.y() - vetoThick - tyvekThick * 2. - gapSize - shellThick,
+                            detContainerSize.z() - vetoThick - tyvekThick * 2 - gapSize / 2 - shellThick);
 
     G4Tubs *NaIBox = new G4Tubs("NaI", NaISize.x(), NaISize.y(), NaISize.z(), 0, viewDeg);
     NaILV = new G4LogicalVolume(NaIBox, NaIMat, "NaILV");
@@ -181,64 +166,64 @@ void NaI::Construct() {
     G4ThreeVector holePos1 = G4ThreeVector(-NaISize.y() / 2, 0, 0);
     G4ThreeVector holePos2 = G4ThreeVector(NaISize.y() / 2, 0, 0);
     if (LEDSize > 0) {
-        hole = new G4Tubs("Hole", 0, LEDSize, vetoThick / 2. + tapeThick + 2 * cm + shellThick / 2, 0, 360 * deg);
+        hole = new G4Tubs("Hole", 0, LEDSize, vetoThick / 2. + tyvekThick + 2 * cm + shellThick / 2, 0, 360 * deg);
     }
 
-    if (tapeThick > 0.) {
-        G4ThreeVector tapeOutSize = G4ThreeVector(NaISize.y() + tapeThick + vetoThick,
-                                                  NaISize.y() + 2. * tapeThick + vetoThick,
-                                                  NaISize.z() + 2. * tapeThick + vetoThick);
-        G4Tubs *tapeOutTube = new G4Tubs("TapeOutTube", tapeOutSize.x(), tapeOutSize.y(), tapeOutSize.z(), 0,
+    if (tyvekThick > 0.) {
+        G4ThreeVector tyvekOutSize = G4ThreeVector(NaISize.y() + tyvekThick + vetoThick,
+                                                  NaISize.y() + 2. * tyvekThick + vetoThick,
+                                                  NaISize.z() + 2. * tyvekThick + vetoThick);
+        G4Tubs *tyvekOutTube = new G4Tubs("TyvekOutTube", tyvekOutSize.x(), tyvekOutSize.y(), tyvekOutSize.z(), 0,
                                          viewDeg);
-        G4Tubs *tapeOutTop = new G4Tubs("TapeOutTop", 0, tapeOutSize.x(), tapeThick / 2., 0,
+        G4Tubs *tyvekOutTop = new G4Tubs("TyvekOutTop", 0, tyvekOutSize.x(), tyvekThick / 2., 0,
                                         viewDeg);
-        G4VSolid *tapeOutBottom;
+        G4VSolid *tyvekOutBottom;
         if (doubleLED && LEDSize > 0) {
-            G4SubtractionSolid *tapeOutBottom1 = new G4SubtractionSolid("TapeOutBottomIncomplete", tapeOutTop, hole,
+            G4SubtractionSolid *tyvekOutBottom1 = new G4SubtractionSolid("TyvekOutBottomIncomplete", tyvekOutTop, hole,
                                                                         nullptr, holePos1);
-            tapeOutBottom = new G4SubtractionSolid("TapeOutBottom", tapeOutBottom1, hole, nullptr, holePos2);
+            tyvekOutBottom = new G4SubtractionSolid("TyvekOutBottom", tyvekOutBottom1, hole, nullptr, holePos2);
         } else {
-            tapeOutBottom = new G4Tubs("TapeOutBottom", LEDSize, tapeOutSize.x(), tapeThick / 2., 0, viewDeg);
+            tyvekOutBottom = new G4Tubs("TyvekOutBottom", LEDSize, tyvekOutSize.x(), tyvekThick / 2., 0, viewDeg);
         }
-        G4ThreeVector tapeOutBottomPos = G4ThreeVector(0, 0, -tapeOutSize.z() + tapeThick / 2.);
-        G4UnionSolid *tapeOutIncomplete = new G4UnionSolid("TapeOutIncomplete", tapeOutTube, tapeOutBottom, nullptr,
-                                                           tapeOutBottomPos);
-        G4ThreeVector tapeOutTopPos = G4ThreeVector(0, 0, tapeOutSize.z() - tapeThick / 2.);
-        G4UnionSolid *tapeOut = new G4UnionSolid("TapeOut", tapeOutIncomplete, tapeOutTop, nullptr, tapeOutTopPos);
-        tapeOutLV = new G4LogicalVolume(tapeOut, tapeOutMat, "TapeOutLV");
-        new G4PVPlacement(nullptr, pos, tapeOutLV, "TapeOutPVPL", detContainerLV, false, 0, true);
-        tapeOutLV->SetVisAttributes(visBlue);
+        G4ThreeVector tyvekOutBottomPos = G4ThreeVector(0, 0, -tyvekOutSize.z() + tyvekThick / 2.);
+        G4UnionSolid *tyvekOutIncomplete = new G4UnionSolid("TyvekOutIncomplete", tyvekOutTube, tyvekOutBottom, nullptr,
+                                                           tyvekOutBottomPos);
+        G4ThreeVector tyvekOutTopPos = G4ThreeVector(0, 0, tyvekOutSize.z() - tyvekThick / 2.);
+        G4UnionSolid *tyvekOut = new G4UnionSolid("TyvekOut", tyvekOutIncomplete, tyvekOutTop, nullptr, tyvekOutTopPos);
+        tyvekOutLV = new G4LogicalVolume(tyvekOut, tyvekOutMat, "TyvekOutLV");
+        new G4PVPlacement(nullptr, pos, tyvekOutLV, "TyvekOutPVPL", detContainerLV, false, 0, true);
+        tyvekOutLV->SetVisAttributes(visBlue);
 
 
-        G4ThreeVector tapeInSize = G4ThreeVector(NaISize.y(),
-                                                 NaISize.y() + tapeThick,
-                                                 NaISize.z() + tapeThick);
-        G4Tubs *tapeInTube = new G4Tubs("TapeInTube", tapeInSize.x(), tapeInSize.y(), tapeInSize.z(), 0, viewDeg);
+        G4ThreeVector tyvekInSize = G4ThreeVector(NaISize.y(),
+                                                 NaISize.y() + tyvekThick,
+                                                 NaISize.z() + tyvekThick);
+        G4Tubs *tyvekInTube = new G4Tubs("TyvekInTube", tyvekInSize.x(), tyvekInSize.y(), tyvekInSize.z(), 0, viewDeg);
 
-        G4Tubs *tapeInTop = new G4Tubs("TapeInTop", 0, tapeInSize.x(), tapeThick / 2., 0,
+        G4Tubs *tyvekInTop = new G4Tubs("TyvekInTop", 0, tyvekInSize.x(), tyvekThick / 2., 0,
                                        viewDeg);
-        G4VSolid *tapeInBottom;
+        G4VSolid *tyvekInBottom;
         if (doubleLED && LEDSize > 0) {
-            G4SubtractionSolid *tapeInBottom1 = new G4SubtractionSolid("TapeInBottomIncomplete", tapeInTop, hole,
+            G4SubtractionSolid *tyvekInBottom1 = new G4SubtractionSolid("TyvekInBottomIncomplete", tyvekInTop, hole,
                                                                        nullptr, holePos1);
-            tapeInBottom = new G4SubtractionSolid("TapeInBottom", tapeInBottom1, hole, nullptr, holePos2);
+            tyvekInBottom = new G4SubtractionSolid("TyvekInBottom", tyvekInBottom1, hole, nullptr, holePos2);
         } else {
-            tapeInBottom = new G4Tubs("TapeInBottom", LEDSize, tapeInSize.x(), tapeThick / 2., 0, viewDeg);
+            tyvekInBottom = new G4Tubs("TyvekInBottom", LEDSize, tyvekInSize.x(), tyvekThick / 2., 0, viewDeg);
         }
-        G4ThreeVector tapeInBottomPos = G4ThreeVector(0, 0, -tapeInSize.z() + tapeThick / 2.);
-        G4UnionSolid *tapeInIncomplete = new G4UnionSolid("TapeInIncomplete", tapeInTube, tapeInBottom, nullptr,
-                                                          tapeInBottomPos);
-        G4ThreeVector tapeInTopPos = G4ThreeVector(0, 0, tapeInSize.z() - tapeThick / 2.);
-        G4UnionSolid *tapeIn = new G4UnionSolid("TapeIn", tapeInIncomplete, tapeInTop, nullptr, tapeInTopPos);
-        tapeInLV = new G4LogicalVolume(tapeIn, tapeInMat, "TapeInLV");
-        new G4PVPlacement(nullptr, pos, tapeInLV, "TapeInPVPL", detContainerLV, false, 0, true);
-        tapeInLV->SetVisAttributes(visBlue);
+        G4ThreeVector tyvekInBottomPos = G4ThreeVector(0, 0, -tyvekInSize.z() + tyvekThick / 2.);
+        G4UnionSolid *tyvekInIncomplete = new G4UnionSolid("TyvekInIncomplete", tyvekInTube, tyvekInBottom, nullptr,
+                                                          tyvekInBottomPos);
+        G4ThreeVector tyvekInTopPos = G4ThreeVector(0, 0, tyvekInSize.z() - tyvekThick / 2.);
+        G4UnionSolid *tyvekIn = new G4UnionSolid("TyvekIn", tyvekInIncomplete, tyvekInTop, nullptr, tyvekInTopPos);
+        tyvekInLV = new G4LogicalVolume(tyvekIn, tyvekInMat, "TyvekInLV");
+        new G4PVPlacement(nullptr, pos, tyvekInLV, "TyvekInPVPL", detContainerLV, false, 0, true);
+        tyvekInLV->SetVisAttributes(visBlue);
     }
 
     if (vetoThick > 0.) {
-        G4ThreeVector vetoSize = G4ThreeVector(NaISize.y() + tapeThick,
-                                               NaISize.y() + tapeThick + vetoThick,
-                                               NaISize.z() + tapeThick + vetoThick);
+        G4ThreeVector vetoSize = G4ThreeVector(NaISize.y() + tyvekThick,
+                                               NaISize.y() + tyvekThick + vetoThick,
+                                               NaISize.z() + tyvekThick + vetoThick);
         G4Tubs *vetoTube = new G4Tubs("VetoTube", vetoSize.x(), vetoSize.y(), vetoSize.z(), 0, viewDeg);
 
         G4Tubs *vetoTop = new G4Tubs("VetoTop", 0, vetoSize.x(), vetoThick / 2., 0, viewDeg);
@@ -275,8 +260,8 @@ void NaI::ConstructShell() {
     G4VSolid *shellBottom;
     if (doubleLED && LEDSize > 0) {
         G4ThreeVector NaISize = G4ThreeVector(0,
-                                              detContainerSize.y() - vetoThick - tapeThick * 2. - gapSize,
-                                              detContainerSize.z() - vetoThick - tapeThick * 2 - gapSize / 2);
+                                              detContainerSize.y() - vetoThick - tyvekThick * 2. - gapSize,
+                                              detContainerSize.z() - vetoThick - tyvekThick * 2 - gapSize / 2);
 
         G4ThreeVector holePos1 = G4ThreeVector(-NaISize.y() / 2, 0, 0);
         G4ThreeVector holePos2 = G4ThreeVector(NaISize.y() / 2, 0, 0);
@@ -297,18 +282,18 @@ void NaI::ConstructShell() {
 
 
 void NaI::ConstructLED() {
-    G4Tubs *LED = new G4Tubs("LED", 0, LEDSize, vetoThick / 2. + tapeThick + shellThick / 2, 0,
+    G4Tubs *LED = new G4Tubs("LED", 0, LEDSize, vetoThick / 2. + tyvekThick + shellThick / 2, 0,
                              viewDeg);
     if (doubleLED) {
         G4LogicalVolume *LEDLV1 = new G4LogicalVolume(LED, LEDMat, "LEDLV1");
         G4ThreeVector LEDLV1Pos = G4ThreeVector(NaISize.y() / 2, 0,
                                                 -(gapSize / 2 + NaISize.z() + vetoThick / 2. +
-                                                  tapeThick + shellThick / 2));
+                                                  tyvekThick + shellThick / 2));
         new G4PVPlacement(nullptr, LEDLV1Pos, LEDLV1, "LEDLV1PVPL", detContainerLV, false, 0, true);
 
         G4LogicalVolume *LEDLV2 = new G4LogicalVolume(LED, LEDMat, "LEDLV2");
         G4ThreeVector LEDLV2Pos = G4ThreeVector(-NaISize.y() / 2, 0,
-                                                -(gapSize / 2 + NaISize.z() + vetoThick / 2. + tapeThick +
+                                                -(gapSize / 2 + NaISize.z() + vetoThick / 2. + tyvekThick +
                                                     shellThick / 2));
         new G4PVPlacement(nullptr, LEDLV2Pos, LEDLV2, "LEDLV2PVPL", detContainerLV, false, 0, true);
         LEDLV1->SetVisAttributes(visCyan);
@@ -316,7 +301,7 @@ void NaI::ConstructLED() {
     } else {
         G4LogicalVolume *LEDLV = new G4LogicalVolume(LED, LEDMat, "LEDLV");
         G4ThreeVector LEDLVPos = G4ThreeVector(
-            0, 0, -(gapSize / 2 + NaISize.z() + vetoThick / 2. + tapeThick + shellThick / 2));
+            0, 0, -(gapSize / 2 + NaISize.z() + vetoThick / 2. + tyvekThick + shellThick / 2));
         new G4PVPlacement(nullptr, LEDLVPos, LEDLV, "LEDLVPVPL", detContainerLV, false, 0, true);
         LEDLV->SetVisAttributes(visCyan);
     }
@@ -327,8 +312,8 @@ std::vector<G4LogicalVolume *> NaI::GetSensitiveLV() const {
     return {
         NaILV,
         vetoLV,
-        tapeOutLV,
-        tapeInLV,
+        tyvekOutLV,
+        tyvekInLV,
         shellLV
     };
 }

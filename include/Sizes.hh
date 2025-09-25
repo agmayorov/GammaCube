@@ -3,9 +3,9 @@
 
 struct Sizes {
     G4double shellThick{0};
-    G4double tapeThick{0};
+    G4double tyvekThick{0};
     G4double vetoThick{0};
-    G4double lidThick{0};
+    G4double tunaCanThick{0};
     G4double gapSize{0};
     G4double LEDSize{0};
 };

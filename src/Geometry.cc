@@ -11,7 +11,10 @@ Geometry::Geometry(G4String detType, const Sizes &ss, G4double temp, G4bool dLED
     nist = G4NistManager::Instance();
     zeroRot = new G4RotationMatrix(0, 0, 0);
 
-    modelSize = G4ThreeVector(0 * mm, 30 * mm + sizes.lidThick, 22.5 * mm + sizes.lidThick / 2.);
+    viewDeg = 360 * deg;
+    sizes.tunaCanThick = 2 * mm;
+
+    modelSize = G4ThreeVector(0 * mm, 30 * mm + sizes.tunaCanThick, 22.5 * mm + sizes.tunaCanThick / 2.);
     detContainerSize = G4ThreeVector(0 * mm, 30 * mm, 22.5 * mm);
     detContainerPos = G4ThreeVector(0, 0, 0);
 
@@ -21,28 +24,25 @@ Geometry::Geometry(G4String detType, const Sizes &ss, G4double temp, G4bool dLED
                         modelSize.z()
                     }) * 2.;
 
-    viewDeg = 360 * deg;
-    sizes.lidThick = 2 * mm;
-
-    lidVisAttr = new G4VisAttributes(G4Color(0.5, 0.5, 0.5));
-    lidVisAttr->SetForceSolid(true);
+    tunaCanVisAttr = new G4VisAttributes(G4Color(0.5, 0.5, 0.5));
+    tunaCanVisAttr->SetForceSolid(true);
 }
 
-void Geometry::ConstructLid() {
-    if (sizes.lidThick <= 0.) return;
+void Geometry::ConstructTunaCan() {
+    if (sizes.tunaCanThick <= 0.) return;
 
-    G4Material *lidMat = nist->FindOrBuildMaterial("G4_Al");
-    G4ThreeVector lidSize = G4ThreeVector(modelSize.y(), modelSize.y() + sizes.lidThick,
-                                          modelSize.z() + sizes.lidThick / 2.);
-    G4Tubs *lidTube = new G4Tubs("LidTube", lidSize.x(), lidSize.y(), lidSize.z(), 0, viewDeg);
-    G4Tubs *lidCap = new G4Tubs("LidCap", 0, modelSize.y(), sizes.lidThick / 2., 0, viewDeg);
-    G4ThreeVector lidCapPos = G4ThreeVector(0, 0, modelSize.z());
-    lid = new G4UnionSolid("Lid", lidTube, lidCap, zeroRot, lidCapPos);
-    lidLV = new G4LogicalVolume(lid, lidMat, "LidLV");
-    G4ThreeVector lidPos = G4ThreeVector(detectorPos.x(), detectorPos.y(),
-                                         detectorPos.z() + sizes.lidThick / 2);
-    new G4PVPlacement(zeroRot, lidPos, lidLV, "LidPVPL", worldLV, false, 0, true);
-    lidLV->SetVisAttributes(lidVisAttr);
+    G4Material *tunaCanMat = nist->FindOrBuildMaterial("G4_Al");
+    G4ThreeVector tunaCanSize = G4ThreeVector(modelSize.y(), modelSize.y() + sizes.tunaCanThick,
+                                          modelSize.z() + sizes.tunaCanThick / 2.);
+    G4Tubs *tunaCanTube = new G4Tubs("TunaCanTube", tunaCanSize.x(), tunaCanSize.y(), tunaCanSize.z(), 0, viewDeg);
+    G4Tubs *tunaCanCap = new G4Tubs("TunaCanCap", 0, modelSize.y(), sizes.tunaCanThick / 2., 0, viewDeg);
+    G4ThreeVector tunaCanCapPos = G4ThreeVector(0, 0, modelSize.z());
+    tunaCan = new G4UnionSolid("TunaCan", tunaCanTube, tunaCanCap, zeroRot, tunaCanCapPos);
+    tunaCanLV = new G4LogicalVolume(tunaCan, tunaCanMat, "TunaCanLV");
+    G4ThreeVector tunaCanPos = G4ThreeVector(detectorPos.x(), detectorPos.y(),
+                                         detectorPos.z() + sizes.tunaCanThick / 2);
+    new G4PVPlacement(zeroRot, tunaCanPos, tunaCanLV, "TunaCanPVPL", worldLV, false, 0, true);
+    tunaCanLV->SetVisAttributes(tunaCanVisAttr);
 }
 
 
@@ -59,8 +59,8 @@ void Geometry::ConstructDetector() {
     std::vector<G4LogicalVolume *> sensitiveLV = detector->GetSensitiveLV();
     detectorLV = sensitiveLV.at(0);
     vetoLV = sensitiveLV.at(1);
-    tapeOutLV = sensitiveLV.at(2);
-    tapeInLV = sensitiveLV.at(3);
+    tyvekOutLV = sensitiveLV.at(2);
+    tyvekInLV = sensitiveLV.at(3);
     shellLV = sensitiveLV.at(4);
 }
 
@@ -79,7 +79,7 @@ G4VPhysicalVolume *Geometry::Construct() {
     worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
     ConstructDetector();
-    ConstructLid();
+    ConstructTunaCan();
 
     return worldPVP;
 }
@@ -112,10 +112,10 @@ void Geometry::ConstructSDandField() {
         shellLV->SetSensitiveDetector(shellSD);
     }
 
-    if (sizes.lidThick > 0) {
-        auto *lidSD = new SensitiveDetector("LidSD", 2, "Lid");
-        sdManager->AddNewDetector(lidSD);
-        lidLV->SetSensitiveDetector(lidSD);
+    if (sizes.tunaCanThick > 0) {
+        auto *tunaCanSD = new SensitiveDetector("TunaCanSD", 2, "TunaCan");
+        sdManager->AddNewDetector(tunaCanSD);
+        tunaCanLV->SetSensitiveDetector(tunaCanSD);
     }
 
     if (sizes.vetoThick > 0) {
@@ -124,13 +124,13 @@ void Geometry::ConstructSDandField() {
         vetoLV->SetSensitiveDetector(vetoSD);
     }
 
-    if (sizes.tapeThick > 0.) {
-        auto *tapeOutSD = new SensitiveDetector("TapeOutSD", 4, "TapeOut");
-        sdManager->AddNewDetector(tapeOutSD);
-        tapeOutLV->SetSensitiveDetector(tapeOutSD);
+    if (sizes.tyvekThick > 0.) {
+        auto *tyvekOutSD = new SensitiveDetector("TyvekOutSD", 4, "TyvekOut");
+        sdManager->AddNewDetector(tyvekOutSD);
+        tyvekOutLV->SetSensitiveDetector(tyvekOutSD);
 
-        auto *tapeInSD = new SensitiveDetector("TapeInSD", 5, "TapeIn");
-        sdManager->AddNewDetector(tapeInSD);
-        tapeInLV->SetSensitiveDetector(tapeInSD);
+        auto *tyvekInSD = new SensitiveDetector("TyvekInSD", 5, "TyvekIn");
+        sdManager->AddNewDetector(tyvekInSD);
+        tyvekInLV->SetSensitiveDetector(tyvekInSD);
     }
 }

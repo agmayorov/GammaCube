@@ -1,22 +1,35 @@
 #include "PrimaryGeneratorAction.hh"
 
-PrimaryGeneratorAction::PrimaryGeneratorAction(Geometry *geometry, G4bool vFlux) : particleGun(new G4ParticleGun(1)),
+PrimaryGeneratorAction::PrimaryGeneratorAction(const Geometry *geometry, const G4bool vFlux) : particleGun(
+        new G4ParticleGun(1)),
     verticalFlux(vFlux) {
     center = geometry->detectorPos;
-    detectorHalfSize = geometry->detContainerSize;
+    detectorHalfSize = geometry->modelSize;
     const G4ThreeVector tempVec = G4ThreeVector(0,
-                                                geometry->modelSize.y() + geometry->sizes.lidThick,
-                                                geometry->modelSize.z() + geometry->sizes.lidThick);
+                                                geometry->modelSize.y(),
+                                                geometry->modelSize.z());
     radius = sqrt(tempVec.y() * tempVec.y() + tempVec.z() * tempVec.z()) + 5 * mm;
 
-    alpha = -1.30;
-    beta = -2.34;
-    E0 = 0.18 / (2 + alpha);
-    useBandForGammas = true;
-    if (useBandForGammas) {
-        Emin = 0.001 * MeV;
-        Emax = 500 * MeV;
-        BuildBandCDF();
+    alpha = 1.411103;
+    A = 9.360733;
+    usePLAWForGammas = false;
+    if (usePLAWForGammas) {
+        Emin = 0.01 * MeV;
+        Emax = 100 * MeV;
+    }
+
+    useCSVForProtons = true;
+    csvPath = "../Data_Sheet_2.CSV";
+    csvYear = 1998;
+    csvOrder = 15;
+
+    csvEnergyToMeV = 1.;
+    csvPdfType = PdfType::PerE;
+
+    if (useCSVForProtons) {
+        Emin = 0.1 * MeV;
+        Emax = 1000 * MeV;
+        BuildCSVFluxCDF();
     }
 }
 
@@ -26,65 +39,205 @@ PrimaryGeneratorAction::~PrimaryGeneratorAction() {
 }
 
 
-G4double PrimaryGeneratorAction::BandNofE(const G4double E) const {
-    const G4double Eb = (alpha - beta) * E0;
-    constexpr G4double E_100 = 0.1 * MeV;
-
-    if (E < Eb) {
-        return std::pow(E / E_100, alpha) * std::exp(-E / E0);
-    }
-    return std::pow((alpha - beta) * E0 / E_100, alpha - beta)
-           * std::exp(beta - alpha) * std::pow(E / E_100, beta);
-}
-
-
-void PrimaryGeneratorAction::BuildBandCDF() {
-    constexpr int N = 8192;
-    bandE.resize(N);
-    bandCDF.assign(N, 0.0);
-
-    const G4double logR = std::log(Emax / Emin);
-
-    for (int i = 0; i < N; ++i) {
-        const G4double u = i / static_cast<G4double>(N - 1);
-        bandE[i] = Emin * std::exp(u * logR);
-    }
-
-    std::vector<G4double> f(N);
-    for (int i = 0; i < N; ++i) f[i] = BandNofE(bandE[i]);
-
-    G4double cum = 0.0;
-    bandCDF[0] = 0.0;
-    for (int i = 0; i < N - 1; ++i) {
-        const G4double dE = bandE[i + 1] - bandE[i];
-        const G4double trap = 0.5 * (f[i] + f[i + 1]) * dE;
-        cum += trap;
-        bandCDF[i + 1] = cum;
-    }
-
-    if (cum <= 0) {
-        for (int i = 0; i < N; ++i) bandCDF[i] = i / static_cast<G4double>(N - 1);
-        return;
-    }
-    for (int i = 0; i < N; ++i) bandCDF[i] /= cum;
-}
-
-
-G4double PrimaryGeneratorAction::SampleBandEnergyCDF() const {
+G4double PrimaryGeneratorAction::SamplePLAWEnergy() const {
     const G4double u = G4UniformRand();
 
-    const auto it = std::lower_bound(bandCDF.begin(), bandCDF.end(), u);
-    if (it == bandCDF.begin()) return bandE.front();
-    if (it == bandCDF.end()) return bandE.back();
+    if (std::abs(alpha - 1.0) < 1e-12) {
+        return Emin * std::pow(Emax / Emin, u);
+    }
 
-    const size_t j = std::distance(bandCDF.begin(), it);
+    const G4double EminPow = std::pow(Emin, 1.0 - alpha);
+    const G4double EmaxPow = std::pow(Emax, 1.0 - alpha);
+    const G4double val = EminPow + u * (EmaxPow - EminPow);
+    return std::pow(val, 1.0 / (1.0 - alpha));
+}
+
+
+static std::vector<double> extract_numbers(const std::string &line) {
+    static const std::regex re(R"(([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?))");
+    std::vector<double> out;
+    for (std::sregex_iterator it(line.begin(), line.end(), re), end; it != end; ++it) {
+        out.push_back(std::stod((*it)[1].str()));
+    }
+    return out;
+}
+
+void PrimaryGeneratorAction::BuildCSVFluxCDF() {
+    csvE.clear();
+    csvCDF.clear();
+
+    std::ifstream in(csvPath.c_str());
+    if (!in) {
+        G4Exception("PrimaryGeneratorAction::BuildCSVFluxCDF", "CSV_OPEN_FAIL",
+                    JustWarning, ("Cannot open " + csvPath).c_str());
+        csvE = {1. * MeV, 10. * MeV};
+        csvCDF = {0.0, 1.0};
+        return;
+    }
+
+    std::vector<Row> rows;
+    rows.reserve(1884);
+
+    std::string line;
+    bool headerSkipped = false;
+    while (std::getline(in, line)) {
+        if (!headerSkipped) { headerSkipped = true; continue; }
+        auto nums = extract_numbers(line);
+        if (nums.size() < 4) continue;
+
+        const int yr = static_cast<int>(std::llround(nums[0]));
+        const double E_csv = nums[1];
+        const double flx = nums[2];
+        const int ord = static_cast<int>(std::llround(nums.back()));
+
+        if (yr == csvYear && ord == csvOrder) {
+            const double E_G4 = E_csv * csvEnergyToMeV * MeV;
+            rows.push_back({E_G4, flx});
+        }
+    }
+    in.close();
+
+    if (rows.size() < 2) {
+        G4Exception("PrimaryGeneratorAction::BuildCSVFluxCDF", "CSV_NO_ROWS",
+                    JustWarning, "No matching rows for given year/order.");
+        csvE = {1. * MeV, 10. * MeV};
+        csvCDF = {0.0, 1.0};
+        return;
+    }
+
+    std::sort(rows.begin(), rows.end(),
+              [](const Row &a, const Row &b) { return a.E_MeV < b.E_MeV; });
+
+    {
+        std::vector<Row> uniq;
+        uniq.reserve(rows.size());
+        for (const auto &r: rows) {
+            if (!uniq.empty() && std::abs(r.E_MeV - uniq.back().E_MeV) < 1e-12 * MeV) continue;
+            uniq.push_back(r);
+        }
+        rows.swap(uniq);
+    }
+
+    const size_t Ntot = rows.size();
+    std::vector<double> E(Ntot), lE(Ntot), f_perE(Ntot, 0.0);
+    for (size_t i = 0; i < Ntot; ++i) {
+        E[i]  = rows[i].E_MeV;
+        lE[i] = std::log(E[i]);
+    }
+
+    auto clamp_pos = [](const double x) { return (x > 0.0 && std::isfinite(x)) ? x : 0.0; };
+
+    if (csvPdfType == PdfType::PerE) {
+        for (size_t i = 0; i < Ntot; ++i) f_perE[i] = clamp_pos(rows[i].flux);
+    } else if (csvPdfType == PdfType::PerLog10E) {
+        constexpr double LN10 = 2.302585092994046;
+        for (size_t i = 0; i < Ntot; ++i) f_perE[i] = clamp_pos(rows[i].flux / (E[i] * LN10));
+    } else {
+        if (Ntot >= 2) {
+            auto dphi_dlnE = [&](size_t i)->double {
+                if (i == 0)         return (rows[1].flux      - rows[0].flux)      / (lE[1]      - lE[0]);
+                if (i + 1 == Ntot)  return (rows[Ntot-1].flux - rows[Ntot-2].flux) / (lE[Ntot-1] - lE[Ntot-2]);
+                return (rows[i+1].flux - rows[i-1].flux) / (lE[i+1] - lE[i-1]);
+            };
+            for (size_t i = 0; i < Ntot; ++i) f_perE[i] = clamp_pos( -dphi_dlnE(i) / E[i] );
+        }
+    }
+
+    bool useBounds = (Emin > 0.0 && Emax > 0.0 && std::isfinite(Emin) &&
+                      std::isfinite(Emax) && Emax > Emin);
+
+    size_t iLo = 0, iHi = Ntot - 1;
+    if (useBounds) {
+        auto itLo = std::lower_bound(E.begin(), E.end(), Emin);
+        if (itLo == E.begin()) {
+            iLo = 0;
+        } else if (itLo == E.end()) {
+            iLo = Ntot - 1;
+        } else {
+            size_t j = static_cast<size_t>(itLo - E.begin());
+            iLo = (Emin - E[j-1] <= E[j] - Emin) ? (j - 1) : j;
+        }
+
+        auto itHi = std::upper_bound(E.begin(), E.end(), Emax);
+        if (itHi == E.begin()) {
+            iHi = 0;
+        } else if (itHi == E.end()) {
+            iHi = Ntot - 1;
+        } else {
+            size_t j = static_cast<size_t>(itHi - E.begin());
+            size_t jm1 = j - 1;
+            if (j < Ntot) {
+                iHi = (Emax - E[jm1] <= E[j] - Emax) ? jm1 : j;
+            } else {
+                iHi = jm1;
+            }
+        }
+
+        if (iLo > iHi) std::swap(iLo, iHi);
+        if (iHi == iLo && Ntot >= 2) {
+            if (iHi + 1 < Ntot) ++iHi; else if (iLo > 0) --iLo;
+        }
+    }
+
+    const size_t N = iHi - iLo + 1;
+    if (N < 2) {
+        G4Exception("PrimaryGeneratorAction::BuildCSVFluxCDF", "CSV_RANGE_TOO_NARROW",
+                    JustWarning, "Energy range too narrow (fewer than 2 points).");
+        csvE = {1. * MeV, 10. * MeV};
+        csvCDF = {0.0, 1.0};
+        return;
+    }
+
+    std::vector<double> Es(N), lEs(N), f_sub(N);
+    for (size_t k = 0; k < N; ++k) {
+        Es[k]   = E[iLo + k];
+        lEs[k]  = std::log(Es[k]);
+        f_sub[k]= f_perE[iLo + k];
+    }
+
+    csvE = Es;
+    csvCDF.assign(N, 0.0);
+    long double acc = 0.0L;
+    for (size_t i = 0; i + 1 < N; ++i) {
+        const long double gi   = static_cast<long double>(f_sub[i])   * static_cast<long double>(Es[i]);
+        const long double gip1 = static_cast<long double>(f_sub[i+1]) * static_cast<long double>(Es[i+1]);
+        const long double dlnE = lEs[i+1] - lEs[i];
+        const long double wi   = 0.5L * (gi + gip1) * dlnE;
+        acc += wi;
+        csvCDF[i + 1] = static_cast<double>(acc);
+    }
+
+    if (acc <= 0.0L || !std::isfinite(static_cast<double>(acc))) {
+        for (size_t i = 0; i < N; ++i) csvCDF[i] = static_cast<double>(i) / static_cast<double>(N - 1);
+        return;
+    }
+
+    for (auto &v: csvCDF) v /= static_cast<double>(acc);
+    csvCDF.front() = 0.0;
+    csvCDF.back()  = 1.0;
+}
+
+
+G4double PrimaryGeneratorAction::SampleLogPolyEnergyCDF() const {
+    if (csvE.size() < 2) return 1.0 * MeV;
+
+    const G4double u = G4UniformRand();
+
+    const auto it = std::upper_bound(csvCDF.begin(), csvCDF.end(), u);
+    if (it == csvCDF.begin()) return csvE.front();
+    if (it == csvCDF.end()) return csvE.back();
+    const size_t j = std::distance(csvCDF.begin(), it);
     const size_t i = j - 1;
 
-    const G4double c0 = bandCDF[i];
-    const G4double c1 = bandCDF[j];
-    const G4double t = (u - c0) / std::max(c1 - c0, 1e-16);
+    const double C0 = csvCDF[i];
+    const double C1 = csvCDF[j];
+    const double t = (u - C0) / std::max(C1 - C0, 1e-12);
 
-    return bandE[i] + t * (bandE[j] - bandE[i]);
+    const double lnE0 = std::log(csvE[i]);
+    const double lnE1 = std::log(csvE[j]);
+    const double lnEu = lnE0 + t * (lnE1 - lnE0);
+
+    return std::exp(lnEu);
 }
 
 
@@ -116,9 +269,14 @@ void PrimaryGeneratorAction::GenerateOnSphere(G4ThreeVector &pos, G4ThreeVector 
 
 void PrimaryGeneratorAction::PickParticle(G4ParticleDefinition *&pdef, G4String &name) {
     auto *pt = G4ParticleTable::GetParticleTable();
-    if (useBandForGammas) {
+    if (usePLAWForGammas) {
         pdef = pt->FindParticle("gamma");
         name = "gamma";
+        return;
+    }
+    if (useCSVForProtons) {
+        pdef = pt->FindParticle("proton");
+        name = "proton";
         return;
     }
     if (const G4double r = G4UniformRand(); r < 0.25) {
@@ -153,16 +311,18 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event *evt) {
     G4ThreeVector x, v;
     if (verticalFlux) {
         v = G4ThreeVector(0., 0., -1.);
-        const G4double x_ = (G4UniformRand() - 0.5) * detectorHalfSize.x();
-        const G4double y_ = (G4UniformRand() - 0.5) * detectorHalfSize.y();
+        const G4double x_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.y();
+        const G4double y_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.y();
         const G4double z_ = radius;
         x = G4ThreeVector(x_, y_, z_);
     } else {
         GenerateOnSphere(x, v);
     }
     G4double energy = 0.0;
-    if (useBandForGammas) {
-        energy = SampleBandEnergyCDF();
+    if (usePLAWForGammas) {
+        energy = SamplePLAWEnergy();
+    } else if (useCSVForProtons && pname == "proton") {
+        energy = SampleLogPolyEnergyCDF();
     } else {
         energy = Emin * std::pow(Emax / Emin, G4UniformRand());
     }
@@ -179,7 +339,7 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event *evt) {
         rec.index = static_cast<int>(ea->primBuf.size());
         rec.pdg = pdef->GetPDGEncoding();
         rec.name = pname;
-        rec.E_MeV = energy;
+        rec.E_MeV = energy / MeV;
         rec.dir = v;
         rec.pos_mm = x / mm;
         rec.t0_ns = 0.0;

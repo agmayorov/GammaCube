@@ -6,15 +6,15 @@ EventAction::EventAction(AnalysisManager *an, const Sizes &sizes) : analysisMana
     if (detSizes.shellThick > 0.) {
         detMap.emplace_back("ShellSD/EdepHits", 1, "Shell");
     }
-    if (detSizes.lidThick > 0.) {
-        detMap.emplace_back("LidSD/EdepHits", 2, "Lid");
+    if (detSizes.tunaCanThick > 0.) {
+        detMap.emplace_back("TunaCanSD/EdepHits", 2, "TunaCan");
     }
     if (detSizes.vetoThick > 0.) {
         detMap.emplace_back("VetoSD/EdepHits", 3, "Veto");
     }
-    if (detSizes.tapeThick > 0.) {
-        detMap.emplace_back("TapeOutSD/EdepHits", 4, "TapeOut");
-        detMap.emplace_back("TapeInSD/EdepHits", 5, "TapeIn");
+    if (detSizes.tyvekThick > 0.) {
+        detMap.emplace_back("TyvekOutSD/EdepHits", 4, "TyvekOut");
+        detMap.emplace_back("TyvekInSD/EdepHits", 5, "TyvekIn");
     }
     HCIDs.assign(detMap.size(), -1);
 }
@@ -54,13 +54,13 @@ void EventAction::WritePrimaries_(int eventID) {
 int EventAction::WriteInteractions_(int eventID) {
     int n = 0;
     for (const auto &r: interBuf) {
-        analysisManager->FillInteractionRow(eventID,
-                                            r.trackID, r.parentID,
-                                            r.process,
-                                            r.volumeName, r.volumeID,
-                                            r.pos_mm, r.t_ns,
-                                            r.secIndex, r.secPDG, r.secName,
-                                            r.secE_MeV, r.secDir);
+        // analysisManager->FillInteractionRow(eventID,
+        //                                     r.trackID, r.parentID,
+        //                                     r.process,
+        //                                     r.volumeName, r.volumeID,
+        //                                     r.pos_mm, r.t_ns,
+        //                                     r.secIndex, r.secPDG, r.secName,
+        //                                     r.secE_MeV, r.secDir);
         n++;
     }
     return n;

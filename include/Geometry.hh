@@ -54,8 +54,8 @@ public:
 
     G4LogicalVolume *detectorLV;
     G4LogicalVolume *vetoLV;
-    G4LogicalVolume *tapeOutLV;
-    G4LogicalVolume *tapeInLV;
+    G4LogicalVolume *tyvekOutLV;
+    G4LogicalVolume *tyvekInLV;
 
     G4Region *vetoTopRegion;
     G4Region *vetoBottomRegion;
@@ -74,8 +74,8 @@ private:
 
     G4UnionSolid *shell;
     G4LogicalVolume *shellLV;
-    G4UnionSolid *lid;
-    G4LogicalVolume *lidLV;
+    G4UnionSolid *tunaCan;
+    G4LogicalVolume *tunaCanLV;
     G4double temperature;
 
     G4UserLimits *vetoStepLimit;
@@ -83,11 +83,11 @@ private:
     G4ProductionCuts *vetoCuts;
 
     G4VisAttributes *shellVisAttr;
-    G4VisAttributes *lidVisAttr;
+    G4VisAttributes *tunaCanVisAttr;
     G4VisAttributes *LEDVisAttr;
 
     void ConstructDetector();
-    void ConstructLid();
+    void ConstructTunaCan();
     void ConstructLED();
     void SetStepLimits();
 };

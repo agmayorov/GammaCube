@@ -10,7 +10,7 @@ Loader::Loader(int argc, char **argv) {
     sizes.vetoThick = 0 * mm;
     sizes.shellThick = 0 * mm;
     sizes.gapSize = 0 * mm;
-    sizes.tapeThick = 1 * mm;
+    sizes.tyvekThick = 1 * mm;
     sizes.LEDSize = 5 * mm;
     verticalFlux = false;
     doubleLED = false;
@@ -32,8 +32,8 @@ Loader::Loader(int argc, char **argv) {
             sizes.vetoThick = std::stod(argv[i + 1]) * mm;
         } else if (input == "-g" || input == "--gap") {
             sizes.gapSize = std::stod(argv[i + 1]) * mm;
-        } else if (input == "-tape") {
-            sizes.tapeThick = std::stod(argv[i + 1]) * mm;
+        } else if (input == "-tyvek") {
+            sizes.tyvekThick = std::stod(argv[i + 1]) * mm;
         } else if (input == "--double-LED") {
             doubleLED = true;
         } else if (input == "-LED") {

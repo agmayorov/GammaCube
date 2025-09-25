@@ -19,21 +19,21 @@ private:
     G4double viewDeg;
     G4bool doubleLED;
 
-    G4double tapeThick;
+    G4double tyvekThick;
     G4double shellThick;
     G4double vetoThick;
     G4ThreeVector NaISize;
 
     G4Material *vetoMat;
     G4Material *NaIMat;
-    G4Material *tapeInMat;
-    G4Material *tapeOutMat;
+    G4Material *tyvekInMat;
+    G4Material *tyvekOutMat;
     G4Material *LEDMat;
     G4Material *shellMat;
 
     G4LogicalVolume *NaILV;
-    G4LogicalVolume *tapeOutLV;
-    G4LogicalVolume *tapeInLV;
+    G4LogicalVolume *tyvekOutLV;
+    G4LogicalVolume *tyvekInLV;
     G4LogicalVolume *vetoLV;
     G4LogicalVolume *shellLV;
 

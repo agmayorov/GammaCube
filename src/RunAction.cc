@@ -11,8 +11,8 @@ RunAction::RunAction(const Sizes &ss) : sizes(ss) {
     G4String fileName = "GammaCube_S" + formatDouble(sizes.shellThick / mm) +
                         "_V" + formatDouble(sizes.vetoThick) +
                         "_G" + formatDouble(sizes.gapSize / mm) +
-                        "_T" + formatDouble(sizes.tapeThick / mm) +
-                        "_L" + formatDouble(sizes.lidThick / mm) + ".root";
+                        "_T" + formatDouble(sizes.tyvekThick / mm) +
+                        "_L" + formatDouble(sizes.tunaCanThick / mm) + ".root";
     analysisManager = new AnalysisManager(fileName);
 }
 
