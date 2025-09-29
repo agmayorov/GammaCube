@@ -11,7 +11,7 @@ Geometry::Geometry(G4String detType, const Sizes &ss, G4double temp, G4bool dLED
     nist = G4NistManager::Instance();
     zeroRot = new G4RotationMatrix(0, 0, 0);
 
-    viewDeg = 180 * deg;
+    viewDeg = 360 * deg;
     sizes.tunaCanThick = 2 * mm;
 
     modelSize = G4ThreeVector(0 * mm, 30 * mm + sizes.tunaCanThick, 22.5 * mm + sizes.tunaCanThick / 2.);

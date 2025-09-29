@@ -11,7 +11,7 @@
 
 class ActionInitialization : public G4VUserActionInitialization {
 public:
-    ActionInitialization(Geometry *, G4bool);
+    ActionInitialization(Geometry *, G4bool, G4String);
     ~ActionInitialization() override = default;
 
     void BuildForMaster() const override;
@@ -19,6 +19,7 @@ public:
 
 private:
     G4bool verticalFlux;
+    G4String fluxType;
     Geometry *geometry = nullptr;
 };
 

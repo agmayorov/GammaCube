@@ -7,6 +7,7 @@ Loader::Loader(int argc, char **argv) {
     macroFile = "../run.mac";
     temperature = 20;
     detectorType = "NaI";
+    fluxType = "Uniform";
     sizes.vetoThick = 0 * mm;
     sizes.shellThick = 0 * mm;
     sizes.gapSize = 0 * mm;
@@ -40,6 +41,8 @@ Loader::Loader(int argc, char **argv) {
             sizes.LEDSize = std::stod(argv[i + 1]);
         } else if (input == "-d" || input == "--detector") {
             detectorType = argv[i + 1];
+        } else if (input == "-f" || input == "--flux-type") {
+            fluxType = argv[i + 1];
         } else if (input == "--vertical-flux") {
             verticalFlux = true;
         }
@@ -71,7 +74,7 @@ Loader::Loader(int argc, char **argv) {
     physicsList->RegisterPhysics(new G4StepLimiterPhysics());
     runManager->SetUserInitialization(physicsList);
 
-    runManager->SetUserInitialization(new ActionInitialization(realWorld, verticalFlux));
+    runManager->SetUserInitialization(new ActionInitialization(realWorld, verticalFlux, fluxType));
 
     visManager = new G4VisExecutive;
     visManager->Initialize();

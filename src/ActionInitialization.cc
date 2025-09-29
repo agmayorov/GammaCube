@@ -1,7 +1,9 @@
 #include "ActionInitialization.hh"
 
 
-ActionInitialization::ActionInitialization(Geometry *geom, G4bool vFlux) : geometry(geom), verticalFlux(vFlux) {}
+ActionInitialization::ActionInitialization(Geometry *geom, G4bool vFlux, G4String fType)
+    : geometry(geom), verticalFlux(vFlux), fluxType(std::move(fType)) {
+}
 
 void ActionInitialization::BuildForMaster() const {
     RunAction *runAct = new RunAction(geometry->sizes);
@@ -15,7 +17,7 @@ void ActionInitialization::Build() const {
     EventAction *eventAct = new EventAction(runAct->analysisManager, geometry->sizes);
     SetUserAction(eventAct);
 
-    PrimaryGeneratorAction *primaryGenerator = new PrimaryGeneratorAction(geometry, verticalFlux);
+    PrimaryGeneratorAction *primaryGenerator = new PrimaryGeneratorAction(geometry, verticalFlux, fluxType);
     SetUserAction(primaryGenerator);
 
     SteppingAction *stepAct = new SteppingAction();
