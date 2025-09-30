@@ -38,8 +38,7 @@ void Geometry::ConstructTunaCan() {
     G4ThreeVector tunaCanCapPos = G4ThreeVector(0, 0, detContainerSize.z());
     tunaCan = new G4UnionSolid("TunaCan", tunaCanTube, tunaCanCap, zeroRot, tunaCanCapPos);
     tunaCanLV = new G4LogicalVolume(tunaCan, tunaCanMat, "TunaCanLV");
-    G4ThreeVector tunaCanPos = G4ThreeVector(detectorPos.x(), detectorPos.y(),
-                                             detectorPos.z() + sizes.gapSize / 2 + sizes.tunaCanThick / 2.);
+    G4ThreeVector tunaCanPos = G4ThreeVector(0, 0, sizes.tunaCanThick / 2);
     new G4PVPlacement(zeroRot, tunaCanPos, tunaCanLV, "TunaCanPVPL", worldLV, false, 0, true);
     tunaCanLV->SetVisAttributes(tunaCanVisAttr);
 }
@@ -128,8 +127,10 @@ void Geometry::ConstructSDandField() {
         sdManager->AddNewDetector(tyvekOutSD);
         tyvekOutLV->SetSensitiveDetector(tyvekOutSD);
 
-        auto *tyvekInSD = new SensitiveDetector("TyvekInSD", 5, "TyvekIn");
-        sdManager->AddNewDetector(tyvekInSD);
-        tyvekInLV->SetSensitiveDetector(tyvekInSD);
+        if (sizes.vetoThick > 0.) {
+            auto *tyvekInSD = new SensitiveDetector("TyvekInSD", 5, "TyvekIn");
+            sdManager->AddNewDetector(tyvekInSD);
+            tyvekInLV->SetSensitiveDetector(tyvekInSD);
+        }
     }
 }

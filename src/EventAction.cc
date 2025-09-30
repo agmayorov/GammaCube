@@ -14,7 +14,9 @@ EventAction::EventAction(AnalysisManager *an, const Sizes &sizes) : analysisMana
     }
     if (detSizes.tyvekThick > 0.) {
         detMap.emplace_back("TyvekOutSD/EdepHits", 4, "TyvekOut");
-        detMap.emplace_back("TyvekInSD/EdepHits", 5, "TyvekIn");
+        if (detSizes.vetoThick > 0.) {
+            detMap.emplace_back("TyvekInSD/EdepHits", 5, "TyvekIn");
+        }
     }
     HCIDs.assign(detMap.size(), -1);
 }
