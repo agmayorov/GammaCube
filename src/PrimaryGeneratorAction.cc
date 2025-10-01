@@ -1,5 +1,3 @@
-#include <utility>
-
 #include "PrimaryGeneratorAction.hh"
 
 
@@ -12,7 +10,7 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(const Geometry *geometry, const G
                                                 geometry->modelSize.z());
     radius = sqrt(tempVec.y() * tempVec.y() + tempVec.z() * tempVec.z()) + 5 * mm;
 
-    std::vector<G4String> fluxTypeList = {"Uniform", "PLAW", "SEP", "Galactic"};
+    std::vector<G4String> fluxTypeList = {"Uniform", "PLAW", "COMP", "SEP", "Galactic"};
     if (std::find(fluxTypeList.begin(), fluxTypeList.end(), fluxType) == fluxTypeList.end()) {
         G4Exception("PrimaryGeneratorAction::GeneratePrimaries", "FluxType", FatalException,
                     ("Flux type not found: " + fluxType + ".\nAvailable flux types: Uniform, PLAW, SEP, Galactic").
@@ -22,11 +20,13 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(const Geometry *geometry, const G
     if (fluxType == "Uniform") {
         flux = new UniformFlux();
     } else if (fluxType == "PLAW") {
-        flux = new PLAWFlux(0.01 * MeV, 100 * MeV, 1.411103);
+        flux = new PLAWFlux();
+    } else if (fluxType == "COMP") {
+        flux = new COMPFlux();
     } else if (fluxType == "SEP") {
-        flux = new SEPFlux(0.1 * MeV, 1000 * MeV, 1998, 15);
+        flux = new SEPFlux();
     } else if (fluxType == "Galactic") {
-        flux = new GalacticFlux(1 * GeV, 1000 * GeV, 600);
+        flux = new GalacticFlux();
     }
 }
 

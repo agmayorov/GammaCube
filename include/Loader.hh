@@ -18,6 +18,7 @@
 #include <G4RadioactiveDecayPhysics.hh>
 #include <globals.hh>
 
+#include <fstream>
 #include <iostream>
 #include <iomanip>
 
@@ -57,6 +58,12 @@ class Loader {
 public:
     Loader(int argc, char **argv);
     ~Loader();
+
+private:
+    std::string configPath;
+
+    [[nodiscard]] std::string ReadValue(const std::string &, const std::string &) const;
+    void SaveConfig(const Geometry *) const;
 };
 
 #endif //LOADER_HH

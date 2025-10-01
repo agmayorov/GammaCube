@@ -5,7 +5,7 @@ struct Sizes {
     G4double shellThick{0};
     G4double tyvekThick{0};
     G4double vetoThick{0};
-    G4double tunaCanThick{0};
+    G4double tunaCanThick{2.};
     G4double gapSize{0};
     G4double LEDSize{0};
 };

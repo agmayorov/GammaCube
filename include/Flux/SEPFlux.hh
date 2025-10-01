@@ -14,19 +14,20 @@ struct Row {
 
 class SEPFlux : public Flux {
 public:
-    SEPFlux(G4double, G4double, G4int, G4int);
+    SEPFlux();
 
 private:
-    void BuildCDF();
-
-    G4double SampleEnergy() override;
-
     std::string path;
-    G4int year;
-    G4int order;
+    G4int year{};
+    G4int order{};
 
     std::vector<G4double> EList;
     std::vector<G4double> CDF;
+
+    void GetParams();
+    void BuildCDF();
+
+    G4double SampleEnergy() override;
 };
 
 

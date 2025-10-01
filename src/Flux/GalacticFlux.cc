@@ -1,13 +1,8 @@
 #include "Flux/GalacticFlux.hh"
 
-GalacticFlux::GalacticFlux(const G4double EminGeV, const G4double EmaxGeV, const G4double pMV)
-    : phiMV(pMV) {
-    Emin = EminGeV / GeV;
-    Emax = EmaxGeV / GeV;
-    name = "proton";
-
-    particleDef = G4ParticleTable::GetParticleTable()->FindParticle(name);
-    if (!particleDef) {
+GalacticFlux::GalacticFlux() {
+    GetParams();
+    if (!G4ParticleTable::GetParticleTable()->FindParticle(name)) {
         G4Exception("GalacticFlux::GalacticFlux",
                     "InvalidSetup", FatalException,
                     ("Particle " + name + " not found in table").c_str());
@@ -16,6 +11,49 @@ GalacticFlux::GalacticFlux(const G4double EminGeV, const G4double EmaxGeV, const
     BuildCDF();
 }
 
+
+void GalacticFlux::GetParams() {
+    const std::string filepath = "../Flux_config/Galactic_params.txt";
+    std::ifstream paramFile(filepath);
+    if (!paramFile.is_open()) {
+        G4Exception("GalacticFlux::GetParams", "FILE_OPEN_FAIL",
+                    JustWarning, ("Cannot open " + filepath).c_str());
+        name = "proton";
+        phiMV = 600;
+        Emin = 0.001 * GeV;
+        Emax = 1000 * GeV;
+        paramFile.close();
+        return;
+    }
+    std::string line;
+    name = "";
+    phiMV = 0;
+    Emin = MAXFLOAT;
+    Emax = MAXFLOAT;
+    while (std::getline(paramFile, line)) {
+        if (line.find("particle") != std::string::npos) {
+            name = line.substr(line.find(':') + 2);
+        } else if (line.find("phiMV") != std::string::npos) {
+            phiMV = std::stod(line.substr(line.find(':') + 2));
+        } else if (line.find("E_min") != std::string::npos) {
+            Emin = std::stod(line.substr(line.find(':') + 2)) * MeV / GeV;
+        } else if (line.find("E_max") != std::string::npos) {
+            Emax = std::stod(line.substr(line.find(':') + 2)) * MeV / GeV;
+        }
+
+        if (!name.empty() && phiMV != 0 && Emin != MAXFLOAT && Emax != MAXFLOAT) {
+            paramFile.close();
+            return;
+        }
+    }
+    G4Exception("GalacticFlux::GetParams", "POOR_CONTENT",
+                JustWarning, ("Cannot find correct values in file " + filepath).c_str());
+    name = "proton";
+    phiMV = 600;
+    Emin = 0.001 * GeV;
+    Emax = 1000 * GeV;
+    paramFile.close();
+}
 
 void GalacticFlux::BuildCDF() {
     constexpr G4int NBins = 1000;
@@ -47,14 +85,15 @@ void GalacticFlux::BuildCDF() {
 }
 
 
-G4double GalacticFlux::J_LIS(const G4double E) const {
+G4double GalacticFlux::J_Proton(const G4double E) const {
     constexpr G4double E0 = 1.0;
     constexpr G4double mp = 0.938272;
 
     const G4double ETot = E + mp;
     G4double beta = std::sqrt(1.0 - mp * mp / (ETot * ETot));
-    if (beta <= 0) beta = 1e-6;
-
+    if (beta <= 0) {
+        beta = 1e-6;
+    }
     G4double term1 = 2620.0 / (beta * beta) * std::pow(E / E0, 1.1);
     term1 *= std::pow((std::pow(E / E0, 0.98) + std::pow(0.7, 0.98)) / (1.0 + std::pow(0.7, 0.98)), -4.0);
 
@@ -63,9 +102,61 @@ G4double GalacticFlux::J_LIS(const G4double E) const {
     return term1 + term2;
 }
 
+
+G4double GalacticFlux::J_Electron(const G4double E) const {
+    constexpr G4double E0 = 1.0;
+    constexpr G4double me = 0.000511;
+
+    const G4double ETot = E + me;
+    G4double beta_sq = 1.0 - me * me / (ETot * ETot);
+    if (beta_sq <= 0) {
+        beta_sq = 1e-6;
+    }
+
+    G4double term1 = 255.0 / beta_sq * std::pow(E / E0, -1.0);
+    term1 *= std::pow((E / E0 + 0.63) / 1.63, -2.43);
+
+    const G4double term2 = 6.4 * std::pow(E / E0, 2.0) * std::pow((E / E0 + 15.0) / 16.0, -26.0);
+
+    return term1 + term2;
+}
+
+
+G4double GalacticFlux::J_Positron(const G4double E) const {
+    constexpr G4double E0 = 1.0;
+    constexpr G4double mp = 0.000511;
+
+    const G4double ETot = E + mp;
+    G4double beta = std::sqrt(1.0 - mp * mp / (ETot * ETot));
+    if (beta <= 0) beta = 1e-6;
+
+    G4double term1 = 25.0 / (beta * beta) * std::pow(E / E0, 0.1);
+    term1 *= std::pow((std::pow(E / E0, 1.1) + std::pow(0.2, 1.1)) / (1.0 + std::pow(0.2, 1.1)), -3.31);
+
+    const G4double term2 = 23.0 * std::pow(E / E0, 0.5) * std::pow((E / E0 + 2.2) / 3.2, -9.5);
+
+    return term1 + term2;
+}
+
+
+G4double GalacticFlux::J_Alpha(const G4double E) const {
+    constexpr G4double E0 = 1.0;
+    constexpr G4double malpha = 3.727379;
+
+    const G4double ETot = E + malpha;
+    G4double beta_sq = 1.0 - malpha * malpha / (ETot * ETot);
+    if (beta_sq <= 0) beta_sq = 1e-6;
+
+    G4double term1 = 163.4 / beta_sq * std::pow(E / E0, 1.1);
+    term1 *= std::pow((std::pow(E / E0, 0.97) + std::pow(0.58, 0.97)) / (1.0 + std::pow(0.58, 0.97)), -4.0);
+
+    return term1;
+}
+
 G4double GalacticFlux::J_TOA_GeV(const G4double E) const {
     constexpr G4double mp = 0.938272;
-    const G4double phiGeV = phiMV * 1e-3;
+    const G4int Z = name == "alpha" ? 2 : 1;
+    const G4double phiGeV = phiMV * 1e-3 * Z;
 
     const G4double ELis = E + phiGeV;
     if (ELis <= 0) return 0.0;
@@ -76,7 +167,15 @@ G4double GalacticFlux::J_TOA_GeV(const G4double E) const {
         return 0.0;
     }
 
-    return num / den * J_LIS(ELis);
+    G4double J_LIS = 0;
+    if (name == "alpha") {
+        J_LIS = J_Alpha(ELis);
+    } else if (name == "e-") {
+        J_LIS = J_Electron(ELis);
+    } else if (name == "proton") {
+        J_LIS = J_Proton(ELis);
+    }
+    return num / den * J_LIS;
 }
 
 G4double GalacticFlux::SampleEnergy() {

@@ -16,19 +16,21 @@
 #include <cmath>
 #include <fstream>
 #include <numeric>
+#include <utility>
 
 #include "EventAction.hh"
 #include "Geometry.hh"
 #include "Flux/Flux.hh"
 #include "Flux/UniformFlux.hh"
 #include "Flux/PLAWFlux.hh"
+#include "Flux/COMPFlux.hh"
 #include "Flux/SEPFlux.hh"
 #include "Flux/GalacticFlux.hh"
 
 
 class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction {
 public:
-    PrimaryGeneratorAction(const Geometry *, G4bool, const G4String& );
+    PrimaryGeneratorAction(const Geometry *, G4bool, const G4String &);
     ~PrimaryGeneratorAction() override;
 
     void GeneratePrimaries(G4Event *evt) override;

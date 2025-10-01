@@ -5,13 +5,15 @@
 
 class PLAWFlux : public Flux {
 public:
-    PLAWFlux(G4double, G4double, G4double);
+    PLAWFlux();
 
 protected:
     G4double SampleEnergy() override;
 
 private:
-    G4double alpha;
+    G4double alpha{};
+
+    void GetParams();
 };
 
 

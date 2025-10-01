@@ -1,14 +1,56 @@
 #include "Flux/SEPFlux.hh"
 
 
-SEPFlux::SEPFlux(const G4double minE, const G4double maxE, const G4int y, const G4int alpha)
-    : year(y), order(alpha) {
-    Emin = minE;
-    Emax = maxE;
-    path = "../Data_Sheet_2.CSV";
+SEPFlux::SEPFlux() {
+    GetParams();
+    path = "../SEP_spectrum.CSV";
     name = "proton";
 
     BuildCDF();
+}
+
+
+void SEPFlux::GetParams() {
+    const std::string filepath = "../Flux_config/SEP_params.txt";
+    std::ifstream paramFile(filepath);
+    if (!paramFile.is_open()) {
+        G4Exception("SEPFlux::GetParams", "FILE_OPEN_FAIL",
+                    JustWarning, ("Cannot open " + filepath).c_str());
+        year = 1998;
+        order = 15;
+        Emin = 0.1 * MeV;
+        Emax = 1000.0 * MeV;
+        paramFile.close();
+        return;
+    }
+    std::string line;
+    year = 0;
+    order = 0;
+    Emax = MAXFLOAT;
+    Emin = MAXFLOAT;
+    while(std::getline(paramFile, line)) {
+        if (line.find("year") != std::string::npos) {
+            year = std::stoi(line.substr(line.find(':') + 1));
+        } else if (line.find("order") != std::string::npos) {
+            order = std::stoi(line.substr(line.find(':') + 1));
+        } else if (line.find("E_max") != std::string::npos) {
+            Emax = std::stod(line.substr(line.find(':') + 1)) * MeV;
+        } else if (line.find("E_min") != std::string::npos) {
+            Emin = std::stod(line.substr(line.find(':') + 1)) * MeV;
+        }
+
+        if (year != 0 && order != 0 && Emin != MAXFLOAT && Emax != MAXFLOAT) {
+            paramFile.close();
+            return;
+        }
+    }
+    G4Exception("SEPFlux::GetParams", "POOR_CONTENT",
+                    JustWarning, ("Cannot find values in file " + filepath).c_str());
+    year = 1998;
+    order = 15;
+    Emin = 0.1 * MeV;
+    Emax = 1000.0 * MeV;
+    paramFile.close();
 }
 
 

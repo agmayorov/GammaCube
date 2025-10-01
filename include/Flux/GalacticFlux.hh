@@ -6,22 +6,25 @@
 
 class GalacticFlux : public Flux {
 public:
-    GalacticFlux(G4double, G4double, G4double);
+    GalacticFlux();
 
 protected:
     G4double SampleEnergy() override;
 
 private:
-    void BuildCDF();
-
-    [[nodiscard]] G4double J_LIS(G4double E) const;
-    [[nodiscard]] G4double J_TOA_GeV(G4double E) const;
-
-    G4double phiMV;
-    G4ParticleDefinition* particleDef{};
+    G4double phiMV{};
 
     std::vector<G4double> energyGrid;
     std::vector<G4double> cdfGrid;
+
+    void GetParams();
+    void BuildCDF();
+
+    [[nodiscard]] G4double J_Proton(G4double E) const;
+    [[nodiscard]] G4double J_Electron(G4double E) const;
+    [[nodiscard]] G4double J_Positron(G4double E) const;
+    [[nodiscard]] G4double J_Alpha(G4double E) const;
+    [[nodiscard]] G4double J_TOA_GeV(G4double E) const;
 };
 
 #endif //GALACTICFLUX_HH
