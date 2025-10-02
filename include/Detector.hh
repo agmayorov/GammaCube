@@ -30,31 +30,58 @@
 class Detector {
 public:
     G4NistManager *nist;
-
     G4String detectorType;
 
     G4LogicalVolume *detContainerLV;
     G4ThreeVector detContainerSize;
 
-    G4VisAttributes *visBlue;
-    G4VisAttributes* visWhite;
-    G4VisAttributes *visRed;
-    G4VisAttributes *visCyan;
-    G4VisAttributes *visGrey;
+    G4VisAttributes *visBlue{};
+    G4VisAttributes *visWhite{};
+    G4VisAttributes *visRed{};
+    G4VisAttributes *visCyan{};
+    G4VisAttributes *visGrey{};
 
-    Detector() = default;
+    Detector(G4LogicalVolume *, const G4ThreeVector &, G4NistManager *, const Sizes &, G4double, G4bool,
+             const G4String &);
+    ~Detector() = default;
 
-    virtual ~Detector() = default;
+    void DefineMaterials();
+    void DefineVisual();
 
-    void init();
-
-    virtual void DefineMaterials() = 0;
-    virtual void DefineVisual();
-
-    virtual void Construct() = 0;
+    void Construct();
 
     [[nodiscard]] G4String GetDetectorType() const;
-    [[nodiscard]] virtual std::vector<G4LogicalVolume *>GetSensitiveLV() const = 0;
+    [[nodiscard]] std::vector<G4LogicalVolume *>GetSensitiveLV() const;
+
+private:
+    G4double gapSize;
+    G4double LEDSize;
+
+    G4double viewDeg;
+    G4bool doubleLED;
+
+    G4double tyvekThick;
+    G4double shellThick;
+    G4double vetoThick;
+    G4ThreeVector crystalSize;
+
+    G4Material *vetoMat{};
+    G4Material *CrystalMat{};
+    G4Material *tyvekInMat{};
+    G4Material *tyvekOutMat{};
+    G4Material *LEDMat{};
+    G4Material *shellMat{};
+
+    G4LogicalVolume *crystalLV{};
+    G4LogicalVolume *tyvekOutLV{};
+    G4LogicalVolume *tyvekInLV{};
+    G4LogicalVolume *vetoLV{};
+    G4LogicalVolume *shellLV{};
+
+    G4Tubs *hole{};
+
+    void ConstructShell();
+    void ConstructLED();
 };
 
 

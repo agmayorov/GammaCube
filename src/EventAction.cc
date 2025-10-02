@@ -2,7 +2,7 @@
 
 
 EventAction::EventAction(AnalysisManager *an, const Sizes &sizes) : analysisManager(an), detSizes(sizes) {
-    detMap = {{"DetectorSD/EdepHits", 0, "NaI"}};
+    detMap = {{"DetectorSD/EdepHits", 0, "Crystal"}};
     if (detSizes.shellThick > 0.) {
         detMap.emplace_back("ShellSD/EdepHits", 1, "Shell");
     }

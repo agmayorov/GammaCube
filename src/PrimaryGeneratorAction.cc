@@ -1,13 +1,17 @@
+#include <utility>
+
 #include "PrimaryGeneratorAction.hh"
 
 
-PrimaryGeneratorAction::PrimaryGeneratorAction(const Geometry *geometry, const G4bool vFlux, const G4String &fluxType)
-    : particleGun(new G4ParticleGun(1)), verticalFlux(vFlux) {
-    center = geometry->detectorPos;
-    detectorHalfSize = geometry->modelSize;
+PrimaryGeneratorAction::PrimaryGeneratorAction(G4ThreeVector c, G4ThreeVector mSize, const G4bool vFlux,
+                                               const G4String &fluxType)
+    : particleGun(new G4ParticleGun(1)),
+      center(std::move(c)),
+      detectorHalfSize(std::move(mSize)),
+      verticalFlux(vFlux) {
     const G4ThreeVector tempVec = G4ThreeVector(0,
-                                                geometry->modelSize.y(),
-                                                geometry->modelSize.z());
+                                                detectorHalfSize.y(),
+                                                detectorHalfSize.z());
     radius = sqrt(tempVec.y() * tempVec.y() + tempVec.z() * tempVec.z()) + 5 * mm;
 
     std::vector<G4String> fluxTypeList = {"Uniform", "PLAW", "COMP", "SEP", "Galactic"};

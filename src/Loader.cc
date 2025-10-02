@@ -1,8 +1,5 @@
 #include "Loader.hh"
 
-#include <oneapi/tbb/detail/_utils.h>
-
-
 Loader::Loader(int argc, char **argv) {
     numThreads = G4Threading::G4GetNumberOfCores();
     useUI = true;
@@ -56,7 +53,6 @@ Loader::Loader(int argc, char **argv) {
 
 #ifdef G4MULTITHREADED
     runManager = new G4MTRunManager;
-    runManager->SetNumberOfThreads(runManager->GetNumberOfThreads());
     runManager->SetNumberOfThreads(numThreads);
 #else
     runManager = new G4RunManager;
@@ -77,7 +73,9 @@ Loader::Loader(int argc, char **argv) {
     physicsList->RegisterPhysics(new G4StepLimiterPhysics());
     runManager->SetUserInitialization(physicsList);
 
-    runManager->SetUserInitialization(new ActionInitialization(realWorld, verticalFlux, fluxType));
+    runManager->SetUserInitialization(new ActionInitialization(realWorld->sizes, realWorld->modelSize,
+                                                               realWorld->detContainerPos, verticalFlux, fluxType));
+    runManager->Initialize();
 
     visManager = new G4VisExecutive;
     visManager->Initialize();
@@ -128,6 +126,7 @@ void Loader::SaveConfig(const Geometry *geometry) const {
     }
 
     out << "N: " << std::stoi(ReadValue("/run/beamOn", "../run.mac")) << "\n\n";
+    out << "Detector_type: " << detectorType << "\n\n";
     out << "Flux_type: " << fluxType << "\n";
     out << "Flux_dir: " << (verticalFlux ? "vertical" : "isotropic") << "\n";
 

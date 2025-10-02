@@ -2,10 +2,10 @@
 
 Geometry::Geometry(G4String detType, const Sizes &ss, G4double temp, G4bool dLED)
     : doubleLED(dLED), detectorType(std::move(detType)), sizes(ss), temperature(temp) {
-    std::vector<G4String> detectorList = {"NaI"};
+    std::vector<G4String> detectorList = {"NaI", "CsI"};
     if (std::find(detectorList.begin(), detectorList.end(), detectorType) == detectorList.end()) {
         G4Exception("Geometry::ConstructDetector", "DetectorType", FatalException,
-                    ("Detector not found: " + detectorType + ".\nAvailable detectors: NaI").c_str());
+                    ("Detector not found: " + detectorType + ".\nAvailable detectors: NaI, CsI").c_str());
     }
 
     nist = G4NistManager::Instance();
@@ -50,12 +50,11 @@ void Geometry::ConstructDetector() {
     detContainerLV = new G4LogicalVolume(detContainer, worldMat, "DetectorContainerLV");
     new G4PVPlacement(zeroRot, detContainerPos, detContainerLV, "DetectorContainerPVPL", worldLV, false, 0, true);
     detContainerLV->SetVisAttributes(G4VisAttributes::GetInvisible());
-    if (detectorType == "NaI") {
-        detector = new NaI(detContainerLV, detContainerSize, nist, sizes, viewDeg, doubleLED);
-    }
+
+    detector = new Detector(detContainerLV, detContainerSize, nist, sizes, viewDeg, doubleLED, detectorType);
     detector->Construct();
     std::vector<G4LogicalVolume *> sensitiveLV = detector->GetSensitiveLV();
-    detectorLV = sensitiveLV.at(0);
+    crystalLV = sensitiveLV.at(0);
     vetoLV = sensitiveLV.at(1);
     tyvekOutLV = sensitiveLV.at(2);
     tyvekInLV = sensitiveLV.at(3);
@@ -100,9 +99,9 @@ void Geometry::SetStepLimits() {
 void Geometry::ConstructSDandField() {
     G4SDManager *sdManager = G4SDManager::GetSDMpointer();
 
-    auto *detectorSD = new SensitiveDetector("DetectorSD", 0, "NaI");
+    auto *detectorSD = new SensitiveDetector("DetectorSD", 0, "Crystal");
     sdManager->AddNewDetector(detectorSD);
-    detectorLV->SetSensitiveDetector(detectorSD);
+    crystalLV->SetSensitiveDetector(detectorSD);
 
     if (sizes.shellThick > 0) {
         auto *shellSD = new SensitiveDetector("ShellSD", 1, "Shell");

@@ -23,7 +23,6 @@
 #include "SensitiveDetector.hh"
 #include "Detector.hh"
 #include "Sizes.hh"
-#include "NaI.hh"
 
 
 class Geometry : public G4VUserDetectorConstruction {
@@ -43,16 +42,13 @@ public:
     G4ThreeVector detContainerSize;
     G4ThreeVector modelSize;
 
-    G4ThreeVector detectorPos;
-    G4ThreeVector detectorSize;
-
     G4Tubs *detContainer;
     G4LogicalVolume *detContainerLV;
     G4ThreeVector detContainerPos;
 
     Sizes sizes;
 
-    G4LogicalVolume *detectorLV;
+    G4LogicalVolume *crystalLV;
     G4LogicalVolume *vetoLV;
     G4LogicalVolume *tyvekOutLV;
     G4LogicalVolume *tyvekInLV;

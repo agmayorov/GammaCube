@@ -30,7 +30,7 @@
 
 class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction {
 public:
-    PrimaryGeneratorAction(const Geometry *, G4bool, const G4String &);
+    PrimaryGeneratorAction(G4ThreeVector, G4ThreeVector, G4bool, const G4String &);
     ~PrimaryGeneratorAction() override;
 
     void GeneratePrimaries(G4Event *evt) override;
