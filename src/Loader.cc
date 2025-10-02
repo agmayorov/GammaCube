@@ -153,8 +153,10 @@ void Loader::SaveConfig(const Geometry *geometry) const {
     out << "Particles: [";
     if (fluxType == "PLAW") {
         out << "gamma";
-    } else if (fluxType == "SEP" or fluxType == "Galactic") {
+    } else if (fluxType == "SEP") {
         out << "proton";
+    } else if (fluxType == "Galactic") {
+        out << ReadValue("particle:");
     } else {
         out << "gamma, proton, electron, alpha";
     }
