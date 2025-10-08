@@ -1,7 +1,8 @@
 #include "EventAction.hh"
 
 
-EventAction::EventAction(AnalysisManager *an, const Sizes &sizes) : analysisManager(an), detSizes(sizes) {
+EventAction::EventAction(AnalysisManager *an, RunAction *r, const Sizes &sizes) : analysisManager(an), run(r),
+    detSizes(sizes) {
     detMap = {{"DetectorSD/EdepHits", 0, "Crystal"}};
     if (detSizes.shellThick > 0.) {
         detMap.emplace_back("ShellSD/EdepHits", 1, "Shell");
@@ -25,6 +26,8 @@ void EventAction::BeginOfEventAction(const G4Event *) {
     nPrimaries = 0;
     nInteractions = 0;
     nEdepHits = 0;
+    hasCrystal = false;
+    hasVeto = false;
 }
 
 void EventAction::EndOfEventAction(const G4Event *evt) {
@@ -41,6 +44,9 @@ void EventAction::EndOfEventAction(const G4Event *evt) {
     nEdepHits = WriteEdepFromSD_(evt, eventID);
 
     analysisManager->FillEventRow(eventID, nPrimaries, nInteractions, nEdepHits);
+
+    if (hasCrystal && !hasVeto) run->AddCrystalOnly(1);
+    if (hasCrystal && hasVeto) run->AddCrystalAndVeto(1);
 }
 
 // ------------------- приватные помощники -------------------
@@ -100,6 +106,11 @@ int EventAction::WriteEdepFromSD_(const G4Event *evt, int eventID) {
             const double tmin_ns = (h->tmin < DBL_MAX / 2 ? h->tmin / ns : -1.0);
             analysisManager->FillEdepRow(eventID, det_id, det_name,
                                          h->volumeID, edep_MeV, tmin_ns);
+            // --- Проставляем флаги наличия энерговыделения по подсистемам ---
+            if (edep_MeV > 0.0) {
+                if (det_name == "Crystal") MarkCrystal();
+                else if (det_name == "Veto") MarkVeto();
+            }
         }
         nHitsTotal += static_cast<int>(N);
     }

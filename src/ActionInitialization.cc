@@ -14,7 +14,7 @@ void ActionInitialization::Build() const {
     RunAction *runAct = new RunAction(sizes);
     SetUserAction(runAct);
 
-    EventAction *eventAct = new EventAction(runAct->analysisManager, sizes);
+    EventAction *eventAct = new EventAction(runAct->analysisManager, runAct, sizes);
     SetUserAction(eventAct);
 
     PrimaryGeneratorAction *primaryGenerator = new PrimaryGeneratorAction(center, modelSize, verticalFlux, fluxType);

@@ -21,6 +21,7 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 
 #include <G4VisExecutive.hh>
 #include <G4UIExecutive.hh>
@@ -28,6 +29,7 @@
 #include "Geometry.hh"
 #include "Sizes.hh"
 #include "ActionInitialization.hh"
+#include "CountRates.hh"
 
 #ifdef G4MULTITHREADED
 #include <G4MTRunManager.hh>
@@ -61,6 +63,8 @@ public:
 
 private:
     std::string configPath;
+    G4int crystalOnly{};
+    G4int crystalAndVeto{};
 
     [[nodiscard]] std::string ReadValue(const std::string &, const std::string &) const;
     void SaveConfig(const Geometry *) const;

@@ -62,8 +62,8 @@ void AnalysisManager::Book() {
 
     edepNT = analysisManager->CreateNtuple("edep", "energy deposition per sensitive channel");
     analysisManager->CreateNtupleIColumn("eventID");
-    analysisManager->CreateNtupleIColumn("det_id"); // 0=Crystal, 1=veto, ...
-    analysisManager->CreateNtupleSColumn("det_name"); // "Crystal","Veto",...
+    analysisManager->CreateNtupleIColumn("det_id"); // 0=Crystal, 1=Shell, 2=TunaCan, 3=Veto, 4=TyvekOut, 5=TyvekIn
+    analysisManager->CreateNtupleSColumn("det_name"); // "Crystal","Shell", "TunaCan", "Veto", "TyvekOut", "TyvekIn",
     analysisManager->CreateNtupleIColumn("volumeID");
     analysisManager->CreateNtupleDColumn("edep_MeV");
     analysisManager->CreateNtupleDColumn("tmin_ns");

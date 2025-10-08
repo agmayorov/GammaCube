@@ -90,6 +90,13 @@ Loader::Loader(int argc, char **argv) {
         ui->SessionStart();
         delete ui;
     }
+
+    const auto *ra = dynamic_cast<const RunAction *>(runManager->GetUserRunAction());
+    if (ra) {
+        const auto &[cOnly, cAndV] = ra->GetCounts();
+        crystalOnly = cOnly;
+        crystalAndVeto = cAndV;
+    }
     SaveConfig(realWorld);
 }
 
@@ -118,81 +125,179 @@ std::string Loader::ReadValue(const std::string &key, const std::string &filepat
 
 
 void Loader::SaveConfig(const Geometry *geometry) const {
-    const std::string filepath = "info.txt";
-    std::ofstream out(filepath);
-    if (!out.is_open()) {
-        G4cerr << "Ошибка: не удалось открыть файл " << filepath << G4endl;
-        return;
-    }
+    const int N = std::stoi(ReadValue("/run/beamOn", "../run.mac"));
 
-    out << "N: " << std::stoi(ReadValue("/run/beamOn", "../run.mac")) << "\n\n";
-    out << "Detector_type: " << detectorType << "\n\n";
-    out << "Flux_type: " << fluxType << "\n";
-    out << "Flux_dir: " << (verticalFlux ? "vertical" : "isotropic") << "\n";
+    const double R_mm = geometry->modelSize.y();
+    const double H_mm = geometry->modelSize.z() * 2.0;
+    const FluxDir dir = verticalFlux ? FluxDir::Vertical : FluxDir::Isotropic;
+    double A_eff_cm2 = effectiveArea_cm2(R_mm, H_mm, dir);
 
-    out << "Flux_params:\n{\n\t";
+    EnergyRange er{};
+    FluxType fType{};
+    FluxParams fp{};
+
     if (fluxType == "PLAW") {
-        out << "A: " << std::stod(ReadValue("A:")) << ",\n\t";
-        out << "alpha: " << std::stod(ReadValue("alpha:")) << ",\n\t";
-        out << "E_Piv: " << std::stod(ReadValue("E_Piv:")) << "\n";
+        fType = FluxType::PLAW;
+        fp.A = std::stod(ReadValue("A:"));
+        fp.alpha = std::stod(ReadValue("alpha:"));
+        fp.E_piv = std::stod(ReadValue("E_Piv:"));
+        er.Emin = std::stod(ReadValue("E_min:"));
+        er.Emax = std::stod(ReadValue("E_max:"));
     } else if (fluxType == "COMP") {
-        out << "A: " << std::stod(ReadValue("A:")) << ",\n\t";
-        out << "alpha: " << std::stod(ReadValue("alpha:")) << ",\n\t";
-        out << "E_Piv: " << std::stod(ReadValue("E_Piv:")) << ",\n\t";
-        out << "E_Peak: " << std::stod(ReadValue("E_Piv:")) << "\n";
+        fType = FluxType::COMP;
+        fp.A = std::stod(ReadValue("A:"));
+        fp.alpha = std::stod(ReadValue("alpha:"));
+        fp.E_piv = std::stod(ReadValue("E_Piv:"));
+        fp.E_peak = std::stod(ReadValue("E_Peak:"));
+        er.Emin = std::stod(ReadValue("E_min:"));
+        er.Emax = std::stod(ReadValue("E_max:"));
     } else if (fluxType == "SEP") {
-        out << "year: " << std::stoi(ReadValue("year:")) << ",\n\t";
-        out << "order: " << std::stoi(ReadValue("order:")) << "\n";
+        fType = FluxType::SEP;
+        fp.sep_year = std::stoi(ReadValue("year:"));
+        fp.sep_order = std::stoi(ReadValue("order:"));
+        fp.sep_csv_path = "../SEP_coefficients.CSV";
+        er.Emin = std::stod(ReadValue("E_min:"));
+        er.Emax = std::stod(ReadValue("E_max:"));
     } else if (fluxType == "Galactic") {
-        out << "phiMV: " << std::stoi(ReadValue("phiMV:")) << "\n";
+        fType = FluxType::GALACTIC;
+        fp.phiMV = std::stod(ReadValue("phiMV:"));
+        fp.particle = ReadValue("particle:");
+        er.Emin = std::stod(ReadValue("E_min:"));
+        er.Emax = std::stod(ReadValue("E_max:"));
     } else {
-        out << "\n";
+        fType = FluxType::UNIFORM;
+        er.Emin = 0.001;
+        er.Emax = 500.0;
     }
-    out << "}\n\n";
 
-    out << "Particles: [";
+    RateCounts counts{crystalOnly, crystalAndVeto};
+
+    RateResult rr{};
+    bool rate_ok = true;
+    try {
+        rr = computeRate(fType, fp, er, A_eff_cm2, N, counts);
+    } catch (const std::exception &ex) {
+        rate_ok = false;
+        G4cerr << "[SaveConfig] WARNING: rate computation failed: " << ex.what() << G4endl;
+    }
+
+    std::ostringstream buf;
+
+    buf << "N: " << N << "\n\n";
+    buf << "Detector_type: " << detectorType << "\n\n";
+    buf << "Flux_type: " << fluxType << "\n";
+    buf << "Flux_dir: " << (verticalFlux ? "vertical" : "isotropic") << "\n";
+
+    buf << "Flux_params:\n{\n\t";
     if (fluxType == "PLAW") {
-        out << "gamma";
+        buf << "A: " << std::stod(ReadValue("A:")) << ",\n\t";
+        buf << "alpha: " << std::stod(ReadValue("alpha:")) << ",\n\t";
+        buf << "E_Piv: " << std::stod(ReadValue("E_Piv:")) << "\n";
+    } else if (fluxType == "COMP") {
+        buf << "A: " << std::stod(ReadValue("A:")) << ",\n\t";
+        buf << "alpha: " << std::stod(ReadValue("alpha:")) << ",\n\t";
+        buf << "E_Piv: " << std::stod(ReadValue("E_Piv:")) << ",\n\t";
+        buf << "E_Peak: " << std::stod(ReadValue("E_Peak:")) << "\n";
     } else if (fluxType == "SEP") {
-        out << "proton";
+        buf << "year: " << std::stoi(ReadValue("year:")) << ",\n\t";
+        buf << "order: " << std::stoi(ReadValue("order:")) << "\n";
     } else if (fluxType == "Galactic") {
-        out << ReadValue("particle:");
+        buf << "phiMV: " << std::stod(ReadValue("phiMV:")) << ",\n\t";
+        buf << "particle: " << ReadValue("particle:") << "\n";
     } else {
-        out << "gamma, proton, electron, alpha";
+        buf << "\n";
     }
-    out << "]\n";
+    buf << "}\n\n";
 
-    out << "Energies:\n{\n\t";
-    if (fluxType == "PLAW" or fluxType == "COMP") {
-        out << "gamma: ";
+    buf << "Particles: [";
+    if (fluxType == "PLAW") {
+        buf << "gamma";
     } else if (fluxType == "SEP") {
-        out << "proton: ";
+        buf << "proton";
     } else if (fluxType == "Galactic") {
-        out << ReadValue("particle:") << ": ";
+        buf << ReadValue("particle:");
+    } else {
+        buf << "gamma, proton, electron, alpha";
+    }
+    buf << "]\n";
+
+    buf << "Energies:\n{\n\t";
+    if (fluxType == "PLAW" || fluxType == "COMP") {
+        buf << "gamma: ";
+    } else if (fluxType == "SEP") {
+        buf << "proton: ";
+    } else if (fluxType == "Galactic") {
+        buf << ReadValue("particle:") << ": ";
     } else if (fluxType == "Uniform") {
-        out << "gamma: (0.001, 500),\n\t";
-        out << "electron: (0.001, 100),\n\t";
-        out << "proton: (1, 10000),\n\t";
-        out << "alpha: (10, 10000),\n";
+        buf << "gamma: (0.001, 500),\n\t";
+        buf << "electron: (0.001, 100),\n\t";
+        buf << "proton: (1, 10000),\n\t";
+        buf << "alpha: (10, 10000),\n";
     }
     if (fluxType != "Uniform") {
-        out << "(" << ReadValue("E_min:") << ", ";
-        out << ReadValue("E_max:") << ")\n";
+        buf << "(" << ReadValue("E_min:") << ", " << ReadValue("E_max:") << ")\n";
     }
-    out << "}\n\n";
+    buf << "}\n\n";
 
-    out << "Geometry:\n{\n\t";
-    out << "TunaCan: " << geometry->sizes.tunaCanThick / mm << "\n\t";
-    out << "Shell: " << sizes.shellThick / mm << "\n\t";
-    out << "Tyvek: " << sizes.tyvekThick / mm << "\n\t";
-    out << "Veto: " << sizes.vetoThick / mm << "\n\t";
-    out << "Gap: " << sizes.gapSize / mm << "\n\t";
-    out << "LED: " << sizes.LEDSize / mm << "\n}\n\n";
+    buf << "Geometry:\n{\n\t";
+    buf << "TunaCan: " << geometry->sizes.tunaCanThick / mm << "\n\t";
+    buf << "Shell: " << sizes.shellThick / mm << "\n\t";
+    buf << "Tyvek: " << sizes.tyvekThick / mm << "\n\t";
+    buf << "Veto: " << sizes.vetoThick / mm << "\n\t";
+    buf << "Gap: " << sizes.gapSize / mm << "\n\t";
+    buf << "LED: " << sizes.LEDSize / mm << "\n}\n\n";
 
-    out << "Model_size:\n{\n\t";
-    out << "R: " << geometry->modelSize.y() / mm << "\n\t";
-    out << "H: " << geometry->modelSize.z() * 2. / mm << "\n}";
+    buf << "Model_size:\n{\n\t";
+    buf << "R: " << geometry->modelSize.y() / mm << "\n\t";
+    buf << "H: " << geometry->modelSize.z() * 2. / mm << "\n}\n\n";
 
+    buf << "Counts:\n{\n\t";
+    buf << "Crystal_only: " << crystalOnly << "\n\t";
+    buf << "Veto_then_Crystal: " << crystalAndVeto << "\n}\n\n";
+
+    buf << "Rates:\n{\n\t";
+    buf << std::fixed << std::setprecision(6);
+    if (rate_ok) {
+        buf << "Area: " << A_eff_cm2 << "\n\t";
+        buf << "Integral: " << rr.integral << "\n\t";
+        buf << "Ndot: " << rr.Ndot << "\n\t";
+        buf << "Rate_Crystal_only: " << rr.rateCrystal << "\n\t";
+        buf << "Rate_Both: " << rr.rateBoth << "\n";
+    } else {
+        buf << "Area: NaN\n\t";
+        buf << "Integral: NaN\n\t";
+        buf << "Ndot: NaN\n\t";
+        buf << "Rate_Crystal_only: NaN\n\t";
+        buf << "Rate_Both: NaN\n";
+    }
+    buf << "}\n\n";
+
+    auto sanitize = [](std::string ss) {
+        for (char &c: ss) if (c == ' ') c = '_';
+        return ss;
+    };
+
+    std::string filename = "info_" + detectorType + "_" + fluxType;
+    if (fluxType == "Galactic") {
+        const std::string part = ReadValue("particle:");
+        const std::string phi = ReadValue("phiMV:");
+        filename += "_particle:" + part + "_phiMV:" + phi + ".txt";
+    // } else if (fluxType == "SEP") {
+    //     const std::string y = ReadValue("year:");
+    //     const std::string order = ReadValue("order:");
+    //     filename += "_year:" + y + "_order:" + order + ".txt";
+    } else {
+        filename += ".txt";
+    }
+    filename = sanitize(filename);
+
+    std::ofstream out(filename);
+    if (!out.is_open()) {
+        G4cerr << "Ошибка: не удалось открыть файл " << filename << G4endl;
+        return;
+    }
+    out << buf.str();
     out.close();
-    std::cout << "Configuration saved in " << filepath << std::endl;
+
+    std::cout << "Configuration saved in " << filename << std::endl;
 }

@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "Geometry.hh"
+#include "RunAction.hh"
 #include "Sizes.hh"
 #include "AnalysisManager.hh"
 #include "SDHit.hh"
@@ -53,7 +54,7 @@ public:
     std::vector<PrimaryRec> primBuf;
     std::vector<InteractionRec> interBuf;
 
-    EventAction(AnalysisManager *, const Sizes &);
+    EventAction(AnalysisManager *, RunAction *, const Sizes &);
     ~EventAction() override = default;
 
     void BeginOfEventAction(const G4Event *) override;
@@ -64,15 +65,22 @@ private:
     int WriteInteractions_(int eventID);
     int WriteEdepFromSD_(const G4Event *evt, int eventID);
 
+    inline void MarkCrystal() { hasCrystal = true; }
+    inline void MarkVeto() { hasVeto = true; }
+
     AnalysisManager *analysisManager = nullptr;
     Sizes detSizes;
 
-    std::vector<std::tuple<G4String, int, G4String>> detMap; // (hcName, det_id, det_name)
+    std::vector<std::tuple<G4String, int, G4String>> detMap;
     std::vector<int> HCIDs;
 
     int nPrimaries = 0;
     int nInteractions = 0;
     int nEdepHits = 0;
+
+    RunAction* run = nullptr;
+    bool hasCrystal = false;
+    bool hasVeto = false;
 };
 
 #endif //EVENTACTION_HH

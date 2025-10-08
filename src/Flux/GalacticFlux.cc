@@ -79,9 +79,14 @@ void GalacticFlux::BuildCDF() {
         cdfGrid[i] = integral;
     }
 
+    if (integral <= 0.0 || !std::isfinite(integral)) {
+        G4Exception("GalacticFlux::BuildCDF", "BAD_INTEGRAL", FatalException,
+                    "Integral of spectrum is non-positive or non-finite.");
+    }
     for (int i = 0; i < NBins; i++) {
         cdfGrid[i] /= integral;
     }
+    cdfGrid.back() = 1.0;
 }
 
 
@@ -155,14 +160,23 @@ G4double GalacticFlux::J_Alpha(const G4double E) const {
 
 G4double GalacticFlux::J_TOA_GeV(const G4double E) const {
     constexpr G4double mp = 0.938272;
+    constexpr G4double me = 0.000511;
+    constexpr G4double malpha = 3.727379;
+    G4double mass = 0;
     const G4int Z = name == "alpha" ? 2 : 1;
     const G4double phiGeV = phiMV * 1e-3 * Z;
 
     const G4double ELis = E + phiGeV;
     if (ELis <= 0) return 0.0;
-
-    const G4double num = E * (E + 2.0 * mp);
-    const G4double den = ELis * (ELis + 2.0 * mp);
+    if (name == "alpha") {
+        mass = malpha;
+    } else if (name == "e-" or name == "e+") {
+        mass = me;;
+    } else if (name == "proton") {
+        mass = mp;;
+    }
+    const G4double num = E * (E + 2.0 * mass);
+    const G4double den = ELis * (ELis + 2.0 * mass);
     if (den <= 0) {
         return 0.0;
     }
@@ -174,6 +188,8 @@ G4double GalacticFlux::J_TOA_GeV(const G4double E) const {
         J_LIS = J_Electron(ELis);
     } else if (name == "proton") {
         J_LIS = J_Proton(ELis);
+    } else if (name == "e+") {
+        J_LIS = J_Positron(ELis);
     }
     return num / den * J_LIS;
 }
