@@ -1,7 +1,7 @@
 #include "Geometry.hh"
 
-Geometry::Geometry(G4String detType, const Sizes &ss, G4double temp, G4bool dLED)
-    : doubleLED(dLED), detectorType(std::move(detType)), sizes(ss), temperature(temp) {
+Geometry::Geometry(G4String detType, const Sizes &ss, G4double temp, G4int numLED)
+    : nLED(numLED), detectorType(std::move(detType)), sizes(ss), temperature(temp) {
     std::vector<G4String> detectorList = {"NaI", "CsI"};
     if (std::find(detectorList.begin(), detectorList.end(), detectorType) == detectorList.end()) {
         G4Exception("Geometry::ConstructDetector", "DetectorType", FatalException,
@@ -51,7 +51,7 @@ void Geometry::ConstructDetector() {
     new G4PVPlacement(zeroRot, detContainerPos, detContainerLV, "DetectorContainerPVPL", worldLV, false, 0, true);
     detContainerLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
-    detector = new Detector(detContainerLV, detContainerSize, nist, sizes, viewDeg, doubleLED, detectorType);
+    detector = new Detector(detContainerLV, detContainerSize, nist, sizes, viewDeg, nLED, detectorType);
     detector->Construct();
     std::vector<G4LogicalVolume *> sensitiveLV = detector->GetSensitiveLV();
     crystalLV = sensitiveLV.at(0);

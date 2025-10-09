@@ -2,7 +2,7 @@
 
 
 Detector::Detector(G4LogicalVolume *detContLV, const G4ThreeVector &detContSize, G4NistManager *nistMan,
-                   const Sizes &sizes, G4double vDeg, G4bool dLED, const G4String &detType) {
+                   const Sizes &sizes, G4double vDeg, const G4int numLED, const G4String &detType) {
     detectorType = detType;
     detContainerLV = detContLV;
     detContainerSize = detContSize;
@@ -13,7 +13,7 @@ Detector::Detector(G4LogicalVolume *detContLV, const G4ThreeVector &detContSize,
     gapSize = sizes.gapSize;
     LEDSize = sizes.LEDSize;
     viewDeg = vDeg;
-    doubleLED = dLED;
+    nLED = numLED;
 
     DefineMaterials();
     DefineVisual();
@@ -218,12 +218,7 @@ void Detector::Construct() {
     new G4PVPlacement(nullptr, pos, crystalLV, "CrystalPVPL", detContainerLV, false, 0, true);
     crystalLV->SetVisAttributes(visWhite);
 
-    G4ThreeVector holePos1 = G4ThreeVector(-crystalSize.y() / 2, 0, 0);
-    G4ThreeVector holePos2 = G4ThreeVector(crystalSize.y() / 2, 0, 0);
-    if (LEDSize > 0) {
-        hole = new G4Tubs("Hole", 0, LEDSize, vetoThick / 2. + tyvekThickTotal.z() + 2 * cm + shellThick / 2, 0,
-                          360 * deg);
-    }
+    ConstructLED();
 
     if (tyvekThick > 0.) {
         G4ThreeVector tyvekOutSize = G4ThreeVector(detContainerSize.y() - shellThick - gapSize - tyvekThick,
@@ -234,10 +229,9 @@ void Detector::Construct() {
         G4Tubs *tyvekOutTop = new G4Tubs("TyvekOutTop", 0, tyvekOutSize.x(), tyvekThick / 2., 0,
                                          viewDeg);
         G4VSolid *tyvekOutBottom;
-        if (doubleLED && LEDSize > 0) {
-            G4SubtractionSolid *tyvekOutBottom1 = new G4SubtractionSolid("TyvekOutBottomIncomplete", tyvekOutTop, hole,
-                                                                         nullptr, holePos1);
-            tyvekOutBottom = new G4SubtractionSolid("TyvekOutBottom", tyvekOutBottom1, hole, nullptr, holePos2);
+        if (LEDSize > 0 and nLED != 1) {
+            tyvekOutBottom = new G4SubtractionSolid("TyvekOutBottom", tyvekOutTop, LEDs, nullptr,
+                                                    G4ThreeVector(0, 0, 0));
         } else {
             tyvekOutBottom = new G4Tubs("TyvekOutBottom", LEDSize, tyvekOutSize.x(), tyvekThick / 2., 0, viewDeg);
         }
@@ -260,10 +254,9 @@ void Detector::Construct() {
             G4Tubs *tyvekInTop = new G4Tubs("TyvekInTop", 0, tyvekInSize.x(), tyvekThick / 2., 0,
                                             viewDeg);
             G4VSolid *tyvekInBottom;
-            if (doubleLED && LEDSize > 0) {
-                G4SubtractionSolid *tyvekInBottom1 = new G4SubtractionSolid("TyvekInBottomIncomplete", tyvekInTop, hole,
-                                                                            nullptr, holePos1);
-                tyvekInBottom = new G4SubtractionSolid("TyvekInBottom", tyvekInBottom1, hole, nullptr, holePos2);
+            if (nLED != 1 and LEDSize > 0) {
+                tyvekInBottom = new G4SubtractionSolid("TyvekInBottom", tyvekInTop, LEDs, nullptr,
+                                                       G4ThreeVector(0, 0, 0));
             } else {
                 tyvekInBottom = new G4Tubs("TyvekInBottom", LEDSize, tyvekInSize.x(), tyvekThick / 2., 0, viewDeg);
             }
@@ -286,10 +279,8 @@ void Detector::Construct() {
 
         G4Tubs *vetoTop = new G4Tubs("VetoTop", 0, vetoSize.x(), vetoThick / 2., 0, viewDeg);
         G4VSolid *vetoBottom;
-        if (doubleLED && LEDSize > 0) {
-            G4SubtractionSolid *vetoBottom1 = new G4SubtractionSolid("VetoBottomIncomplete", vetoTop, hole,
-                                                                     nullptr, holePos1);
-            vetoBottom = new G4SubtractionSolid("VetoBottom", vetoBottom1, hole, nullptr, holePos2);
+        if (nLED != 1 && LEDSize > 0) {
+            vetoBottom = new G4SubtractionSolid("VetoBottom", vetoTop, LEDs, nullptr, G4ThreeVector(0, 0, 0));
         } else {
             vetoBottom = new G4Tubs("VetoBottom", LEDSize, vetoSize.x(), vetoThick / 2., 0, viewDeg);
         }
@@ -301,8 +292,8 @@ void Detector::Construct() {
         new G4PVPlacement(nullptr, pos, vetoLV, "VetoPVPL", detContainerLV, false, 0, true);
         vetoLV->SetVisAttributes(visRed);
     }
+
     ConstructShell();
-    ConstructLED();
 }
 
 
@@ -316,12 +307,9 @@ void Detector::ConstructShell() {
     G4Tubs *shellTop = new G4Tubs("ShellTop", 0, detContainerSize.y(), shellThick / 2., 0, viewDeg);
     G4ThreeVector shellTopPos = G4ThreeVector(0, 0, detContainerSize.z() - shellThick / 2.);
     G4VSolid *shellBottom;
-    if (doubleLED && LEDSize > 0) {
-        G4ThreeVector holePos1 = G4ThreeVector(-crystalSize.y() / 2, 0, 0);
-        G4ThreeVector holePos2 = G4ThreeVector(crystalSize.y() / 2, 0, 0);
-        G4SubtractionSolid *shellBottom1 = new G4SubtractionSolid("ShellBottomIncomplete", shellTop, hole,
-                                                                  nullptr, holePos1);
-        shellBottom = new G4SubtractionSolid("ShellBottom", shellBottom1, hole, nullptr, holePos2);
+
+    if (nLED != 2 && LEDSize > 0) {
+        shellBottom = new G4SubtractionSolid("ShellBottom", shellTop, LEDs, nullptr, G4ThreeVector(0, 0, 0));
     } else {
         shellBottom = new G4Tubs("ShellBottom", LEDSize, shellSize.x(), shellThick / 2., 0, viewDeg);
     }
@@ -336,34 +324,37 @@ void Detector::ConstructShell() {
 
 
 void Detector::ConstructLED() {
-    G4double tyvekThickLED = tyvekThick;
-    if (vetoThick == 0.) {
-        tyvekThickLED = tyvekThick / 2.;
-    }
-    G4Tubs *LED = new G4Tubs("LED", 0, LEDSize, vetoThick / 2. + tyvekThickLED + shellThick / 2, 0,
-                             viewDeg);
-    if (doubleLED) {
-        G4LogicalVolume *LEDLV1 = new G4LogicalVolume(LED, LEDMat, "LEDLV1");
-        G4ThreeVector LEDLV1Pos = G4ThreeVector(crystalSize.y() / 2, 0,
-                                                -(crystalSize.z() + vetoThick / 2. + tyvekThickLED + shellThick / 2 +
-                                                  gapSize / 2));
-        new G4PVPlacement(nullptr, LEDLV1Pos, LEDLV1, "LEDLV1PVPL", detContainerLV, false, 0, true);
+    if (LEDSize <= 0) return;
 
-        G4LogicalVolume *LEDLV2 = new G4LogicalVolume(LED, LEDMat, "LEDLV2");
-        G4ThreeVector LEDLV2Pos = G4ThreeVector(-crystalSize.y() / 2, 0,
-                                                -(crystalSize.z() + vetoThick / 2. + tyvekThickLED + shellThick / 2 +
-                                                  gapSize / 2));
-        new G4PVPlacement(nullptr, LEDLV2Pos, LEDLV2, "LEDLV2PVPL", detContainerLV, false, 0, true);
-        LEDLV1->SetVisAttributes(visCyan);
-        LEDLV2->SetVisAttributes(visCyan);
+    G4double tyvekThickLED = vetoThick == 0. ? tyvekThick / 2. : tyvekThick;
+    const G4double LEDHalfZ = vetoThick / 2. + tyvekThickLED + shellThick / 2.;
+    const G4double radiusXY = crystalSize.y() / 2.;
+    const G4double zOff = -(crystalSize.z() + LEDHalfZ + gapSize / 2.);
+
+    std::vector<G4ThreeVector> LEDXY;
+    if (nLED == 1) {
+        LEDXY = {G4ThreeVector(0, 0, 0)};
     } else {
-        G4LogicalVolume *LEDLV = new G4LogicalVolume(LED, LEDMat, "LEDLV");
-        G4ThreeVector LEDLVPos = G4ThreeVector(
-            0, 0, -(crystalSize.z() + vetoThick / 2. + tyvekThickLED + shellThick / 2 +
-                    gapSize / 2));
-        new G4PVPlacement(nullptr, LEDLVPos, LEDLV, "LEDLVPVPL", detContainerLV, false, 0, true);
-        LEDLV->SetVisAttributes(visCyan);
+        const G4double dphi = 2. * pi / nLED;
+        LEDXY.reserve(nLED);
+        for (int i = 0; i < nLED; ++i) {
+            const G4double a = i * dphi;
+            LEDXY.emplace_back(radiusXY * std::cos(a), radiusXY * std::sin(a), 0);
+        }
     }
+    if (LEDXY.empty()) return;
+
+    auto *LED = new G4Tubs("LEDCyl", 0, LEDSize, LEDHalfZ, 0, viewDeg);
+    LEDs = new G4MultiUnion("LEDMulti");
+    for (auto &p: LEDXY) {
+        G4Transform3D tr(G4RotationMatrix(), G4ThreeVector(p.x(), p.y(), 0.0));
+        LEDs->AddNode(*LED, tr);
+    }
+    LEDs->Voxelize();
+
+    auto *LEDLV = new G4LogicalVolume(LEDs, LEDMat, "LEDMultiLV");
+    new G4PVPlacement(nullptr, G4ThreeVector(0, 0, zOff), LEDLV, "LEDMultiPVPL", detContainerLV, false, 0, true);
+    LEDLV->SetVisAttributes(visCyan);
 }
 
 

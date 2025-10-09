@@ -35,7 +35,7 @@ public:
     G4VPhysicalVolume *worldPVP;
 
     G4double viewDeg;
-    G4bool doubleLED;
+    G4int nLED;
 
     Detector *detector;
     G4String detectorType;
@@ -60,7 +60,7 @@ public:
     G4Region *vetoFrontRegion;
     G4Region *vetoBackRegion;
 
-    Geometry(G4String, const Sizes &, G4double, G4bool);
+    Geometry(G4String, const Sizes &, G4double, G4int);
 
     G4VPhysicalVolume *Construct() override;
     void ConstructSDandField() override;

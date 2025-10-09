@@ -5,7 +5,7 @@ Loader::Loader(int argc, char **argv) {
     useUI = true;
     macroFile = "../run.mac";
     temperature = 20;
-    detectorType = "NaI";
+    detectorType = "CsI";
     fluxType = "Uniform";
     sizes.vetoThick = 0 * mm;
     sizes.shellThick = 0 * mm;
@@ -13,7 +13,7 @@ Loader::Loader(int argc, char **argv) {
     sizes.tyvekThick = 1 * mm;
     sizes.LEDSize = 5 * mm;
     verticalFlux = false;
-    doubleLED = false;
+    nLED = 4;
 
     for (int i = 0; i < argc; i++) {
         if (std::string input(argv[i]); input == "-i" || input == "-input") {
@@ -33,8 +33,8 @@ Loader::Loader(int argc, char **argv) {
             sizes.gapSize = std::stod(argv[i + 1]) * mm;
         } else if (input == "-tyvek") {
             sizes.tyvekThick = std::stod(argv[i + 1]) * mm;
-        } else if (input == "--double-LED") {
-            doubleLED = true;
+        } else if (input == "-nLED") {
+            nLED = std::stoi(argv[i + 1]);
         } else if (input == "-LED") {
             sizes.LEDSize = std::stod(argv[i + 1]);
         } else if (input == "-d" || input == "--detector") {
@@ -57,7 +57,9 @@ Loader::Loader(int argc, char **argv) {
 #else
     runManager = new G4RunManager;
 #endif
-    Geometry *realWorld = new Geometry(detectorType, sizes, temperature, doubleLED);
+
+    if (nLED <= 0) sizes.LEDSize = 0;
+    Geometry *realWorld = new Geometry(detectorType, sizes, temperature, nLED);
     runManager->SetUserInitialization(realWorld);
     G4VModularPhysicsList *physicsList = new FTFP_BERT;
     physicsList->ReplacePhysics(new G4EmStandardPhysics_option4());

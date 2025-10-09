@@ -47,7 +47,7 @@ class Loader {
     G4String detectorType;
     G4String fluxType;
     G4bool verticalFlux;
-    G4bool doubleLED;
+    G4int nLED;
 
 #ifdef G4MULTITHREADED
     G4MTRunManager *runManager;

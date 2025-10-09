@@ -11,6 +11,7 @@
 #include <G4OpticalSurface.hh>
 #include <G4PhysicalVolumeStore.hh>
 #include <G4UnionSolid.hh>
+#include <G4MultiUnion.hh>
 #include <G4NistManager.hh>
 #include <G4PVPlacement.hh>
 #include <G4PVParameterised.hh>
@@ -41,7 +42,7 @@ public:
     G4VisAttributes *visCyan{};
     G4VisAttributes *visGrey{};
 
-    Detector(G4LogicalVolume *, const G4ThreeVector &, G4NistManager *, const Sizes &, G4double, G4bool,
+    Detector(G4LogicalVolume *, const G4ThreeVector &, G4NistManager *, const Sizes &, G4double, G4int,
              const G4String &);
     ~Detector() = default;
 
@@ -54,11 +55,12 @@ public:
     [[nodiscard]] std::vector<G4LogicalVolume *>GetSensitiveLV() const;
 
 private:
+    G4MultiUnion *LEDs;
     G4double gapSize;
     G4double LEDSize;
 
     G4double viewDeg;
-    G4bool doubleLED;
+    G4int nLED;
 
     G4double tyvekThick;
     G4double shellThick;
