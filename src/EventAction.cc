@@ -62,13 +62,13 @@ void EventAction::WritePrimaries_(int eventID) {
 int EventAction::WriteInteractions_(int eventID) {
     int n = 0;
     for (const auto &r: interBuf) {
-        // analysisManager->FillInteractionRow(eventID,
-        //                                     r.trackID, r.parentID,
-        //                                     r.process,
-        //                                     r.volumeName, r.volumeID,
-        //                                     r.pos_mm, r.t_ns,
-        //                                     r.secIndex, r.secPDG, r.secName,
-        //                                     r.secE_MeV, r.secDir);
+        analysisManager->FillInteractionRow(eventID,
+                                            r.trackID, r.parentID,
+                                            r.process,
+                                            r.volumeName, r.volumeID,
+                                            r.pos_mm, r.t_ns,
+                                            r.secIndex, r.secPDG, r.secName,
+                                            r.secE_MeV, r.secDir);
         n++;
     }
     return n;
@@ -106,7 +106,6 @@ int EventAction::WriteEdepFromSD_(const G4Event *evt, int eventID) {
             const double tmin_ns = (h->tmin < DBL_MAX / 2 ? h->tmin / ns : -1.0);
             analysisManager->FillEdepRow(eventID, det_id, det_name,
                                          h->volumeID, edep_MeV, tmin_ns);
-            // --- Проставляем флаги наличия энерговыделения по подсистемам ---
             if (edep_MeV > 0.0) {
                 if (det_name == "Crystal") MarkCrystal();
                 else if (det_name == "Veto") MarkVeto();

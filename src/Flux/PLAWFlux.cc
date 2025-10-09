@@ -15,7 +15,7 @@ void PLAWFlux::GetParams() {
                     JustWarning, ("Cannot open " + filepath).c_str());
         alpha = 1.411103;
         Emin = 0.01 * MeV;
-        Emin = 100 * MeV;
+        Emax = 100 * MeV;
         paramFile.close();
         return;
     }
@@ -41,7 +41,7 @@ void PLAWFlux::GetParams() {
                 JustWarning, ("Cannot find value of alpha in file " + filepath).c_str());
     alpha = 1.411103;
     Emin = 0.01 * MeV;
-    Emin = 100 * MeV;
+    Emax = 100 * MeV;
     paramFile.close();
 }
 
