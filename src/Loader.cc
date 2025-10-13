@@ -7,11 +7,11 @@ Loader::Loader(int argc, char **argv) {
     temperature = 20;
     detectorType = "CsI";
     fluxType = "Uniform";
-    sizes.vetoThick = 0 * mm;
+    sizes.vetoThick = 7 * mm;
     sizes.shellThick = 0 * mm;
-    sizes.gapSize = 0 * mm;
-    sizes.tyvekThick = 1 * mm;
-    sizes.LEDSize = 5 * mm;
+    sizes.gapSize = 2 * mm;
+    sizes.tyvekThick = 0.5 * mm;
+    sizes.LEDSize = 3 * mm;
     verticalFlux = false;
     nLED = 4;
 

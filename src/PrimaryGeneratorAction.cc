@@ -63,11 +63,6 @@ void PrimaryGeneratorAction::GenerateOnSphere(G4ThreeVector &pos, G4ThreeVector 
 
     dir = -(v_local.x() * x + v_local.y() * y + v_local.z() * z);
     dir = dir.unit();
-
-    if (dir.z() > 0.0) {
-        dir.setZ(-dir.z());
-        dir = dir.unit();
-    }
 }
 
 

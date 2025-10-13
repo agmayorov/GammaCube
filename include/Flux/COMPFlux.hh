@@ -2,8 +2,6 @@
 #define COMPFLUX_HH
 
 #include "Flux/Flux.hh"
-#include <boost/math/special_functions/gamma.hpp>
-#include <boost/math/special_functions/fpclassify.hpp>
 
 
 class COMPFlux : public Flux {

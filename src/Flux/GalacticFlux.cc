@@ -171,9 +171,9 @@ G4double GalacticFlux::J_TOA_GeV(const G4double E) const {
     if (name == "alpha") {
         mass = malpha;
     } else if (name == "e-" or name == "e+") {
-        mass = me;;
+        mass = me;
     } else if (name == "proton") {
-        mass = mp;;
+        mass = mp;
     }
     const G4double num = E * (E + 2.0 * mass);
     const G4double den = ELis * (ELis + 2.0 * mass);
