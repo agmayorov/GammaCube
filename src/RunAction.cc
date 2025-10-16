@@ -8,13 +8,8 @@ RunAction::RunAction() : crystalOnly(0), crystalAndVeto(0) {
         return ss.str();
     };
 
-    // G4String fileName = "GammaCube_S" + formatDouble(sizes.shellThick / mm) +
-    //                     "_V" + formatDouble(sizes.vetoThick) +
-    //                     "_G" + formatDouble(sizes.gapSize / mm) +
-    //                     "_T" + formatDouble(sizes.tyvekThick / mm) +
-    //                     "_L" + formatDouble(sizes.tunaCanThick / mm) + ".root";
-    // analysisManager = new AnalysisManager(fileName);
-    analysisManager = new AnalysisManager("hehe.root");
+    G4String fileName = "GammaCube.root";
+    analysisManager = new AnalysisManager(fileName);
 
     auto *mgr = G4AccumulableManager::Instance();
     mgr->Register(crystalOnly);
