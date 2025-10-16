@@ -1,7 +1,20 @@
 #include "Geometry.hh"
 
-Geometry::Geometry(G4String detType, const Sizes &ss, G4double temp, G4int numLED)
-    : nLED(numLED), detectorType(std::move(detType)), sizes(ss), temperature(temp) {
+using namespace Sizes;
+
+
+void Geometry::CheckSizes() {
+    G4double sumRadius = tunaCanThickWall + gapSizeWall + tyvekOutThickWall + vetoThickWall +
+                         tyvekMidThickWall + AlThickWall + tyvekInThickWall;
+    G4double sumHeight = tunaCanThickBottom + tunaCanThickTop + gapSizeBottom + gapSizeTop +
+                         tyvekOutThickBottom + tyvekOutThickTop + vetoThickBottom + vetoThickTop +
+                         tyvekMidThickBottom + tyvekMidThickTop + rubberHeight +
+                         AlCapThickBottom + AlThickTop + tyvekInThickBottom + tyvekInThickTop;
+}
+
+
+Geometry::Geometry(G4String detType)
+    : detectorType(std::move(detType)) {
     std::vector<G4String> detectorList = {"NaI", "CsI"};
     if (std::find(detectorList.begin(), detectorList.end(), detectorType) == detectorList.end()) {
         G4Exception("Geometry::ConstructDetector", "DetectorType", FatalException,
@@ -12,33 +25,59 @@ Geometry::Geometry(G4String detType, const Sizes &ss, G4double temp, G4int numLE
     zeroRot = new G4RotationMatrix(0, 0, 0);
 
     viewDeg = 360 * deg;
-    sizes.tunaCanThick = 2 * mm;
 
-    modelSize = G4ThreeVector(0 * mm, 30 * mm + sizes.tunaCanThick, 22.5 * mm + sizes.tunaCanThick / 2.);
-    detContainerSize = G4ThreeVector(0 * mm, 30 * mm, 22.5 * mm);
+    detContainerSize = G4ThreeVector(0 * mm,
+                                     modelRadius - tunaCanThickWall,
+                                     (modelHeight - tunaCanThickTop - tunaCanThickBottom) / 2.0);
     detContainerPos = G4ThreeVector(0, 0, 0);
 
-    worldHalfSize = std::max({
-                        modelSize.x(),
-                        modelSize.y(),
-                        modelSize.z()
-                    }) * 2.;
+    worldHalfSize = std::max({modelRadius * 2, modelHeight}) * 2;
 
     tunaCanVisAttr = new G4VisAttributes(G4Color(0.5, 0.5, 0.5));
     tunaCanVisAttr->SetForceSolid(true);
 }
 
 void Geometry::ConstructTunaCan() {
-    if (sizes.tunaCanThick <= 0.) return;
+    if (tunaCanThickWall <= 0. and tunaCanThickTop <= 0. and tunaCanThickBottom <= 0.) return;
 
     G4Material *tunaCanMat = nist->FindOrBuildMaterial("G4_Al");
-    G4ThreeVector tunaCanSize = G4ThreeVector(detContainerSize.y(), modelSize.y(), modelSize.z());
-    G4Tubs *tunaCanTube = new G4Tubs("TunaCanTube", tunaCanSize.x(), tunaCanSize.y(), tunaCanSize.z(), 0, viewDeg);
-    G4Tubs *tunaCanCap = new G4Tubs("TunaCanCap", 0, detContainerSize.y(), sizes.tunaCanThick / 2., 0, viewDeg);
-    G4ThreeVector tunaCanCapPos = G4ThreeVector(0, 0, detContainerSize.z());
-    tunaCan = new G4UnionSolid("TunaCan", tunaCanTube, tunaCanCap, zeroRot, tunaCanCapPos);
+
+    G4VSolid *tunaCanIncomplete = nullptr;
+    G4VSolid *tunaCanWall = nullptr;
+    if (tunaCanThickWall > 0) {
+        tunaCanWall = new G4Tubs("tunaCanWall", detContainerSize.y(), modelRadius, modelHeight / 2, 0, viewDeg);
+    }
+
+    G4VSolid *tunaCanTop = nullptr;
+    const G4ThreeVector tunaCanTopPos = G4ThreeVector(0, 0, (modelHeight - tunaCanThickTop) / 2.0);
+    if (tunaCanThickTop > 0) {
+        tunaCanTop = new G4Tubs("TunaCanTop", 0, detContainerSize.y(), tunaCanThickTop / 2., 0, viewDeg);
+    }
+    if (tunaCanThickWall > 0 and tunaCanThickTop > 0) {
+        tunaCanIncomplete = new G4UnionSolid("TunaCanIncomplete", tunaCanWall, tunaCanTop, zeroRot,
+                                             tunaCanTopPos);
+    } else if (tunaCanThickWall > 0 and tunaCanThickTop <= 0) {
+        tunaCanIncomplete = tunaCanWall;
+    } else if (tunaCanThickWall <= 0 and tunaCanThickTop > 0) {
+        tunaCanIncomplete = tunaCanTop;
+    }
+
+    G4Tubs *tunaCanBottom = nullptr;
+    const G4ThreeVector tunaCanBottomPos = G4ThreeVector(0, 0, -(modelHeight - tunaCanThickBottom) / 2.0);
+    if (tunaCanThickBottom > 0) {
+        tunaCanBottom = new G4Tubs("TunaCanBottom", 0, detContainerSize.y(), tunaCanThickBottom / 2., 0,
+                                   viewDeg);
+    }
+    if (tunaCanIncomplete != nullptr and tunaCanThickBottom > 0) {
+        tunaCan = new G4UnionSolid("TunaCan", tunaCanIncomplete, tunaCanBottom, zeroRot, tunaCanBottomPos);
+    } else if (tunaCanIncomplete == nullptr and tunaCanThickBottom > 0) {
+        tunaCan = tunaCanBottom;
+    } else if (tunaCanIncomplete != nullptr and tunaCanThickBottom <= 0) {
+        tunaCan = tunaCanIncomplete;
+    }
+
     tunaCanLV = new G4LogicalVolume(tunaCan, tunaCanMat, "TunaCanLV");
-    G4ThreeVector tunaCanPos = G4ThreeVector(0, 0, sizes.tunaCanThick / 2);
+    G4ThreeVector tunaCanPos = G4ThreeVector(0, 0, modelHeight / 2. - detContainerSize.z() - tunaCanThickBottom);
     new G4PVPlacement(zeroRot, tunaCanPos, tunaCanLV, "TunaCanPVPL", worldLV, false, 0, true);
     tunaCanLV->SetVisAttributes(tunaCanVisAttr);
 }
@@ -46,19 +85,24 @@ void Geometry::ConstructTunaCan() {
 
 void Geometry::ConstructDetector() {
     detContainer = new G4Tubs("DetectorContainer", detContainerSize.x(), detContainerSize.y(), detContainerSize.z(), 0,
-                              viewDeg);
+                              360 * deg);
     detContainerLV = new G4LogicalVolume(detContainer, worldMat, "DetectorContainerLV");
     new G4PVPlacement(zeroRot, detContainerPos, detContainerLV, "DetectorContainerPVPL", worldLV, false, 0, true);
     detContainerLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
-    detector = new Detector(detContainerLV, detContainerSize, nist, sizes, viewDeg, nLED, detectorType);
+    detector = new Detector(detContainerLV, detContainerSize, nist, viewDeg, detectorType);
     detector->Construct();
     std::vector<G4LogicalVolume *> sensitiveLV = detector->GetSensitiveLV();
     crystalLV = sensitiveLV.at(0);
-    vetoLV = sensitiveLV.at(1);
-    tyvekOutLV = sensitiveLV.at(2);
-    tyvekInLV = sensitiveLV.at(3);
-    shellLV = sensitiveLV.at(4);
+    tyvekInLV = sensitiveLV.at(1);
+    AlLV = sensitiveLV.at(2);
+    rubberLV = sensitiveLV.at(3);
+    tyvekMidLV = sensitiveLV.at(4);
+    vetoLV = sensitiveLV.at(5);
+    tyvekOutLV = sensitiveLV.at(6);
+    crystalLEDLV = sensitiveLV.at(7);
+    vetoLEDLV = sensitiveLV.at(8);
+    vetoBottomLEDLV = sensitiveLV.at(9);
 }
 
 
@@ -103,33 +147,63 @@ void Geometry::ConstructSDandField() {
     sdManager->AddNewDetector(detectorSD);
     crystalLV->SetSensitiveDetector(detectorSD);
 
-    if (sizes.shellThick > 0) {
-        auto *shellSD = new SensitiveDetector("ShellSD", 1, "Shell");
-        sdManager->AddNewDetector(shellSD);
-        shellLV->SetSensitiveDetector(shellSD);
-    }
-
-    if (sizes.tunaCanThick > 0) {
-        auto *tunaCanSD = new SensitiveDetector("TunaCanSD", 2, "TunaCan");
+    if (tunaCanAllSize > 0) {
+        auto *tunaCanSD = new SensitiveDetector("TunaCanSD", 1, "TunaCan");
         sdManager->AddNewDetector(tunaCanSD);
         tunaCanLV->SetSensitiveDetector(tunaCanSD);
     }
 
-    if (sizes.vetoThick > 0) {
-        auto *vetoSD = new SensitiveDetector("VetoSD", 3, "Veto");
+    if (vetoAllSize > 0) {
+        auto *vetoSD = new SensitiveDetector("VetoSD", 2, "Veto");
         sdManager->AddNewDetector(vetoSD);
         vetoLV->SetSensitiveDetector(vetoSD);
     }
 
-    if (sizes.tyvekThick > 0.) {
-        auto *tyvekOutSD = new SensitiveDetector("TyvekOutSD", 4, "TyvekOut");
+    if (tyvekOutAllSize > 0.) {
+        auto *tyvekOutSD = new SensitiveDetector("TyvekOutSD", 3, "TyvekOut");
         sdManager->AddNewDetector(tyvekOutSD);
         tyvekOutLV->SetSensitiveDetector(tyvekOutSD);
+    }
 
-        if (sizes.vetoThick > 0.) {
-            auto *tyvekInSD = new SensitiveDetector("TyvekInSD", 5, "TyvekIn");
-            sdManager->AddNewDetector(tyvekInSD);
-            tyvekInLV->SetSensitiveDetector(tyvekInSD);
-        }
+    if (tyvekInAllSize > 0.) {
+        auto *tyvekInSD = new SensitiveDetector("TyvekInSD", 4, "TyvekIn");
+        sdManager->AddNewDetector(tyvekInSD);
+        tyvekInLV->SetSensitiveDetector(tyvekInSD);
+    }
+
+    if (tyvekMidAllSize > 0.) {
+        auto *tyvekMidSD = new SensitiveDetector("TyvekMidSD", 5, "TyvekMid");
+        sdManager->AddNewDetector(tyvekMidSD);
+        tyvekMidLV->SetSensitiveDetector(tyvekMidSD);
+    }
+
+    if (rubberAllSize > 0.) {
+        auto *rubberSD = new SensitiveDetector("RubberSD", 6, "Rubber");
+        sdManager->AddNewDetector(rubberSD);
+        rubberLV->SetSensitiveDetector(rubberSD);
+    }
+
+    if (AlAllSize > 0.) {
+        auto *AlSD = new SensitiveDetector("AluminiumSD", 7, "Aluminium");
+        sdManager->AddNewDetector(AlSD);
+        AlLV->SetSensitiveDetector(AlSD);
+    }
+
+    if (crystalLEDAllSize > 0.) {
+        auto *crystalLEDSD = new SensitiveDetector("CrystalLEDSD", 8, "CrystalLED");
+        sdManager->AddNewDetector(crystalLEDSD);
+        crystalLEDLV->SetSensitiveDetector(crystalLEDSD);
+    }
+
+    if (crystalLEDAllSize > 0.) {
+        auto *vetoLEDSD = new SensitiveDetector("VetoLEDSD", 9, "VetoLED");
+        sdManager->AddNewDetector(vetoLEDSD);
+        vetoLEDLV->SetSensitiveDetector(vetoLEDSD);
+    }
+
+    if (crystalLEDAllSize > 0.) {
+        auto *vetoBottomLEDSD = new SensitiveDetector("VetoBottomLEDSD", 10, "VetoBottomLED");
+        sdManager->AddNewDetector(vetoBottomLEDSD);
+        vetoBottomLEDLV->SetSensitiveDetector(vetoBottomLEDSD);
     }
 }

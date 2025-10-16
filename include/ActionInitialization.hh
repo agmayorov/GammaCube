@@ -11,14 +11,13 @@
 
 class ActionInitialization : public G4VUserActionInitialization {
 public:
-    ActionInitialization(Sizes &, G4ThreeVector, G4ThreeVector, G4bool, G4String);
+    ActionInitialization(G4bool, G4String);
     ~ActionInitialization() override = default;
 
     void BuildForMaster() const override;
     void Build() const override;
 
 private:
-    Sizes sizes;
     G4ThreeVector center;
     G4ThreeVector modelSize;
     G4bool verticalFlux;

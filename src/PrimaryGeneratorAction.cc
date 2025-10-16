@@ -1,20 +1,17 @@
-#include <utility>
-
 #include "PrimaryGeneratorAction.hh"
 
 
-PrimaryGeneratorAction::PrimaryGeneratorAction(G4ThreeVector c, G4ThreeVector mSize, const G4bool vFlux,
-                                               const G4String &fluxType)
+PrimaryGeneratorAction::PrimaryGeneratorAction(const G4bool vFlux, const G4String &fluxType)
     : particleGun(new G4ParticleGun(1)),
-      center(std::move(c)),
-      detectorHalfSize(std::move(mSize)),
+      center(G4ThreeVector(0, 0, -(Sizes::modelHeight - Sizes::tunaCanThickTop - Sizes::tunaCanThickBottom) / 2.0)),
+      detectorHalfSize(G4ThreeVector(0 * mm, Sizes::modelRadius, Sizes::modelHeight)),
       verticalFlux(vFlux) {
     const G4ThreeVector tempVec = G4ThreeVector(0,
                                                 detectorHalfSize.y(),
                                                 detectorHalfSize.z());
     radius = sqrt(tempVec.y() * tempVec.y() + tempVec.z() * tempVec.z()) + 5 * mm;
 
-    std::vector<G4String> fluxTypeList = {"Uniform", "PLAW", "COMP", "SEP", "Galactic"};
+    std::vector<G4String> fluxTypeList = {"Uniform", "PLAW", "COMP", "SEP", "Galactic", "Table"};
     if (std::find(fluxTypeList.begin(), fluxTypeList.end(), fluxType) == fluxTypeList.end()) {
         G4Exception("PrimaryGeneratorAction::GeneratePrimaries", "FluxType", FatalException,
                     ("Flux type not found: " + fluxType + ".\nAvailable flux types: Uniform, PLAW, SEP, Galactic").
@@ -31,6 +28,8 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(G4ThreeVector c, G4ThreeVector mS
         flux = new SEPFlux();
     } else if (fluxType == "Galactic") {
         flux = new GalacticFlux();
+    } else if (fluxType == "Table") {
+        flux = new TableFlux();
     }
 }
 

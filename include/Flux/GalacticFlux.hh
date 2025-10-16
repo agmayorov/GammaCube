@@ -24,7 +24,7 @@ private:
     [[nodiscard]] G4double J_Electron(G4double E) const;
     [[nodiscard]] G4double J_Positron(G4double E) const;
     [[nodiscard]] G4double J_Alpha(G4double E) const;
-    [[nodiscard]] G4double J_TOA_GeV(G4double E) const;
+    [[nodiscard]] G4double J_TOA_GeV(G4double E);
 };
 
 #endif //GALACTICFLUX_HH

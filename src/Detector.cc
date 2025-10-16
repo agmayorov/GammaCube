@@ -1,19 +1,29 @@
 #include "Detector.hh"
 
 
-Detector::Detector(G4LogicalVolume *detContLV, const G4ThreeVector &detContSize, G4NistManager *nistMan,
-                   const Sizes &sizes, G4double vDeg, const G4int numLED, const G4String &detType) {
+using namespace Sizes;
+
+Detector::Detector(G4LogicalVolume *detContLV, const G4ThreeVector &detContSize, G4NistManager *nistMan, G4double vDeg,
+                   const G4String &detType) {
     detectorType = detType;
     detContainerLV = detContLV;
     detContainerSize = detContSize;
+
     nist = nistMan;
-    vetoThick = sizes.vetoThick;
-    tyvekThick = sizes.tyvekThick;
-    shellThick = sizes.shellThick;
-    gapSize = sizes.gapSize;
-    LEDSize = sizes.LEDSize;
     viewDeg = vDeg;
-    nLED = numLED;
+
+    additionalLength = 0 * mm;
+
+    crystalSize = G4ThreeVector(0,
+                                modelRadius - tunaCanThickWall - gapSizeWall - tyvekOutThickWall - vetoThickWall -
+                                tyvekMidThickWall - AlThickWall - AlCapThickWall - tyvekInThickWall,
+                                modelHeight - tunaCanThickTop - tunaCanThickBottom - gapSizeTop - gapSizeBottom -
+                                tyvekOutThickTop - tyvekOutThickBottom - vetoThickTop - vetoThickBottom - rubberHeight -
+                                tyvekMidThickTop - tyvekMidThickBottom - AlThickTop - AlCapThickBottom -
+                                tyvekInThickTop - boardSpace);
+
+    zCorrection = detContainerSize.z() - (crystalSize.z() / 2 + tyvekInThickTop + AlThickTop + rubberHeight +
+                                          tyvekMidThickTop + vetoThickTop + tyvekOutThickTop + gapSizeTop);
 
     DefineMaterials();
     DefineVisual();
@@ -177,8 +187,17 @@ void Detector::DefineMaterials() {
         tyvekOutMat->SetMaterialPropertiesTable(mptTyvekOut);
     }
 
+    tyvekMidMat = tyvekOutMat;
+
     LEDMat = nist->FindOrBuildMaterial("G4_Galactic");
-    shellMat = nist->FindOrBuildMaterial("G4_Al");
+
+    AlMat = nist->FindOrBuildMaterial("G4_Al");
+
+    rubberMat = nist->FindOrBuildMaterial("G4_RUBBER_NEOPRENE");
+
+    wireMat = nist->FindOrBuildMaterial("G4_Cu");
+
+    boardMat = nist->FindOrBuildMaterial("G4_Si");
 }
 
 
@@ -188,182 +207,626 @@ G4String Detector::GetDetectorType() const {
 
 
 void Detector::DefineVisual() {
-    visWhite = new G4VisAttributes(G4Color(1.0, 1.0, 1.0));
-    visWhite->SetForceSolid(true);
-    visBlue = new G4VisAttributes(G4Color(0.0, 0.0, 1.0));
-    visBlue->SetForceSolid(true);
-    visRed = new G4VisAttributes(G4Color(1.0, 0.0, 0.0));
-    visRed->SetForceSolid(true);
-    visCyan = new G4VisAttributes(G4Color(0.0, 1.0, 1.0));
-    visCyan->SetForceSolid(true);
-    visGrey = new G4VisAttributes(G4Color(0.73, 0.746, 0.7578));
-    visGrey->SetForceSolid(true);
+    visCrystal = new G4VisAttributes(G4Color(1.0, 1.0, 1.0));
+    visCrystal->SetForceSolid(true);
+    visTyvekOut = new G4VisAttributes(G4Color(0.0, 0.0, 1.0));
+    visTyvekOut->SetForceSolid(true);
+    visTyvekMid = new G4VisAttributes(G4Color(0.0, 0.0, 1.0));
+    visTyvekMid->SetForceSolid(true);
+    visTyvekIn = new G4VisAttributes(G4Color(0.0, 0.0, 1.0));
+    visTyvekIn->SetForceSolid(true);
+    visVeto = new G4VisAttributes(G4Color(1.0, 0.0, 0.0));
+    visVeto->SetForceSolid(true);
+    visLED = new G4VisAttributes(G4Color(0.0, 1.0, 1.0));
+    visLED->SetForceSolid(true);
+    visAl = new G4VisAttributes(G4Color(0.73, 0.746, 0.7578));
+    visAl->SetForceSolid(true);
+    visWire = new G4VisAttributes(G4Color(0.508, 0.301, 0.171));
+    visWire->SetForceSolid(true);
+    visBoard = new G4VisAttributes(G4Color(0.121, 0.765, 0.175));
+    visBoard->SetForceSolid(true);
+    visRubber = new G4VisAttributes(G4Color(0., 0., 0.));
+    visRubber->SetForceSolid(true);
 }
 
 
 void Detector::Construct() {
-    G4ThreeVector pos = G4ThreeVector(0, 0, -gapSize / 2);
+    ConstructCrystal();
+    ConstructAl();
+    ConstructVeto();
+}
 
-    G4ThreeVector tyvekThickTotal = G4ThreeVector(0, 2 * tyvekThick, tyvekThick);
-    if (vetoThick == 0) {
-        tyvekThickTotal = G4ThreeVector(0, tyvekThick, tyvekThick / 2);
-    }
 
-    crystalSize = G4ThreeVector(0,
-                                detContainerSize.y() - vetoThick - tyvekThickTotal.y() - gapSize - shellThick,
-                                detContainerSize.z() - vetoThick - tyvekThickTotal.y() - gapSize / 2 - shellThick);
+void Detector::ConstructCrystal() {
+    G4ThreeVector pos = G4ThreeVector(0, 0, zCorrection);
 
-    G4Tubs *CrystalBox = new G4Tubs("Crystal", crystalSize.x(), crystalSize.y(), crystalSize.z(), 0, viewDeg);
-    crystalLV = new G4LogicalVolume(CrystalBox, CrystalMat, "CrystalLV");
+    // Construct Crystal
+
+    G4Tubs *Crystal = new G4Tubs("Crystal", crystalSize.x(), crystalSize.y(), crystalSize.z() / 2., 0, viewDeg);
+    crystalLV = new G4LogicalVolume(Crystal, CrystalMat, "CrystalLV");
     new G4PVPlacement(nullptr, pos, crystalLV, "CrystalPVPL", detContainerLV, false, 0, true);
-    crystalLV->SetVisAttributes(visWhite);
+    crystalLV->SetVisAttributes(visCrystal);
 
-    ConstructLED();
+    ConstructCrystalLED();
 
-    if (tyvekThick > 0.) {
-        G4ThreeVector tyvekOutSize = G4ThreeVector(detContainerSize.y() - shellThick - gapSize - tyvekThick,
-                                                   detContainerSize.y() - shellThick - gapSize,
-                                                   detContainerSize.z() - shellThick - gapSize / 2.);
-        G4Tubs *tyvekOutTube = new G4Tubs("TyvekOutTube", tyvekOutSize.x(), tyvekOutSize.y(), tyvekOutSize.z(), 0,
-                                          viewDeg);
-        G4Tubs *tyvekOutTop = new G4Tubs("TyvekOutTop", 0, tyvekOutSize.x(), tyvekThick / 2., 0,
-                                         viewDeg);
-        G4VSolid *tyvekOutBottom;
-        if (LEDSize > 0 and nLED != 1) {
-            tyvekOutBottom = new G4SubtractionSolid("TyvekOutBottom", tyvekOutTop, LEDs, nullptr,
-                                                    G4ThreeVector(0, 0, 0));
+    // Construct Board
+    G4Box *board = new G4Box("Board", boardLength / 2., boardWidth / 2., boardHeight / 2.);
+    G4LogicalVolume *boardLV = new G4LogicalVolume(board, boardMat, "BoardLV");
+    G4ThreeVector boardPos = G4ThreeVector(0, 0, -(crystalSize.z() - boardHeight) / 2. - boardSpace + zCorrection);
+    new G4PVPlacement(nullptr, boardPos, boardLV, "BoardPVPL", detContainerLV, false, 0, true);
+    boardLV->SetVisAttributes(visBoard);
+
+    // Construct TyvekIn
+    tyvekInSize = G4ThreeVector(crystalSize.y(),
+                                crystalSize.y() + tyvekInThickWall,
+                                crystalSize.z() + tyvekInThickTop + tyvekInThickBottom);
+
+
+    if (tyvekInThickWall <= 0. and tyvekInThickTop <= 0. and tyvekInThickBottom <= 0.) return;
+
+    G4VSolid *tyvekInIncomplete = nullptr;
+    G4VSolid *tyvekInWall = nullptr;
+    if (tyvekInThickWall > 0) {
+        tyvekInWall = new G4Tubs("TyvekInWall", tyvekInSize.x(), tyvekInSize.y(), tyvekInSize.z() / 2, 0, viewDeg);
+    }
+
+    G4VSolid *tyvekInTop = nullptr;
+    const G4ThreeVector tyvekInTopPos = G4ThreeVector(0, 0, (crystalSize.z() + tyvekInThickTop) / 2.0);
+    if (tyvekInThickTop > 0) {
+        tyvekInTop = new G4Tubs("TyvekInTop", 0, tyvekInSize.x(), tyvekInThickTop / 2., 0, viewDeg);
+    }
+    if (tyvekInThickWall > 0 and tyvekInThickTop > 0) {
+        tyvekInIncomplete = new G4UnionSolid("TyvekInIncomplete", tyvekInWall, tyvekInTop, nullptr,
+                                             tyvekInTopPos);
+    } else if (tyvekInThickWall > 0 and tyvekInThickTop <= 0) {
+        tyvekInIncomplete = tyvekInWall;
+    } else if (tyvekInThickWall <= 0 and tyvekInThickTop > 0) {
+        tyvekInIncomplete = tyvekInTop;
+    }
+
+    G4VSolid *tyvekInBottom = nullptr;
+    const G4ThreeVector tyvekInBottomPos = G4ThreeVector(0, 0, -(crystalSize.z() + tyvekInThickBottom) / 2.0);
+    if (tyvekInThickBottom > 0) {
+        if (crystalLEDCount > 1) {
+            G4Tubs *tyvekInBottomIncomplete = new G4Tubs("TyvekInBottomIncomplete", 0, tyvekInSize.x(),
+                                                         tyvekInThickBottom / 2., 0, viewDeg);
+            tyvekInBottom = new G4SubtractionSolid("TyvekInBottom", tyvekInBottomIncomplete, elongatedLED);
         } else {
-            tyvekOutBottom = new G4Tubs("TyvekOutBottom", LEDSize, tyvekOutSize.x(), tyvekThick / 2., 0, viewDeg);
-        }
-        G4ThreeVector tyvekOutBottomPos = G4ThreeVector(0, 0, -tyvekOutSize.z() + tyvekThick / 2.);
-        G4UnionSolid *tyvekOutIncomplete = new G4UnionSolid("TyvekOutIncomplete", tyvekOutTube, tyvekOutBottom, nullptr,
-                                                            tyvekOutBottomPos);
-        G4ThreeVector tyvekOutTopPos = G4ThreeVector(0, 0, tyvekOutSize.z() - tyvekThick / 2.);
-        G4UnionSolid *tyvekOut = new G4UnionSolid("TyvekOut", tyvekOutIncomplete, tyvekOutTop, nullptr, tyvekOutTopPos);
-        tyvekOutLV = new G4LogicalVolume(tyvekOut, tyvekOutMat, "TyvekOutLV");
-        new G4PVPlacement(nullptr, pos, tyvekOutLV, "TyvekOutPVPL", detContainerLV, false, 0, true);
-        tyvekOutLV->SetVisAttributes(visBlue);
-
-        if (vetoThick > 0.) {
-            G4ThreeVector tyvekInSize = G4ThreeVector(crystalSize.y(),
-                                                      crystalSize.y() + tyvekThick,
-                                                      crystalSize.z() + tyvekThick);
-            G4Tubs *tyvekInTube = new G4Tubs("TyvekInTube", tyvekInSize.x(), tyvekInSize.y(), tyvekInSize.z(), 0,
-                                             viewDeg);
-
-            G4Tubs *tyvekInTop = new G4Tubs("TyvekInTop", 0, tyvekInSize.x(), tyvekThick / 2., 0,
-                                            viewDeg);
-            G4VSolid *tyvekInBottom;
-            if (nLED != 1 and LEDSize > 0) {
-                tyvekInBottom = new G4SubtractionSolid("TyvekInBottom", tyvekInTop, LEDs, nullptr,
-                                                       G4ThreeVector(0, 0, 0));
-            } else {
-                tyvekInBottom = new G4Tubs("TyvekInBottom", LEDSize, tyvekInSize.x(), tyvekThick / 2., 0, viewDeg);
-            }
-            G4ThreeVector tyvekInBottomPos = G4ThreeVector(0, 0, -tyvekInSize.z() + tyvekThick / 2.);
-            G4UnionSolid *tyvekInIncomplete = new G4UnionSolid("TyvekInIncomplete", tyvekInTube, tyvekInBottom, nullptr,
-                                                               tyvekInBottomPos);
-            G4ThreeVector tyvekInTopPos = G4ThreeVector(0, 0, tyvekInSize.z() - tyvekThick / 2.);
-            G4UnionSolid *tyvekIn = new G4UnionSolid("TyvekIn", tyvekInIncomplete, tyvekInTop, nullptr, tyvekInTopPos);
-            tyvekInLV = new G4LogicalVolume(tyvekIn, tyvekInMat, "TyvekInLV");
-            new G4PVPlacement(nullptr, pos, tyvekInLV, "TyvekInPVPL", detContainerLV, false, 0, true);
-            tyvekInLV->SetVisAttributes(visBlue);
+            tyvekInBottom = new G4Tubs("TyvekInBottom", crystalLEDRadius, tyvekInSize.x(),
+                                       tyvekInThickBottom / 2., 0, viewDeg);
         }
     }
 
-    if (vetoThick > 0.) {
-        G4ThreeVector vetoSize = G4ThreeVector(crystalSize.y() + tyvekThick,
-                                               crystalSize.y() + tyvekThick + vetoThick,
-                                               crystalSize.z() + tyvekThick + vetoThick);
-        G4Tubs *vetoTube = new G4Tubs("VetoTube", vetoSize.x(), vetoSize.y(), vetoSize.z(), 0, viewDeg);
-
-        G4Tubs *vetoTop = new G4Tubs("VetoTop", 0, vetoSize.x(), vetoThick / 2., 0, viewDeg);
-        G4VSolid *vetoBottom;
-        if (nLED != 1 && LEDSize > 0) {
-            vetoBottom = new G4SubtractionSolid("VetoBottom", vetoTop, LEDs, nullptr, G4ThreeVector(0, 0, 0));
-        } else {
-            vetoBottom = new G4Tubs("VetoBottom", LEDSize, vetoSize.x(), vetoThick / 2., 0, viewDeg);
-        }
-        G4ThreeVector vetoBottomPos = G4ThreeVector(0, 0, -vetoSize.z() + vetoThick / 2.);
-        G4UnionSolid *vetoIncomplete = new G4UnionSolid("VetoIncomplete", vetoTube, vetoBottom, nullptr, vetoBottomPos);
-        G4ThreeVector vetoTopPos = G4ThreeVector(0, 0, vetoSize.z() - vetoThick / 2.);
-        G4UnionSolid *veto = new G4UnionSolid("Veto", vetoIncomplete, vetoTop, nullptr, vetoTopPos);
-        vetoLV = new G4LogicalVolume(veto, vetoMat, "VetoLV");
-        new G4PVPlacement(nullptr, pos, vetoLV, "VetoPVPL", detContainerLV, false, 0, true);
-        vetoLV->SetVisAttributes(visRed);
+    G4VSolid *tyvekIn = nullptr;
+    if (tyvekInIncomplete != nullptr and tyvekInThickBottom > 0) {
+        tyvekIn = new G4UnionSolid("TyvekIn", tyvekInIncomplete, tyvekInBottom, nullptr, tyvekInBottomPos);
+    } else if (tyvekInIncomplete == nullptr and tyvekInThickBottom > 0) {
+        tyvekIn = tyvekInBottom;
+    } else if (tyvekInIncomplete != nullptr and tyvekInThickBottom <= 0) {
+        tyvekIn = tyvekInIncomplete;
     }
 
-    ConstructShell();
+    tyvekInLV = new G4LogicalVolume(tyvekIn, tyvekInMat, "TyvekInLV");
+    G4ThreeVector tyvekInPos = G4ThreeVector(0, 0, zCorrection);
+    new G4PVPlacement(nullptr, tyvekInPos, tyvekInLV, "TyvekInPVPL", detContainerLV, false, 0, true);
+    tyvekInLV->SetVisAttributes(visTyvekIn);
+
+    // Crystal wire with insulation
+    G4double wireLength = AlCapThickBottom + tyvekMidThickBottom + vetoThickBottom + tyvekOutThickBottom +
+                          additionalLength;
+    G4VSolid *wire = new G4Tubs("CrystalWire", 0, wireRadius, wireLength / 2, 0, 360 * deg);
+    G4LogicalVolume *wireLV = new G4LogicalVolume(wire, wireMat, "CrystalWireLV");
+    G4ThreeVector wirePos = G4ThreeVector(0, 0, -(crystalSize.z() + wireLength) / 2.0 - boardSpace + zCorrection);
+    new G4PVPlacement(nullptr, wirePos, wireLV, "CrystalWirePVPL", detContainerLV, false, 0, true);
+    wireLV->SetVisAttributes(visWire);
+
+    G4VSolid *wireInsulation = new G4Tubs("CrystalWireInsulation", wireRadius, wireRadius + wireInsulationThick,
+                                          wireLength / 2, 0, 360 * deg);
+    G4LogicalVolume *wireInsulationLV = new G4LogicalVolume(wireInsulation, tyvekMidMat, "CrystalWireInsulationLV");
+    new G4PVPlacement(nullptr, wirePos, wireInsulationLV, "CrystalWireInsulationPVPL", detContainerLV, false, 0, true);
+    wireInsulationLV->SetVisAttributes(visTyvekMid);
 }
 
 
-void Detector::ConstructShell() {
-    if (shellThick <= 0.) return;
+void Detector::ConstructCrystalLED() {
+    if (crystalLEDRadius <= 0) return;
 
-    G4ThreeVector shellSize = G4ThreeVector(detContainerSize.y() - shellThick,
-                                            detContainerSize.y(),
-                                            detContainerSize.z());
-    G4Tubs *shellTube = new G4Tubs("ShellTube", shellSize.x(), shellSize.y(), shellSize.z(), 0, viewDeg);
-    G4Tubs *shellTop = new G4Tubs("ShellTop", 0, detContainerSize.y(), shellThick / 2., 0, viewDeg);
-    G4ThreeVector shellTopPos = G4ThreeVector(0, 0, detContainerSize.z() - shellThick / 2.);
-    G4VSolid *shellBottom;
+    G4double pinLength = boardSpace - crystalLEDHeight - boardHeight;
+    G4Tubs *pin = new G4Tubs("CrystalPin", 0, wireRadius, pinLength / 2., 0, 360 * deg);
 
-    if (nLED != 2 && LEDSize > 0) {
-        shellBottom = new G4SubtractionSolid("ShellBottom", shellTop, LEDs, nullptr, G4ThreeVector(0, 0, 0));
+    const G4double radiusLEDXY = crystalLEDRadius / 2;
+    std::vector<G4ThreeVector> pinXY;
+    if (pinCount == 1) {
+        pinXY = {G4ThreeVector(0, 0, 0)};
     } else {
-        shellBottom = new G4Tubs("ShellBottom", LEDSize, shellSize.x(), shellThick / 2., 0, viewDeg);
+        const G4double dphi = 2. * pi / pinCount;
+        pinXY.reserve(pinCount);
+        for (int i = 0; i < pinCount; ++i) {
+            const G4double a = i * dphi;
+            pinXY.emplace_back(radiusLEDXY * std::cos(a), radiusLEDXY * std::sin(a), 0);
+        }
     }
-    G4ThreeVector shellBottomPos = G4ThreeVector(0, 0, -detContainerSize.z() + shellThick / 2.);
-    G4UnionSolid *shellIncomplete = new G4UnionSolid("ShellIncomplete", shellTube, shellTop, nullptr, shellTopPos);
-    G4UnionSolid *shell = new G4UnionSolid("Shell", shellIncomplete, shellBottom, nullptr, shellBottomPos);
-    shellLV = new G4LogicalVolume(shell, shellMat, "ShellLV");
-    G4ThreeVector shellPos = G4ThreeVector(0, 0, 0);
-    new G4PVPlacement(nullptr, shellPos, shellLV, "ShellPVPL", detContainerLV, false, 0, true);
-    shellLV->SetVisAttributes(visGrey);
-}
+
+    G4MultiUnion *pins = new G4MultiUnion("PinLEDMulti");
+    for (auto &p: pinXY) {
+        G4Transform3D tr(G4RotationMatrix(), G4ThreeVector(p.x(), p.y(), 0.0));
+        pins->AddNode(*pin, tr);
+    }
+    pins->Voxelize();
 
 
-void Detector::ConstructLED() {
-    if (LEDSize <= 0) return;
-
-    G4double tyvekThickLED = vetoThick == 0. ? tyvekThick / 2. : tyvekThick;
-    const G4double LEDHalfZ = vetoThick / 2. + tyvekThickLED + shellThick / 2.;
     const G4double radiusXY = crystalSize.y() / 2.;
-    const G4double zOff = -(crystalSize.z() + LEDHalfZ + gapSize / 2.);
 
     std::vector<G4ThreeVector> LEDXY;
-    if (nLED == 1) {
+    if (crystalLEDCount == 1) {
         LEDXY = {G4ThreeVector(0, 0, 0)};
     } else {
-        const G4double dphi = 2. * pi / nLED;
-        LEDXY.reserve(nLED);
-        for (int i = 0; i < nLED; ++i) {
+        const G4double dphi = 2. * pi / crystalLEDCount;
+        LEDXY.reserve(crystalLEDCount);
+        for (int i = 0; i < crystalLEDCount; ++i) {
             const G4double a = i * dphi;
             LEDXY.emplace_back(radiusXY * std::cos(a), radiusXY * std::sin(a), 0);
         }
     }
     if (LEDXY.empty()) return;
 
-    auto *LED = new G4Tubs("LEDCyl", 0, LEDSize, LEDHalfZ, 0, viewDeg);
-    LEDs = new G4MultiUnion("LEDMulti");
+    G4Tubs *LED = new G4Tubs("LEDCyl", 0, crystalLEDRadius, crystalLEDHeight / 2., 0, 360 * deg);
+    G4Tubs *eLED = new G4Tubs("ElongatedLEDCyl", 0, crystalLEDRadius, tyvekInThickBottom + 1 * mm, 0, 360 * deg);
+
+    crystalLED = new G4MultiUnion("CrystalLEDMulti");
+    G4MultiUnion *pinsAll = new G4MultiUnion("PinsLEDMulti");
+    elongatedLED = new G4MultiUnion("ElongatedLEDCylMulti");
     for (auto &p: LEDXY) {
         G4Transform3D tr(G4RotationMatrix(), G4ThreeVector(p.x(), p.y(), 0.0));
-        LEDs->AddNode(*LED, tr);
+        crystalLED->AddNode(*LED, tr);
+        pinsAll->AddNode(*pins, tr);
+        elongatedLED->AddNode(*eLED, tr);
     }
-    LEDs->Voxelize();
+    crystalLED->Voxelize();
+    pinsAll->Voxelize();
+    elongatedLED->Voxelize();
 
-    auto *LEDLV = new G4LogicalVolume(LEDs, LEDMat, "LEDMultiLV");
-    new G4PVPlacement(nullptr, G4ThreeVector(0, 0, zOff), LEDLV, "LEDMultiPVPL", detContainerLV, false, 0, true);
-    LEDLV->SetVisAttributes(visCyan);
+    crystalLEDLV = new G4LogicalVolume(crystalLED, LEDMat, "LEDMultiLV");
+    const G4double zOff = -(crystalSize.z() / 2. + crystalLEDHeight / 2.) + zCorrection;
+    new G4PVPlacement(nullptr, G4ThreeVector(0, 0, zOff), crystalLEDLV, "LEDMultiPVPL", detContainerLV, false, 0, true);
+    crystalLEDLV->SetVisAttributes(visLED);
+
+    G4LogicalVolume *pinsLV = new G4LogicalVolume(pinsAll, wireMat, "PinsLEDMultiLV");
+    const G4double pinOffZ = -(crystalSize.z() + pinLength) / 2. - crystalLEDHeight + zCorrection;
+    new G4PVPlacement(nullptr, G4ThreeVector(0, 0, pinOffZ), pinsLV, "PinsLEDMultiPVPL", detContainerLV, false, 0,
+                      true);
+    pinsLV->SetVisAttributes(visWire);
 }
 
+
+void Detector::ConstructAl() {
+    if (AlCapThickBottom <= 0 and AlCapThickWall <= 0 and AlThickTop <= 0 and AlThickWall <= 0) return;
+
+    // Aluminium container for insulation
+    G4ThreeVector AlContSize = G4ThreeVector(crystalSize.y() + tyvekInThickWall,
+                                             crystalSize.y() + tyvekInThickWall + AlThickWall,
+                                             crystalSize.z() + tyvekInThickTop + AlThickTop);
+
+    G4VSolid *AlCont = nullptr;
+    G4VSolid *AlContWall = nullptr;
+    if (AlThickWall > 0) {
+        AlContWall = new G4Tubs("AlContWall", AlContSize.x(), AlContSize.y(), AlContSize.z() / 2, 0, viewDeg);
+    }
+
+    G4VSolid *AlContTop = nullptr;
+    if (AlThickTop > 0) {
+        AlContTop = new G4Tubs("AlContTop", 0, AlContSize.x(), AlThickTop / 2, 0, viewDeg);
+    }
+    if (AlContWall != nullptr and AlContTop != nullptr) {
+        AlCont = new G4UnionSolid("AlCont", AlContWall, AlContTop, nullptr,
+                                  G4ThreeVector(0, 0, (AlContSize.z() - AlThickTop) / 2.));
+    } else if (AlContWall == nullptr and AlContTop != nullptr) {
+        AlCont = AlContTop;
+    } else {
+        AlCont = AlContWall;
+    }
+
+    // Aluminium container cap for insulation
+    G4ThreeVector AlCapSize = G4ThreeVector(crystalSize.y() + tyvekInThickWall + AlThickWall,
+                                            crystalSize.y() + tyvekInThickWall + AlThickWall + AlCapThickWall,
+                                            boardSpace + AlCapThickBottom);
+
+    G4VSolid *AlCap = nullptr;
+    G4VSolid *AlCapWall = nullptr;
+    if (AlCapThickWall > 0) {
+        AlCapWall = new G4Tubs("AlCapWall", AlCapSize.x(), AlCapSize.y(), AlCapSize.z() / 2, 0, viewDeg);
+    }
+
+    G4VSolid *AlCapBottom = nullptr;
+    if (AlCapThickBottom > 0) {
+        AlCapBottom = new G4Tubs("AlCapBottom", wireRadius + wireInsulationThick, AlCapSize.x(), AlCapThickBottom / 2,
+                                 0, viewDeg);
+    }
+    if (AlCapWall != nullptr and AlCapBottom != nullptr) {
+        AlCap = new G4UnionSolid("AlCap", AlCapWall, AlCapBottom, nullptr,
+                                 G4ThreeVector(0, 0, -(AlCapSize.z() - AlCapThickBottom) / 2.));
+    } else if (AlCapWall == nullptr and AlCapBottom != nullptr) {
+        AlCap = AlCapBottom;
+    } else {
+        AlCap = AlCapWall;
+    }
+
+    G4VSolid *Al = nullptr;
+    if (AlCont != nullptr and AlCap != nullptr) {
+        G4ThreeVector posAlCont = G4ThreeVector(0, 0, (AlContSize.z() + AlCapSize.z()) / 2.);
+        Al = new G4UnionSolid("Al", AlCap, AlCont, nullptr, posAlCont);
+    } else if (AlCont == nullptr and AlCap != nullptr) {
+        Al = AlCap;
+    } else {
+        Al = AlCont;
+    }
+
+    AlLV = new G4LogicalVolume(Al, AlMat, "AlLV");
+    G4ThreeVector posAl = G4ThreeVector(0, 0, -(crystalSize.z() + boardSpace + AlCapThickBottom) / 2. + zCorrection);
+    new G4PVPlacement(nullptr, posAl, AlLV, "AlPVPL", detContainerLV, false, 0, true);
+    AlLV->SetVisAttributes(visAl);
+
+    // Rubber
+    G4VSolid *rubber = new G4Tubs("Rubber", 0, rubberRadius, rubberHeight / 2., 0, viewDeg);
+    rubberLV = new G4LogicalVolume(rubber, rubberMat, "RubberLV");
+    G4ThreeVector posRubber = G4ThreeVector(0, 0,
+                                            (crystalSize.z() + rubberHeight) / 2. + tyvekInThickTop + AlThickTop +
+                                            zCorrection);
+    new G4PVPlacement(nullptr, posRubber, rubberLV, "RubberPVPL", detContainerLV, false, 0, true);
+    rubberLV->SetVisAttributes(visRubber);
+
+    // TyvekMid
+    tyvekMidSize = G4ThreeVector(AlCapSize.y(),
+                                 AlCapSize.y() + tyvekMidThickWall,
+                                 AlCapSize.z() + AlContSize.z() + rubberHeight + tyvekMidThickBottom +
+                                 tyvekMidThickTop);
+
+    G4VSolid *tyvekMidIncomplete = nullptr;
+    G4VSolid *tyvekMidWall = nullptr;
+    if (tyvekMidThickWall > 0) {
+        tyvekMidWall = new G4Tubs("TyvekMidWall", tyvekMidSize.x(), tyvekMidSize.y(), tyvekMidSize.z() / 2, 0, viewDeg);
+    }
+
+    G4VSolid *tyvekMidTop = nullptr;
+    const G4ThreeVector tyvekMidTopPos = G4ThreeVector(0, 0, (tyvekMidSize.z() - tyvekMidThickTop) / 2.0);
+    if (tyvekMidThickTop > 0) {
+        tyvekMidTop = new G4Tubs("TyvekMidTop", 0, tyvekMidSize.x(), tyvekMidThickTop / 2., 0, viewDeg);
+    }
+    if (tyvekMidThickWall > 0 and tyvekMidThickTop > 0) {
+        tyvekMidIncomplete = new G4UnionSolid("TyvekMidIncomplete", tyvekMidWall, tyvekMidTop, nullptr,
+                                              tyvekMidTopPos);
+    } else if (tyvekMidThickWall > 0 and tyvekMidThickTop <= 0) {
+        tyvekMidIncomplete = tyvekMidWall;
+    } else if (tyvekMidThickWall <= 0 and tyvekMidThickTop > 0) {
+        tyvekMidIncomplete = tyvekMidTop;
+    }
+
+    G4VSolid *tyvekMidBottom = nullptr;
+    const G4ThreeVector tyvekMidBottomPos = G4ThreeVector(0, 0, (tyvekMidThickBottom - tyvekMidSize.z()) / 2.0);
+    if (tyvekMidThickBottom > 0) {
+        tyvekMidBottom = new G4Tubs("TyvekMidBottom", wireRadius + wireInsulationThick, tyvekMidSize.x(),
+                                    tyvekMidThickBottom / 2., 0, viewDeg);
+    }
+
+    G4VSolid *tyvekMid = nullptr;
+    if (tyvekMidIncomplete != nullptr and tyvekMidThickBottom > 0) {
+        tyvekMid = new G4UnionSolid("TyvekMid", tyvekMidIncomplete, tyvekMidBottom, nullptr, tyvekMidBottomPos);
+    } else if (tyvekMidIncomplete == nullptr and tyvekMidThickBottom > 0) {
+        tyvekMid = tyvekMidBottom;
+    } else if (tyvekMidIncomplete != nullptr and tyvekMidThickBottom <= 0) {
+        tyvekMid = tyvekMidIncomplete;
+    }
+
+    tyvekMidLV = new G4LogicalVolume(tyvekMid, tyvekMidMat, "TyvekMidLV");
+    G4ThreeVector tyvekMidPos = G4ThreeVector(0, 0,
+                                              (crystalSize.z() - tyvekMidSize.z()) / 2.0 + tyvekInThickTop + AlThickTop
+                                              + rubberHeight + tyvekMidThickTop + zCorrection);
+    new G4PVPlacement(nullptr, tyvekMidPos, tyvekMidLV, "TyvekMidPVPL", detContainerLV, false, 0, true);
+    tyvekMidLV->SetVisAttributes(visTyvekMid);
+}
+
+
+void Detector::ConstructVeto() {
+    vetoSize = G4ThreeVector(tyvekMidSize.y(),
+                             tyvekMidSize.y() + vetoThickWall,
+                             tyvekMidSize.z());
+    ConstructVetoLED();
+
+    G4VSolid *vetoIncomplete = nullptr;
+    G4VSolid *vetoWall = nullptr;
+    if (vetoThickWall > 0) {
+        vetoWall = new G4Tubs("VetoWall", vetoSize.x(), vetoSize.y(), vetoSize.z() / 2, 0, viewDeg);
+    }
+
+    G4VSolid *vetoTop = nullptr;
+    G4ThreeVector vetoTopPos = G4ThreeVector(0, 0, (vetoSize.z() + vetoThickTop) / 2.0);
+    if (vetoThickTop > 0) {
+        if (vetoChamferHeigh > 0) {
+            G4VSolid *vetoTopTube = new G4Tubs("VetoTopTube", 0, vetoSize.y(), (vetoThickTop - vetoChamferHeigh) / 2, 0,
+                                               viewDeg);
+            G4VSolid *vetoTopCons = new G4Cons("VetoTopCons", 0, vetoSize.y(), 0, vetoSize.y() - vetoChamferHeigh,
+                                               vetoChamferHeigh / 2, 0, viewDeg);
+
+            G4ThreeVector vetoTopConsPos = G4ThreeVector(0, 0, vetoThickTop / 2.);
+            vetoTopPos = G4ThreeVector(0, 0, (vetoSize.z() + vetoThickTop - vetoChamferHeigh) / 2.0);
+            vetoTop = new G4UnionSolid("VetoTop", vetoTopTube, vetoTopCons, nullptr, vetoTopConsPos);
+        } else {
+            vetoTop = new G4Tubs("VetoTop", 0, vetoSize.y(), vetoThickTop / 2., 0, viewDeg);
+        }
+    }
+    if (vetoThickWall > 0 and vetoThickTop > 0) {
+        vetoIncomplete = new G4UnionSolid("VetoIncomplete", vetoWall, vetoTop, nullptr, vetoTopPos);
+    } else if (vetoThickWall > 0 and vetoThickTop <= 0) {
+        vetoIncomplete = vetoWall;
+    } else if (vetoThickWall <= 0 and vetoThickTop > 0) {
+        vetoIncomplete = vetoTop;
+    }
+
+    G4VSolid *vetoBottom = nullptr;
+    const G4ThreeVector vetoBottomPos = G4ThreeVector(0, 0, -(vetoSize.z() + vetoThickBottom) / 2.0);
+    if (vetoThickBottom > 0) {
+        if (vetoLEDCount > 0) {
+            G4VSolid *vetoBottomIncomplete = new G4Tubs("VetoBottomIncomplete", wireRadius + wireInsulationThick,
+                                                        vetoSize.y(), vetoThickBottom / 2., 0, viewDeg);
+
+            G4ThreeVector vetoLEDPos = G4ThreeVector(0, 0, vetoThickBottom - vetoLEDHeight / 2.0);
+
+            G4ThreeVector vetoLEDWirePos = G4ThreeVector(0, 0, 0);
+            G4VSolid *vetoBottomIncomplete1 = new G4SubtractionSolid("VetoBottomIncompleteWithWire",
+                                                                     vetoBottomIncomplete, vetoWireFictive,
+                                                                     nullptr, vetoLEDWirePos);
+
+            vetoBottom = new G4SubtractionSolid("VetoBottom",
+                                                vetoBottomIncomplete1, vetoLEDFictive, nullptr,
+                                                vetoLEDPos);
+        } else {
+            vetoBottom = new G4Tubs("VetoBottom", wireRadius + wireInsulationThick, vetoSize.y(),
+                                    vetoThickBottom / 2., 0, viewDeg);
+        }
+    }
+
+    G4VSolid *veto = nullptr;
+    if (vetoIncomplete != nullptr and vetoThickBottom > 0) {
+        veto = new G4UnionSolid("Veto", vetoIncomplete, vetoBottom, nullptr, vetoBottomPos);
+    } else if (vetoIncomplete == nullptr and vetoThickBottom > 0) {
+        veto = vetoBottom;
+    } else if (vetoIncomplete != nullptr and vetoThickBottom <= 0) {
+        veto = vetoIncomplete;
+    }
+
+    vetoLV = new G4LogicalVolume(veto, vetoMat, "VetoLV");
+    G4ThreeVector vetoPos = G4ThreeVector(0, 0,
+                                          (crystalSize.z() - tyvekMidSize.z()) / 2.0 + tyvekInThickTop + AlThickTop
+                                          + rubberHeight + tyvekMidThickTop + zCorrection);
+    if (vetoThickWall <= 0) {
+        vetoPos = G4ThreeVector(0, 0,
+                                -(crystalSize.z() + vetoThickBottom) / 2.0 - tyvekInThickBottom - AlCapThickBottom -
+                                tyvekMidThickBottom - boardSpace + zCorrection);
+    }
+    new G4PVPlacement(nullptr, vetoPos, vetoLV, "VetoPVPL", detContainerLV, false, 0, true);
+    vetoLV->SetVisAttributes(visVeto);
+
+
+    // TyvekOut
+    tyvekOutSize = G4ThreeVector(vetoSize.y(),
+                                 vetoSize.y() + tyvekOutThickWall,
+                                 vetoSize.z() + vetoThickBottom + vetoThickTop);
+
+    ConstructVetoBottomLED();
+
+    G4VSolid *tyvekOutIncomplete = nullptr;
+    G4VSolid *tyvekOutWall = nullptr;
+    if (tyvekOutThickWall > 0) {
+        if (vetoBottomLEDCount > 0) {
+            G4VSolid *tyvekOutWallIncomplete = new G4Tubs("TyvekOutWallIncomplete", tyvekOutSize.x(), tyvekOutSize.y(),
+                                                          (tyvekOutSize.z() - vetoChamferHeigh) / 2, 0, viewDeg);
+            G4ThreeVector vetoBottomLEDPos = G4ThreeVector(
+                0, 0, -(tyvekOutSize.z() - vetoChamferHeigh - vetoThickBottom) / 2.);
+            tyvekOutWall = new G4SubtractionSolid("TyvekOutWall", tyvekOutWallIncomplete, vetoBottomLEDFictive, nullptr,
+                                                  vetoBottomLEDPos);
+        } else {
+            tyvekOutWall = new G4Tubs("TyvekOutWall", tyvekOutSize.x(), tyvekOutSize.y(),
+                                      (tyvekOutSize.z() - vetoChamferHeigh) / 2, 0, viewDeg);
+        }
+    }
+
+    G4VSolid *tyvekOutTop = nullptr;
+    G4ThreeVector tyvekOutTopPos = G4ThreeVector(0, 0, (tyvekOutSize.z() + tyvekOutThickTop) / 2.0);
+    if (tyvekOutThickTop > 0) {
+        if (vetoChamferHeigh > 0) {
+            G4VSolid *tyvekOutTopConsOut = new G4Cons("TyvekOutTopConsOut", tyvekOutSize.x(), tyvekOutSize.y(),
+                                                      tyvekOutSize.y() - 2 * tyvekOutThickWall - vetoChamferHeigh,
+                                                      tyvekOutSize.y() - tyvekOutThickWall - vetoChamferHeigh,
+                                                      (vetoChamferHeigh + tyvekOutThickTop) / 2, 0, viewDeg);
+            G4VSolid *tyvekOutTopConsIn = new G4Cons("TyvekOutTopConsIn", 0, tyvekOutSize.x() - vetoChamferHeigh, 0,
+                                                     tyvekOutSize.y() - 2 * tyvekOutThickWall - vetoChamferHeigh,
+                                                     tyvekOutThickTop / 2, 0, viewDeg);
+
+            tyvekOutTopPos = G4ThreeVector(0, 0, (tyvekOutSize.z() + tyvekOutThickWall) / 2.0);
+
+            G4ThreeVector tyvekOutTopConsPos = G4ThreeVector(
+                0, 0, (vetoChamferHeigh + tyvekOutThickWall - tyvekOutThickTop) / 2.);
+            tyvekOutTop = new G4UnionSolid("TyvekOutTop", tyvekOutTopConsOut, tyvekOutTopConsIn, nullptr,
+                                           tyvekOutTopConsPos);
+        } else {
+            tyvekOutTop = new G4Tubs("TyvekOutTop", 0, tyvekOutSize.y(), tyvekOutThickTop / 2., 0, viewDeg);
+        }
+    }
+    if (tyvekOutThickWall > 0 and tyvekOutThickTop > 0) {
+        tyvekOutIncomplete = new G4UnionSolid("TyvekOutIncomplete", tyvekOutWall, tyvekOutTop, nullptr, tyvekOutTopPos);
+    } else if (tyvekOutThickWall > 0 and tyvekOutThickTop <= 0) {
+        tyvekOutIncomplete = tyvekOutWall;
+    } else if (tyvekOutThickWall <= 0 and tyvekOutThickTop > 0) {
+        tyvekOutIncomplete = tyvekOutTop;
+    }
+
+    G4VSolid *tyvekOutBottom = nullptr;
+    const G4ThreeVector tyvekOutBottomPos = G4ThreeVector(
+        0, 0, -(tyvekOutSize.z() - vetoChamferHeigh + tyvekOutThickBottom) / 2.0);
+    if (tyvekOutThickBottom > 0) {
+        if (vetoLEDCount > 0) {
+            G4VSolid *tyvekOutBottomIncomplete = new G4Tubs("TyvekOutBottomIncomplete",
+                                                            wireRadius + wireInsulationThick,
+                                                            tyvekOutSize.y(), tyvekOutThickBottom / 2., 0, viewDeg);
+
+            G4ThreeVector tyvekOutLEDWirePos = G4ThreeVector(0, 0, 0);
+            tyvekOutBottom = new G4SubtractionSolid("TyvekOutBottom",
+                                                    tyvekOutBottomIncomplete, vetoWireFictive, nullptr,
+                                                    tyvekOutLEDWirePos);
+        } else {
+            tyvekOutBottom = new G4Tubs("TyvekOutBottom", wireRadius + wireInsulationThick, tyvekOutSize.y(),
+                                        tyvekOutThickBottom / 2., 0, viewDeg);
+        }
+    }
+
+    G4VSolid *tyvekOut = nullptr;
+    if (tyvekOutIncomplete != nullptr and tyvekOutThickBottom > 0) {
+        tyvekOut = new G4UnionSolid("TyvekOut", tyvekOutIncomplete, tyvekOutBottom, nullptr, tyvekOutBottomPos);
+    } else if (tyvekOutIncomplete == nullptr and tyvekOutThickBottom > 0) {
+        tyvekOut = tyvekOutBottom;
+    } else if (tyvekOutIncomplete != nullptr and tyvekOutThickBottom <= 0) {
+        tyvekOut = tyvekOutIncomplete;
+    }
+
+    tyvekOutLV = new G4LogicalVolume(tyvekOut, tyvekOutMat, "TyvekOutLV");
+    G4ThreeVector tyvekOutPos = G4ThreeVector(0, 0,
+                                              -(vetoThickBottom + tyvekMidThickBottom +
+                                                AlCapThickBottom + boardSpace - tyvekInThickTop - AlThickTop -
+                                                rubberHeight - tyvekMidThickTop - vetoThickTop + vetoChamferHeigh) /
+                                              2. + zCorrection);
+
+    new G4PVPlacement(nullptr, tyvekOutPos, tyvekOutLV, "TyvekOutPVPL", detContainerLV, false, 0, true);
+    tyvekOutLV->SetVisAttributes(visTyvekOut);
+}
+
+
+void Detector::ConstructVetoLED() {
+    if (vetoLEDRadius <= 0) return;
+
+    const G4double radiusXY = vetoSize.y() - vetoThickWall / 2.0;
+
+    std::vector<G4ThreeVector> LEDXY;
+    if (vetoLEDCount == 1) {
+        LEDXY = {G4ThreeVector(0, 0, 0)};
+    } else {
+        const G4double dphi = 2. * pi / vetoLEDCount;
+        LEDXY.reserve(vetoLEDCount);
+        for (int i = 0; i < vetoLEDCount; ++i) {
+            const G4double a = i * dphi;
+            LEDXY.emplace_back(radiusXY * std::cos(a), radiusXY * std::sin(a), 0);
+        }
+    }
+    if (LEDXY.empty()) return;
+
+    G4Tubs *LED = new G4Tubs("vetoLEDCyl", 0, vetoLEDRadius, vetoLEDHeight / 2., 0, 360 * deg);
+    G4Tubs *LEDFictive = new G4Tubs("LEDCylFictive", 0, vetoLEDRadius, vetoLEDHeight + vetoThickBottom, 0,
+                                    360 * deg);
+
+    G4double vetoWireLength = vetoThickBottom + tyvekOutThickBottom - vetoLEDHeight + additionalLength;
+    G4Tubs *vetoWire = new G4Tubs("VetoWire", 0, wireRadius, vetoWireLength / 2, 0,
+                                  360 * deg);
+    G4Tubs *vetoWireInsulation = new G4Tubs("VetoWireInsulation", wireRadius, wireRadius + wireInsulationThick,
+                                            vetoWireLength / 2, 0, 360 * deg);
+
+    G4Tubs *wireFictive = new G4Tubs("VetoWireFictive", 0, wireRadius + wireInsulationThick,
+                                     vetoWireLength / 2, 0, 360 * deg);
+
+    vetoLED = new G4MultiUnion("VetoLEDMulti");
+    vetoLEDWire = new G4MultiUnion("VetoLEDWireMulti");
+    vetoLEDWireInsulation = new G4MultiUnion("VetoLEDWireInsulationMulti");
+    vetoLEDFictive = new G4MultiUnion("VetoLEDFictiveMulti");
+    vetoWireFictive = new G4MultiUnion("VetoWireFictiveMulti");
+    for (auto &p: LEDXY) {
+        G4Transform3D tr(G4RotationMatrix(), G4ThreeVector(p.x(), p.y(), 0.0));
+        vetoLED->AddNode(*LED, tr);
+        vetoLEDWire->AddNode(*vetoWire, tr);
+        vetoLEDWireInsulation->AddNode(*vetoWireInsulation, tr);
+        vetoLEDFictive->AddNode(*LEDFictive, tr);
+        vetoWireFictive->AddNode(*wireFictive, tr);
+    }
+    vetoLED->Voxelize();
+    vetoLEDWire->Voxelize();
+    vetoLEDWireInsulation->Voxelize();
+    vetoLEDFictive->Voxelize();
+    vetoWireFictive->Voxelize();
+
+    vetoLEDLV = new G4LogicalVolume(vetoLED, LEDMat, "VetoLEDMultiLV");
+    const G4double zOff = -(crystalSize.z() / 2. + boardSpace + AlCapThickBottom + tyvekMidThickBottom + vetoLEDHeight /
+                            2.) + zCorrection;
+    new G4PVPlacement(nullptr, G4ThreeVector(0, 0, zOff), vetoLEDLV, "VetoLEDMultiPVPL", detContainerLV, false, 0,
+                      true);
+    vetoLEDLV->SetVisAttributes(visLED);
+
+    G4LogicalVolume *vetoLEDWireLV = new G4LogicalVolume(vetoLEDWire, wireMat, "VetoLEWireMultiLV");
+    const G4double zOffWire = -(crystalSize.z() / 2. + boardSpace + AlCapThickBottom + tyvekMidThickBottom +
+                                vetoLEDHeight + vetoWireLength / 2.) + zCorrection;
+    new G4PVPlacement(nullptr, G4ThreeVector(0, 0, zOffWire), vetoLEDWireLV, "VetoLEDWireMultiPVPL", detContainerLV,
+                      false, 0, true);
+    vetoLEDWireLV->SetVisAttributes(visWire);
+
+    G4LogicalVolume *vetoLEDWireInsulationLV = new G4LogicalVolume(vetoLEDWireInsulation, tyvekMidMat,
+                                                                   "VetoLEWireInsulationMultiLV");
+    new G4PVPlacement(nullptr, G4ThreeVector(0, 0, zOffWire), vetoLEDWireInsulationLV, "VetoLEDWireInsulationMultiPVPL",
+                      detContainerLV, false, 0, true);
+    vetoLEDWireInsulationLV->SetVisAttributes(visTyvekMid);
+}
+
+void Detector::ConstructVetoBottomLED() {
+    if (vetoBottomLEDRadius <= 0) return;
+
+    const G4double radiusXY = vetoSize.y() + vetoBottomLEDHeight / 2.0;
+
+    std::vector<G4ThreeVector> LEDXY;
+    std::vector<G4double> LEDAlpha;
+    if (vetoBottomLEDCount == 1) {
+        LEDXY = {G4ThreeVector(0, 0, 0)};
+        LEDAlpha = {0};
+    } else {
+        const G4double dphi = 2. * pi / vetoBottomLEDCount;
+        LEDXY.reserve(vetoBottomLEDCount);
+        LEDAlpha.reserve(vetoBottomLEDCount);
+        for (int i = 0; i < vetoBottomLEDCount; ++i) {
+            const G4double a = (i + 0.5) * dphi;
+            LEDXY.emplace_back(radiusXY * std::cos(a), radiusXY * std::sin(a), 0);
+            LEDAlpha.emplace_back(a);
+        }
+    }
+    if (LEDXY.empty()) return;
+
+    G4Tubs *LED = new G4Tubs("VetoBottomLEDCyl", 0, vetoBottomLEDRadius, vetoBottomLEDHeight / 2., 0, 360 * deg);
+    G4Tubs *LEDFictive = new G4Tubs("BottomLEDCylFictive", 0, vetoBottomLEDRadius,
+                                    (tyvekOutThickWall + vetoBottomLEDHeight) * 2, 0, 360 * deg);
+
+    vetoBottomLED = new G4MultiUnion("VetoBottomLEDMulti");
+    vetoBottomLEDFictive = new G4MultiUnion("VetoBottomLEDFictiveMulti");
+    for (int i = 0; i < vetoBottomLEDCount; ++i) {
+        const G4ThreeVector &p = LEDXY[i];
+        G4Transform3D tr(G4RotationMatrix(0, 90 * deg, 90 * deg - LEDAlpha[i]), G4ThreeVector(p.x(), p.y(), 0.0));
+        vetoBottomLED->AddNode(*LED, tr);
+        vetoBottomLEDFictive->AddNode(*LEDFictive, tr);
+    }
+    vetoBottomLED->Voxelize();
+    vetoBottomLEDFictive->Voxelize();
+
+    vetoBottomLEDLV = new G4LogicalVolume(vetoBottomLED, LEDMat, "VetoBottomLEDMultiLV");
+    const G4double zOff = -(crystalSize.z() / 2. + boardSpace + AlCapThickBottom + tyvekMidThickBottom +
+                            vetoThickBottom / 2.) + zCorrection;
+    new G4PVPlacement(nullptr, G4ThreeVector(0, 0, zOff), vetoBottomLEDLV, "VetoBottomLEDMultiPVPL", detContainerLV,
+                      false, 0, true);
+    vetoBottomLEDLV->SetVisAttributes(visLED);
+}
 
 std::vector<G4LogicalVolume *> Detector::GetSensitiveLV() const {
     return {
         crystalLV,
+        tyvekInLV,
+        AlLV,
+        rubberLV,
+        tyvekMidLV,
         vetoLV,
         tyvekOutLV,
-        tyvekInLV,
-        shellLV
+        crystalLEDLV,
+        vetoLEDLV,
+        vetoBottomLEDLV
     };
 }

@@ -16,6 +16,7 @@
 #include <G4ProductionCuts.hh>
 #include <G4SubtractionSolid.hh>
 #include <G4UnionSolid.hh>
+#include <G4VSolid.hh>
 #include <G4PhysicalConstants.hh>
 #include <G4SDManager.hh>
 #include <utility>
@@ -27,6 +28,12 @@
 
 class Geometry : public G4VUserDetectorConstruction {
 public:
+    Geometry(G4String);
+
+    G4VPhysicalVolume *Construct() override;
+    void ConstructSDandField() override;
+
+private:
     G4NistManager *nist;
     G4Material *worldMat;
     G4double worldHalfSize;
@@ -35,23 +42,26 @@ public:
     G4VPhysicalVolume *worldPVP;
 
     G4double viewDeg;
-    G4int nLED;
 
     Detector *detector;
     G4String detectorType;
     G4ThreeVector detContainerSize;
-    G4ThreeVector modelSize;
 
     G4Tubs *detContainer;
     G4LogicalVolume *detContainerLV;
     G4ThreeVector detContainerPos;
 
-    Sizes sizes;
-
     G4LogicalVolume *crystalLV;
+    G4LogicalVolume *tyvekInLV;
+    G4LogicalVolume *AlLV;
+    G4LogicalVolume *rubberLV;
+    G4LogicalVolume *tyvekMidLV;
     G4LogicalVolume *vetoLV;
     G4LogicalVolume *tyvekOutLV;
-    G4LogicalVolume *tyvekInLV;
+    G4LogicalVolume *tunaCanLV;
+    G4LogicalVolume *vetoLEDLV;
+    G4LogicalVolume *crystalLEDLV;
+    G4LogicalVolume *vetoBottomLEDLV;
 
     G4Region *vetoTopRegion;
     G4Region *vetoBottomRegion;
@@ -60,31 +70,21 @@ public:
     G4Region *vetoFrontRegion;
     G4Region *vetoBackRegion;
 
-    Geometry(G4String, const Sizes &, G4double, G4int);
-
-    G4VPhysicalVolume *Construct() override;
-    void ConstructSDandField() override;
-
-private:
     G4RotationMatrix *zeroRot;
 
-    G4UnionSolid *shell;
-    G4LogicalVolume *shellLV;
-    G4UnionSolid *tunaCan;
-    G4LogicalVolume *tunaCanLV;
-    G4double temperature;
+    G4VSolid *tunaCan;
 
     G4UserLimits *vetoStepLimit;
     G4Region *vetoRegion;
     G4ProductionCuts *vetoCuts;
 
-    G4VisAttributes *shellVisAttr;
     G4VisAttributes *tunaCanVisAttr;
-    G4VisAttributes *LEDVisAttr;
+
+    void CheckSizes();
 
     void ConstructDetector();
     void ConstructTunaCan();
-    void ConstructLED();
+
     void SetStepLimits();
 };
 

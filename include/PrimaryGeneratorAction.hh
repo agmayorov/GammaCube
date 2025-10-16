@@ -5,6 +5,7 @@
 #include <G4ParticleGun.hh>
 #include <G4ThreeVector.hh>
 #include <G4String.hh>
+#include <utility>
 #include <G4VVisManager.hh>
 #include <G4Event.hh>
 #include <G4Circle.hh>
@@ -25,12 +26,13 @@
 #include "Flux/PLAWFlux.hh"
 #include "Flux/COMPFlux.hh"
 #include "Flux/SEPFlux.hh"
+#include "Flux/TableFlux.hh"
 #include "Flux/GalacticFlux.hh"
 
 
 class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction {
 public:
-    PrimaryGeneratorAction(G4ThreeVector, G4ThreeVector, G4bool, const G4String &);
+    PrimaryGeneratorAction(G4bool, const G4String &);
     ~PrimaryGeneratorAction() override;
 
     void GeneratePrimaries(G4Event *evt) override;

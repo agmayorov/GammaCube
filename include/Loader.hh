@@ -42,12 +42,9 @@ class Loader {
     G4String macroFile;
     int numThreads;
     bool useUI;
-    Sizes sizes;
-    G4double temperature;
     G4String detectorType;
     G4String fluxType;
     G4bool verticalFlux;
-    G4int nLED;
 
 #ifdef G4MULTITHREADED
     G4MTRunManager *runManager;
@@ -66,8 +63,12 @@ private:
     G4int crystalOnly{};
     G4int crystalAndVeto{};
 
+    std::string geomConfigPath;
+
     [[nodiscard]] std::string ReadValue(const std::string &, const std::string &) const;
-    void SaveConfig(const Geometry *) const;
+    void SaveConfig() const;
+
+    void ParseGeomConfig();
 };
 
 #endif //LOADER_HH

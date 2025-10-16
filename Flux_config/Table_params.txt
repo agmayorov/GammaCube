@@ -1,0 +1,5 @@
+path: ../Table_spectrum.csv
+particle: proton
+
+E_min: 0.1
+E_max: 1000

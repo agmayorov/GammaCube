@@ -1,0 +1,83 @@
+# Все размеры в мм, размер кристалла рассчитывается автоматически с учетом размера всего
+
+# Тип детектора (NaI / CsI).
+Detector_type: CsI
+
+# Размеры всей модели
+Model_height: 78
+Model_radius: 40
+
+# Размеры контейнера
+TunaCan_thick_wall: 5
+TunaCan_thick_top: 5
+TunaCan_thick_bottom: 0
+
+# Размеры воздушной прослойки между системой антисовпадений и контейнером
+Gap_size_wall: 2
+Gap_size_top: 2
+Gap_size_bottom: 0
+
+# Размеры наружного слоя ... (между воздушной прослойкой и системой антисовпадений)
+TyvekOut_thick_wall: 1
+TyvekOut_thick_top: 1
+TyvekOut_thick_bottom: 1
+
+# Размеры системы Антисовпадений
+Veto_thick_wall: 7
+Veto_thick_top: 7
+Veto_thick_bottom: 7
+
+# Размер фаски для системы Антисовпадений (фаска 45)
+Veto_chamfer_heigh: 2
+
+# Размеры среднего слоя ... (между системой антисовпадений и резиной)
+TyvekMid_thick_wall: 1
+TyvekMid_thick_top: 1
+TyvekMid_thick_bottom: 1
+
+# Размеры резиновой изоляции
+Rubber_radius: 5
+Rubber_height: 2
+
+# Размеры алюминиевой изоляции
+Aluminium_thick_wall: 0.5
+Aluminium_thick_top: 0.5
+
+AluminiumCap_thick_wall: 0.5
+AluminiumCap_thick_bottom: 0.5
+
+# Размеры внутреннего слоя ... (между изоляцией и внутренним кристаллом)
+TyvekIn_thick_wall: 1
+TyvekIn_thick_top: 1
+TyvekIn_thick_bottom: 1
+
+# Количество и радиус светодиодов для Кристалла
+CrystalLED_count: 4
+CrystalLED_radius: 3
+CrystalLED_height: 1
+
+# Количество и радиус светодиодов для системы антисовпадений
+VetoLED_count: 4
+VetoLED_radius: 3
+VetoLED_height: 1
+
+# Количество и радиус светодиодов для нижней части системы антисовпадений
+VetoLED_bottom_count: 4
+VetoLED_bottom_radius: 3
+VetoLED_bottom_height: 1
+
+# Радиус всех проводов
+Wire_radius: 0.5
+Wire_insulation_thick: 0.5
+
+# Количество и радиус пинов, входящих в плату от каждого светодиода кристалла
+Pin_count: 4
+Pin_radius: 0.2
+
+# Размеры платы
+Board_height: 2
+Board_length: 27
+Board_width: 27
+
+# Пространство для усилительной платы под кристаллом
+Board_space: 5

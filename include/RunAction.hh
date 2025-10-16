@@ -27,7 +27,7 @@ class RunAction : public G4UserRunAction {
 public:
     AnalysisManager *analysisManager;
 
-    RunAction(const Sizes &ss);
+    RunAction();
     ~RunAction() override;
 
     void BeginOfRunAction(const G4Run *) override;
@@ -39,7 +39,6 @@ public:
     [[nodiscard]] const ParticleCounts& GetCounts() const { return totals; }
 
 private:
-    Sizes sizes;
     G4Accumulable<G4int> crystalOnly;   // Crystal && !Veto
     G4Accumulable<G4int> crystalAndVeto;   // Crystal && Veto
     ParticleCounts totals;

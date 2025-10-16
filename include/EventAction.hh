@@ -54,7 +54,7 @@ public:
     std::vector<PrimaryRec> primBuf;
     std::vector<InteractionRec> interBuf;
 
-    EventAction(AnalysisManager *, RunAction *, const Sizes &);
+    EventAction(AnalysisManager *, RunAction *);
     ~EventAction() override = default;
 
     void BeginOfEventAction(const G4Event *) override;
@@ -69,7 +69,6 @@ private:
     inline void MarkVeto() { hasVeto = true; }
 
     AnalysisManager *analysisManager = nullptr;
-    Sizes detSizes;
 
     std::vector<std::tuple<G4String, int, G4String>> detMap;
     std::vector<int> HCIDs;

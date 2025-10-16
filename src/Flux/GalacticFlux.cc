@@ -158,12 +158,12 @@ G4double GalacticFlux::J_Alpha(const G4double E) const {
     return term1;
 }
 
-G4double GalacticFlux::J_TOA_GeV(const G4double E) const {
+G4double GalacticFlux::J_TOA_GeV(const G4double E) {
     constexpr G4double mp = 0.938272;
     constexpr G4double me = 0.000511;
     constexpr G4double malpha = 3.727379;
     G4double mass = 0;
-    const G4int Z = name == "alpha" ? 2 : 1;
+    const G4double Z = name == "alpha" ? 0.5 : 1;
     const G4double phiGeV = phiMV * 1e-3 * Z;
 
     const G4double ELis = E + phiGeV;
@@ -183,7 +183,9 @@ G4double GalacticFlux::J_TOA_GeV(const G4double E) const {
 
     G4double J_LIS = 0;
     if (name == "alpha") {
-        J_LIS = J_Alpha(ELis);
+        Emin = Emin * 4;
+        Emax = Emax * 4;
+        J_LIS = 4 * J_Alpha(ELis / 4);
     } else if (name == "e-") {
         J_LIS = J_Electron(ELis);
     } else if (name == "proton") {
