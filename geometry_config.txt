@@ -12,10 +12,9 @@ TunaCan_thick_wall: 5
 TunaCan_thick_top: 5
 TunaCan_thick_bottom: 0
 
-# Размеры воздушной прослойки между системой антисовпадений и контейнером
-Gap_size_wall: 2
-Gap_size_top: 2
-Gap_size_bottom: 0
+# Размеры кристалла
+Crystal_radius: 20
+Crystal_height: 30
 
 # Размеры наружного слоя ... (между воздушной прослойкой и системой антисовпадений)
 TyvekOut_thick_wall: 1
@@ -53,17 +52,20 @@ TyvekIn_thick_bottom: 1
 
 # Количество и радиус светодиодов для Кристалла
 CrystalLED_count: 4
-CrystalLED_radius: 3
+CrystalLED_width: 3
+CrystalLED_length: 3
 CrystalLED_height: 1
 
 # Количество и радиус светодиодов для системы антисовпадений
 VetoLED_count: 4
-VetoLED_radius: 3
+VetoLED_width: 3
+VetoLED_length: 3
 VetoLED_height: 1
 
 # Количество и радиус светодиодов для нижней части системы антисовпадений
 VetoLED_bottom_count: 4
-VetoLED_bottom_radius: 3
+VetoLED_bottom_width: 3
+VetoLED_bottom_length: 3
 VetoLED_bottom_height: 1
 
 # Радиус всех проводов
@@ -72,7 +74,7 @@ Wire_insulation_thick: 0.5
 
 # Количество и радиус пинов, входящих в плату от каждого светодиода кристалла
 Pin_count: 4
-Pin_radius: 0.2
+Pin_radius: 0.1
 
 # Размеры платы
 Board_height: 2

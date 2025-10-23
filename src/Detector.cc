@@ -14,16 +14,10 @@ Detector::Detector(G4LogicalVolume *detContLV, const G4ThreeVector &detContSize,
 
     additionalLength = 0 * mm;
 
-    crystalSize = G4ThreeVector(0,
-                                modelRadius - tunaCanThickWall - gapSizeWall - tyvekOutThickWall - vetoThickWall -
-                                tyvekMidThickWall - AlThickWall - AlCapThickWall - tyvekInThickWall,
-                                modelHeight - tunaCanThickTop - tunaCanThickBottom - gapSizeTop - gapSizeBottom -
-                                tyvekOutThickTop - tyvekOutThickBottom - vetoThickTop - vetoThickBottom - rubberHeight -
-                                tyvekMidThickTop - tyvekMidThickBottom - AlThickTop - AlCapThickBottom -
-                                tyvekInThickTop - boardSpace);
+    crystalSize = G4ThreeVector(0, crystalRadius, crystalHeight);
 
-    zCorrection = detContainerSize.z() - (crystalSize.z() / 2 + tyvekInThickTop + AlThickTop + rubberHeight +
-                                          tyvekMidThickTop + vetoThickTop + tyvekOutThickTop + gapSizeTop);
+    zCorrection = -(detContainerSize.z() - (crystalSize.z() / 2 + AlCapThickBottom +
+                                            tyvekMidThickBottom + vetoThickBottom + tyvekOutThickBottom + boardSpace));
 
     DefineMaterials();
     DefineVisual();
@@ -287,14 +281,9 @@ void Detector::ConstructCrystal() {
     G4VSolid *tyvekInBottom = nullptr;
     const G4ThreeVector tyvekInBottomPos = G4ThreeVector(0, 0, -(crystalSize.z() + tyvekInThickBottom) / 2.0);
     if (tyvekInThickBottom > 0) {
-        if (crystalLEDCount > 1) {
-            G4Tubs *tyvekInBottomIncomplete = new G4Tubs("TyvekInBottomIncomplete", 0, tyvekInSize.x(),
-                                                         tyvekInThickBottom / 2., 0, viewDeg);
-            tyvekInBottom = new G4SubtractionSolid("TyvekInBottom", tyvekInBottomIncomplete, elongatedLED);
-        } else {
-            tyvekInBottom = new G4Tubs("TyvekInBottom", crystalLEDRadius, tyvekInSize.x(),
-                                       tyvekInThickBottom / 2., 0, viewDeg);
-        }
+        G4Tubs *tyvekInBottomIncomplete = new G4Tubs("TyvekInBottomIncomplete", 0, tyvekInSize.x(),
+                                                     tyvekInThickBottom / 2., 0, viewDeg);
+        tyvekInBottom = new G4SubtractionSolid("TyvekInBottom", tyvekInBottomIncomplete, elongatedLED);
     }
 
     G4VSolid *tyvekIn = nullptr;
@@ -329,12 +318,12 @@ void Detector::ConstructCrystal() {
 
 
 void Detector::ConstructCrystalLED() {
-    if (crystalLEDRadius <= 0) return;
+    if (crystalLEDMinSize <= 0) return;
 
     G4double pinLength = boardSpace - crystalLEDHeight - boardHeight;
-    G4Tubs *pin = new G4Tubs("CrystalPin", 0, wireRadius, pinLength / 2., 0, 360 * deg);
+    G4Tubs *pin = new G4Tubs("CrystalPin", 0, pinRadius, pinLength / 2., 0, 360 * deg);
 
-    const G4double radiusLEDXY = crystalLEDRadius / 2;
+    const G4double radiusLEDXY = std::min({crystalLEDWidth, crystalLEDHeight}) / 2;
     std::vector<G4ThreeVector> pinXY;
     if (pinCount == 1) {
         pinXY = {G4ThreeVector(0, 0, 0)};
@@ -370,12 +359,13 @@ void Detector::ConstructCrystalLED() {
     }
     if (LEDXY.empty()) return;
 
-    G4Tubs *LED = new G4Tubs("LEDCyl", 0, crystalLEDRadius, crystalLEDHeight / 2., 0, 360 * deg);
-    G4Tubs *eLED = new G4Tubs("ElongatedLEDCyl", 0, crystalLEDRadius, tyvekInThickBottom + 1 * mm, 0, 360 * deg);
+    G4Box *LED = new G4Box("LEDBox", crystalLEDWidth / 2., crystalLEDLength / 2., crystalLEDHeight / 2.);
+    G4Box *eLED = new G4Box("ElongatedLEDBox", crystalLEDWidth / 2., crystalLEDLength / 2.,
+                            tyvekInThickBottom + 1 * mm);
 
     crystalLED = new G4MultiUnion("CrystalLEDMulti");
     G4MultiUnion *pinsAll = new G4MultiUnion("PinsLEDMulti");
-    elongatedLED = new G4MultiUnion("ElongatedLEDCylMulti");
+    elongatedLED = new G4MultiUnion("ElongatedLEDBoxMulti");
     for (auto &p: LEDXY) {
         G4Transform3D tr(G4RotationMatrix(), G4ThreeVector(p.x(), p.y(), 0.0));
         crystalLED->AddNode(*LED, tr);
@@ -701,7 +691,7 @@ void Detector::ConstructVeto() {
 
 
 void Detector::ConstructVetoLED() {
-    if (vetoLEDRadius <= 0) return;
+    if (vetoLEDMinSize <= 0) return;
 
     const G4double radiusXY = vetoSize.y() - vetoThickWall / 2.0;
 
@@ -718,9 +708,9 @@ void Detector::ConstructVetoLED() {
     }
     if (LEDXY.empty()) return;
 
-    G4Tubs *LED = new G4Tubs("vetoLEDCyl", 0, vetoLEDRadius, vetoLEDHeight / 2., 0, 360 * deg);
-    G4Tubs *LEDFictive = new G4Tubs("LEDCylFictive", 0, vetoLEDRadius, vetoLEDHeight + vetoThickBottom, 0,
-                                    360 * deg);
+    G4Box *LED = new G4Box("vetoLEDBox", vetoLEDWidth / 2., vetoLEDLength / 2., vetoLEDHeight / 2.);
+    G4Box *LEDFictive = new G4Box("LEDBoxFictive", vetoLEDWidth / 2., vetoLEDLength / 2.,
+                                  vetoLEDHeight + vetoThickBottom);
 
     G4double vetoWireLength = vetoThickBottom + tyvekOutThickBottom - vetoLEDHeight + additionalLength;
     G4Tubs *vetoWire = new G4Tubs("VetoWire", 0, wireRadius, vetoWireLength / 2, 0,
@@ -772,7 +762,7 @@ void Detector::ConstructVetoLED() {
 }
 
 void Detector::ConstructVetoBottomLED() {
-    if (vetoBottomLEDRadius <= 0) return;
+    if (vetoBottomLEDMinSize <= 0) return;
 
     const G4double radiusXY = vetoSize.y() + vetoBottomLEDHeight / 2.0;
 
@@ -793,9 +783,10 @@ void Detector::ConstructVetoBottomLED() {
     }
     if (LEDXY.empty()) return;
 
-    G4Tubs *LED = new G4Tubs("VetoBottomLEDCyl", 0, vetoBottomLEDRadius, vetoBottomLEDHeight / 2., 0, 360 * deg);
-    G4Tubs *LEDFictive = new G4Tubs("BottomLEDCylFictive", 0, vetoBottomLEDRadius,
-                                    (tyvekOutThickWall + vetoBottomLEDHeight) * 2, 0, 360 * deg);
+    G4Box *LED = new G4Box("VetoBottomLEDBox", vetoBottomLEDWidth / 2, vetoBottomLEDLength / 2,
+                           vetoBottomLEDHeight / 2.);
+    G4Box *LEDFictive = new G4Box("BottomLEDBoxFictive", vetoBottomLEDWidth / 2, vetoBottomLEDLength / 2,
+                                  (tyvekOutThickWall + vetoBottomLEDHeight) * 2);
 
     vetoBottomLED = new G4MultiUnion("VetoBottomLEDMulti");
     vetoBottomLEDFictive = new G4MultiUnion("VetoBottomLEDFictiveMulti");

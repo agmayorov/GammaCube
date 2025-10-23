@@ -4,12 +4,12 @@ using namespace Sizes;
 
 
 void Geometry::CheckSizes() {
-    G4double sumRadius = tunaCanThickWall + gapSizeWall + tyvekOutThickWall + vetoThickWall +
-                         tyvekMidThickWall + AlThickWall + tyvekInThickWall;
-    G4double sumHeight = tunaCanThickBottom + tunaCanThickTop + gapSizeBottom + gapSizeTop +
-                         tyvekOutThickBottom + tyvekOutThickTop + vetoThickBottom + vetoThickTop +
-                         tyvekMidThickBottom + tyvekMidThickTop + rubberHeight +
-                         AlCapThickBottom + AlThickTop + tyvekInThickBottom + tyvekInThickTop;
+    // G4double sumRadius = tunaCanThickWall + gapSizeWall + tyvekOutThickWall + vetoThickWall +
+    //                      tyvekMidThickWall + AlThickWall + tyvekInThickWall;
+    // G4double sumHeight = tunaCanThickBottom + tunaCanThickTop + gapSizeBottom + gapSizeTop +
+    //                      tyvekOutThickBottom + tyvekOutThickTop + vetoThickBottom + vetoThickTop +
+    //                      tyvekMidThickBottom + tyvekMidThickTop + rubberHeight +
+    //                      AlCapThickBottom + AlThickTop + tyvekInThickBottom + tyvekInThickTop;
 }
 
 
@@ -147,61 +147,61 @@ void Geometry::ConstructSDandField() {
     sdManager->AddNewDetector(detectorSD);
     crystalLV->SetSensitiveDetector(detectorSD);
 
-    if (tunaCanAllSize > 0) {
+    if (tunaCanMinSize > 0) {
         auto *tunaCanSD = new SensitiveDetector("TunaCanSD", 1, "TunaCan");
         sdManager->AddNewDetector(tunaCanSD);
         tunaCanLV->SetSensitiveDetector(tunaCanSD);
     }
 
-    if (vetoAllSize > 0) {
+    if (vetoMinSize > 0) {
         auto *vetoSD = new SensitiveDetector("VetoSD", 2, "Veto");
         sdManager->AddNewDetector(vetoSD);
         vetoLV->SetSensitiveDetector(vetoSD);
     }
 
-    if (tyvekOutAllSize > 0.) {
+    if (tyvekOutMinSize > 0.) {
         auto *tyvekOutSD = new SensitiveDetector("TyvekOutSD", 3, "TyvekOut");
         sdManager->AddNewDetector(tyvekOutSD);
         tyvekOutLV->SetSensitiveDetector(tyvekOutSD);
     }
 
-    if (tyvekInAllSize > 0.) {
+    if (tyvekInMinSize > 0.) {
         auto *tyvekInSD = new SensitiveDetector("TyvekInSD", 4, "TyvekIn");
         sdManager->AddNewDetector(tyvekInSD);
         tyvekInLV->SetSensitiveDetector(tyvekInSD);
     }
 
-    if (tyvekMidAllSize > 0.) {
+    if (tyvekMidMinSize > 0.) {
         auto *tyvekMidSD = new SensitiveDetector("TyvekMidSD", 5, "TyvekMid");
         sdManager->AddNewDetector(tyvekMidSD);
         tyvekMidLV->SetSensitiveDetector(tyvekMidSD);
     }
 
-    if (rubberAllSize > 0.) {
+    if (rubberMinSize > 0.) {
         auto *rubberSD = new SensitiveDetector("RubberSD", 6, "Rubber");
         sdManager->AddNewDetector(rubberSD);
         rubberLV->SetSensitiveDetector(rubberSD);
     }
 
-    if (AlAllSize > 0.) {
+    if (AlMinSize > 0.) {
         auto *AlSD = new SensitiveDetector("AluminiumSD", 7, "Aluminium");
         sdManager->AddNewDetector(AlSD);
         AlLV->SetSensitiveDetector(AlSD);
     }
 
-    if (crystalLEDAllSize > 0.) {
+    if (crystalLEDMinSize > 0.) {
         auto *crystalLEDSD = new SensitiveDetector("CrystalLEDSD", 8, "CrystalLED");
         sdManager->AddNewDetector(crystalLEDSD);
         crystalLEDLV->SetSensitiveDetector(crystalLEDSD);
     }
 
-    if (crystalLEDAllSize > 0.) {
+    if (crystalLEDMinSize > 0.) {
         auto *vetoLEDSD = new SensitiveDetector("VetoLEDSD", 9, "VetoLED");
         sdManager->AddNewDetector(vetoLEDSD);
         vetoLEDLV->SetSensitiveDetector(vetoLEDSD);
     }
 
-    if (crystalLEDAllSize > 0.) {
+    if (crystalLEDMinSize > 0.) {
         auto *vetoBottomLEDSD = new SensitiveDetector("VetoBottomLEDSD", 10, "VetoBottomLED");
         sdManager->AddNewDetector(vetoBottomLEDSD);
         vetoBottomLEDLV->SetSensitiveDetector(vetoBottomLEDSD);

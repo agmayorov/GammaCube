@@ -4,34 +4,34 @@ using namespace Sizes;
 
 EventAction::EventAction(AnalysisManager *an, RunAction *r) : analysisManager(an), run(r) {
     detMap = {{"DetectorSD/EdepHits", 0, "Crystal"}};
-    if (tunaCanAllSize > 0.) {
+    if (tunaCanMinSize > 0.) {
         detMap.emplace_back("TunaCanSD/EdepHits", 1, "TunaCan");
     }
     if (vetoThickBottom + vetoThickTop + vetoThickWall > 0.) {
         detMap.emplace_back("VetoSD/EdepHits", 2, "Veto");
     }
-    if (tyvekOutAllSize > 0.) {
+    if (tyvekOutMinSize > 0.) {
         detMap.emplace_back("TyvekOutSD/EdepHits", 3, "TyvekOut");
     }
-    if (tyvekInAllSize > 0.) {
+    if (tyvekInMinSize > 0.) {
         detMap.emplace_back("TyvekInSD/EdepHits", 4, "TyvekIn");
     }
-    if (tyvekMidAllSize > 0.) {
+    if (tyvekMidMinSize > 0.) {
         detMap.emplace_back("TyvekMidSD/EdepHits", 5, "TyvekMid");
     }
-    if (rubberAllSize > 0.) {
+    if (rubberMinSize > 0.) {
         detMap.emplace_back("RubberSD/EdepHits", 6, "Rubber");
     }
-    if (AlAllSize > 0.) {
+    if (AlMinSize > 0.) {
         detMap.emplace_back("AluminiumSD/EdepHits", 7, "Aluminium");
     }
-    if (crystalLEDAllSize > 0.) {
+    if (crystalLEDMinSize > 0.) {
         detMap.emplace_back("CrystalLEDSD/EdepHits", 8, "CrystalLED");
     }
-    if (vetoLEDAllSize > 0.) {
+    if (vetoLEDMinSize > 0.) {
         detMap.emplace_back("VetoLEDSD/EdepHits", 9, "VetoLED");
     }
-    if (vetoBottomLEDAllSize > 0.) {
+    if (vetoBottomLEDMinSize > 0.) {
         detMap.emplace_back("VetoBottomLEDSD/EdepHits", 10, "VetoBottomLED");
     }
     HCIDs.assign(detMap.size(), -1);

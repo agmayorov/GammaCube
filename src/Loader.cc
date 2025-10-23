@@ -318,9 +318,8 @@ void Loader::ParseGeomConfig() {
         {"TunaCan_thick_top", setD(Sizes::tunaCanThickTop, "TunaCan_thick_top")},
         {"TunaCan_thick_bottom", setD(Sizes::tunaCanThickBottom, "TunaCan_thick_bottom")},
 
-        {"Gap_size_wall", setD(Sizes::gapSizeWall, "Gap_size_wall")},
-        {"Gap_size_top", setD(Sizes::gapSizeTop, "Gap_size_top")},
-        {"Gap_size_bottom", setD(Sizes::gapSizeBottom, "Gap_size_bottom")},
+        {"Crystal_height", setD(Sizes::crystalHeight, "Crystal_Height")},
+        {"Crystal_radius", setD(Sizes::crystalRadius, "Crystal_Radius")},
 
         {"TyvekOut_thick_wall", setD(Sizes::tyvekOutThickWall, "TyvekOut_thick_wall")},
         {"TyvekOut_thick_top", setD(Sizes::tyvekOutThickTop, "TyvekOut_thick_top")},
@@ -350,15 +349,18 @@ void Loader::ParseGeomConfig() {
         {"TyvekIn_thick_bottom", setD(Sizes::tyvekInThickBottom, "TyvekIn_thick_bottom")},
 
         {"CrystalLED_count", setI(Sizes::crystalLEDCount, "CrystalLED_count")},
-        {"CrystalLED_radius", setD(Sizes::crystalLEDRadius, "CrystalLED_radius")},
+        {"CrystalLED_width", setD(Sizes::crystalLEDWidth, "CrystalLED_width")},
+        {"CrystalLED_length", setD(Sizes::crystalLEDLength, "CrystalLED_length")},
         {"CrystalLED_height", setD(Sizes::crystalLEDHeight, "CrystalLED_height")},
 
         {"VetoLED_count", setI(Sizes::vetoLEDCount, "VetoLED_count")},
-        {"VetoLED_radius", setD(Sizes::vetoLEDRadius, "VetoLED_radius")},
+        {"VetoLED_width", setD(Sizes::vetoLEDWidth, "VetoLED_width")},
+        {"VetoLED_length", setD(Sizes::vetoLEDLength, "VetoLED_length")},
         {"VetoLED_height", setD(Sizes::vetoLEDHeight, "VetoLED_height")},
 
         {"VetoLED_bottom_count", setI(Sizes::vetoBottomLEDCount, "VetoLED_bottom_count")},
-        {"VetoLED_bottom_radius", setD(Sizes::vetoBottomLEDRadius, "VetoLED_bottom_radius")},
+        {"VetoLED_bottom_width", setD(Sizes::vetoBottomLEDWidth, "VetoLED_bottom_width")},
+        {"VetoLED_bottom_length", setD(Sizes::vetoBottomLEDLength, "VetoLED_bottom_length")},
         {"VetoLED_bottom_height", setD(Sizes::vetoBottomLEDHeight, "VetoLED_bottom_height")},
 
         {"Wire_radius", setD(Sizes::wireRadius, "Wire_radius")},
@@ -409,14 +411,24 @@ void Loader::ParseGeomConfig() {
         it->second(val);
     }
 
-    Sizes::tunaCanAllSize = Sizes::tunaCanThickTop + Sizes::tunaCanThickBottom + Sizes::tunaCanThickWall;
-    Sizes::tyvekInAllSize = Sizes::tyvekInThickTop + Sizes::tyvekInThickBottom + Sizes::tyvekInThickWall;
-    Sizes::tyvekOutAllSize = Sizes::tyvekOutThickTop + Sizes::tyvekOutThickBottom + Sizes::tyvekOutThickWall;
-    Sizes::tyvekMidAllSize = Sizes::tyvekMidThickTop + Sizes::tyvekMidThickBottom + Sizes::tyvekMidThickWall;
-    Sizes::vetoAllSize = Sizes::vetoThickTop + Sizes::vetoThickBottom + Sizes::vetoThickWall;
-    Sizes::AlAllSize = Sizes::AlThickTop + Sizes::AlCapThickBottom + Sizes::AlThickWall + Sizes::AlCapThickWall;
-    Sizes::rubberAllSize = Sizes::rubberRadius + Sizes::rubberHeight;
-    Sizes::crystalLEDAllSize = Sizes::crystalLEDCount + Sizes::crystalLEDRadius + Sizes::crystalLEDHeight;
-    Sizes::vetoLEDAllSize = Sizes::vetoLEDCount + Sizes::vetoLEDRadius + Sizes::vetoLEDHeight;
-    Sizes::vetoBottomLEDAllSize = Sizes::vetoBottomLEDCount + Sizes::vetoBottomLEDRadius + Sizes::vetoBottomLEDHeight;
+    Sizes::tunaCanMinSize = std::min({Sizes::tunaCanThickTop, Sizes::tunaCanThickBottom, Sizes::tunaCanThickWall});
+    Sizes::tyvekInMinSize = std::min({Sizes::tyvekInThickTop, Sizes::tyvekInThickBottom, Sizes::tyvekInThickWall});
+    Sizes::tyvekOutMinSize = std::min({Sizes::tyvekOutThickTop, Sizes::tyvekOutThickBottom, Sizes::tyvekOutThickWall});
+    Sizes::tyvekMidMinSize = std::min({Sizes::tyvekMidThickTop, Sizes::tyvekMidThickBottom, Sizes::tyvekMidThickWall});
+    Sizes::vetoMinSize = std::min({Sizes::vetoThickTop, Sizes::vetoThickBottom, Sizes::vetoThickWall});
+    Sizes::AlMinSize = std::min({
+        Sizes::AlThickTop, Sizes::AlCapThickBottom, Sizes::AlThickWall, Sizes::AlCapThickWall
+    });
+    Sizes::rubberMinSize = std::min({Sizes::rubberRadius, Sizes::rubberHeight});
+    Sizes::crystalLEDMinSize = std::min({
+        static_cast<G4double>(Sizes::crystalLEDCount), Sizes::crystalLEDWidth, Sizes::vetoBottomLEDLength,
+        Sizes::crystalLEDHeight
+    });
+    Sizes::vetoLEDMinSize = std::min({
+        static_cast<G4double>(Sizes::vetoLEDCount), Sizes::vetoLEDWidth, Sizes::vetoLEDLength, Sizes::vetoLEDHeight
+    });
+    Sizes::vetoBottomLEDMinSize = std::min({
+        static_cast<G4double>(Sizes::vetoBottomLEDCount), Sizes::vetoBottomLEDWidth, Sizes::vetoBottomLEDLength,
+        Sizes::vetoBottomLEDHeight
+    });
 }
