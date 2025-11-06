@@ -1,5 +1,6 @@
 #include "AnalysisManager.hh"
 
+using namespace Sizes;
 
 AnalysisManager::AnalysisManager(const std::string &fName) : fileName(fName) {
     Book();
@@ -26,8 +27,6 @@ void AnalysisManager::Book() {
 
     primaryNT = analysisManager->CreateNtuple("primary", "per-primary particles");
     analysisManager->CreateNtupleIColumn("eventID");
-    analysisManager->CreateNtupleIColumn("primary_index");
-    analysisManager->CreateNtupleIColumn("primary_pdg");
     analysisManager->CreateNtupleSColumn("primary_name");
     analysisManager->CreateNtupleDColumn("E_MeV");
     analysisManager->CreateNtupleDColumn("dir_x");
@@ -36,7 +35,6 @@ void AnalysisManager::Book() {
     analysisManager->CreateNtupleDColumn("pos_x_mm");
     analysisManager->CreateNtupleDColumn("pos_y_mm");
     analysisManager->CreateNtupleDColumn("pos_z_mm");
-    analysisManager->CreateNtupleDColumn("t0_ns");
     analysisManager->FinishNtuple(primaryNT);
 
     interactionsNT = analysisManager->CreateNtuple("interactions",
@@ -46,13 +44,11 @@ void AnalysisManager::Book() {
     analysisManager->CreateNtupleIColumn("parentID");
     analysisManager->CreateNtupleSColumn("process");
     analysisManager->CreateNtupleSColumn("volume_name");
-    analysisManager->CreateNtupleIColumn("volumeID");
     analysisManager->CreateNtupleDColumn("x_mm");
     analysisManager->CreateNtupleDColumn("y_mm");
     analysisManager->CreateNtupleDColumn("z_mm");
     analysisManager->CreateNtupleDColumn("t_ns");
     analysisManager->CreateNtupleIColumn("sec_index");
-    analysisManager->CreateNtupleIColumn("sec_pdg");
     analysisManager->CreateNtupleSColumn("sec_name");
     analysisManager->CreateNtupleDColumn("sec_E_MeV");
     analysisManager->CreateNtupleDColumn("sec_dir_x");
@@ -62,12 +58,25 @@ void AnalysisManager::Book() {
 
     edepNT = analysisManager->CreateNtuple("edep", "energy deposition per sensitive channel");
     analysisManager->CreateNtupleIColumn("eventID");
-    analysisManager->CreateNtupleIColumn("det_id"); // 0=Crystal, 1=Shell, 2=TunaCan, 3=Veto, 4=TyvekOut, 5=TyvekIn
-    analysisManager->CreateNtupleSColumn("det_name"); // "Crystal","Shell", "TunaCan", "Veto", "TyvekOut", "TyvekIn",
-    analysisManager->CreateNtupleIColumn("volumeID");
+    analysisManager->CreateNtupleSColumn("det_name");
     analysisManager->CreateNtupleDColumn("edep_MeV");
-    analysisManager->CreateNtupleDColumn("tmin_ns");
     analysisManager->FinishNtuple(edepNT);
+
+    crystalH2 = analysisManager->CreateH2("CrystalH2",
+                                          "Crystal;X [mm];Y [mm]",
+                                          200, -20., 20.,
+                                          200, -20., 20.);
+
+    vetoH2 = analysisManager->CreateH2("VetoH2",
+                                       "Veto;X [mm];Y [mm]",
+                                       240, -31., 31.,
+                                       240, -31., 31.);
+
+    vetoBottomH2 = analysisManager->CreateH2("VetoBottomH2",
+                                             "VetoBottom side;#phi [rad]:Z [mm]",
+                                             180, 0.0, CLHEP::twopi,
+                                             200, -45, 10
+    );
 }
 
 void AnalysisManager::Open() {
@@ -89,32 +98,28 @@ void AnalysisManager::FillEventRow(G4int eventID, G4int nPrimaries, G4int nInter
     analysisManager->AddNtupleRow(eventNT);
 }
 
-void AnalysisManager::FillPrimaryRow(G4int eventID, G4int primaryIndex,
-                                     G4int primaryPDG, const G4String &primaryName,
+void AnalysisManager::FillPrimaryRow(G4int eventID, const G4String &primaryName,
                                      G4double E_MeV, const G4ThreeVector &dir,
-                                     const G4ThreeVector &pos_mm, G4double t0_ns) {
+                                     const G4ThreeVector &pos_mm) {
     G4AnalysisManager *analysisManager = G4AnalysisManager::Instance();
     analysisManager->FillNtupleIColumn(primaryNT, 0, eventID);
-    analysisManager->FillNtupleIColumn(primaryNT, 1, primaryIndex);
-    // analysisManager->FillNtupleIColumn(primaryNT, 2, primaryPDG);
-    analysisManager->FillNtupleSColumn(primaryNT, 3, primaryName);
-    analysisManager->FillNtupleDColumn(primaryNT, 4, E_MeV);
-    analysisManager->FillNtupleDColumn(primaryNT, 5, dir.x());
-    analysisManager->FillNtupleDColumn(primaryNT, 6, dir.y());
-    analysisManager->FillNtupleDColumn(primaryNT, 7, dir.z());
-    analysisManager->FillNtupleDColumn(primaryNT, 8, pos_mm.x());
-    analysisManager->FillNtupleDColumn(primaryNT, 9, pos_mm.y());
-    analysisManager->FillNtupleDColumn(primaryNT, 10, pos_mm.z());
-    // analysisManager->FillNtupleDColumn(primaryNT, 11, t0_ns);
+    analysisManager->FillNtupleSColumn(primaryNT, 1, primaryName);
+    analysisManager->FillNtupleDColumn(primaryNT, 2, E_MeV);
+    analysisManager->FillNtupleDColumn(primaryNT, 3, dir.x());
+    analysisManager->FillNtupleDColumn(primaryNT, 4, dir.y());
+    analysisManager->FillNtupleDColumn(primaryNT, 5, dir.z());
+    analysisManager->FillNtupleDColumn(primaryNT, 6, pos_mm.x());
+    analysisManager->FillNtupleDColumn(primaryNT, 7, pos_mm.y());
+    analysisManager->FillNtupleDColumn(primaryNT, 8, pos_mm.z());
     analysisManager->AddNtupleRow(primaryNT);
 }
 
 void AnalysisManager::FillInteractionRow(G4int eventID,
                                          G4int trackID, G4int parentID,
                                          const G4String &process,
-                                         const G4String &volumeName, G4int volumeID,
-                                         const G4ThreeVector &x_mm, G4double t_ns,
-                                         G4int secIndex, G4int secPDG, const G4String &secName,
+                                         const G4String &volumeName,
+                                         const G4ThreeVector &x_mm,
+                                         G4int secIndex, const G4String &secName,
                                          G4double secE_MeV, const G4ThreeVector &secDir) {
     G4AnalysisManager *analysisManager = G4AnalysisManager::Instance();
     analysisManager->FillNtupleIColumn(interactionsNT, 0, eventID);
@@ -122,29 +127,36 @@ void AnalysisManager::FillInteractionRow(G4int eventID,
     analysisManager->FillNtupleIColumn(interactionsNT, 2, parentID);
     analysisManager->FillNtupleSColumn(interactionsNT, 3, process);
     analysisManager->FillNtupleSColumn(interactionsNT, 4, volumeName);
-    // analysisManager->FillNtupleIColumn(interactionsNT, 5, volumeID);
-    analysisManager->FillNtupleDColumn(interactionsNT, 6, x_mm.x());
-    analysisManager->FillNtupleDColumn(interactionsNT, 7, x_mm.y());
-    analysisManager->FillNtupleDColumn(interactionsNT, 8, x_mm.z());
-    // analysisManager->FillNtupleDColumn(interactionsNT, 9, t_ns);
-    analysisManager->FillNtupleIColumn(interactionsNT, 10, secIndex);
-    analysisManager->FillNtupleIColumn(interactionsNT, 11, secPDG);
-    analysisManager->FillNtupleSColumn(interactionsNT, 12, secName);
-    analysisManager->FillNtupleDColumn(interactionsNT, 13, secE_MeV);
-    analysisManager->FillNtupleDColumn(interactionsNT, 14, secDir.x());
-    analysisManager->FillNtupleDColumn(interactionsNT, 15, secDir.y());
-    analysisManager->FillNtupleDColumn(interactionsNT, 16, secDir.z());
+    analysisManager->FillNtupleDColumn(interactionsNT, 5, x_mm.x());
+    analysisManager->FillNtupleDColumn(interactionsNT, 6, x_mm.y());
+    analysisManager->FillNtupleDColumn(interactionsNT, 7, x_mm.z());
+    analysisManager->FillNtupleIColumn(interactionsNT, 8, secIndex);
+    analysisManager->FillNtupleSColumn(interactionsNT, 9, secName);
+    analysisManager->FillNtupleDColumn(interactionsNT, 10, secE_MeV);
+    analysisManager->FillNtupleDColumn(interactionsNT, 11, secDir.x());
+    analysisManager->FillNtupleDColumn(interactionsNT, 12, secDir.y());
+    analysisManager->FillNtupleDColumn(interactionsNT, 13, secDir.z());
     analysisManager->AddNtupleRow(interactionsNT);
 }
 
-void AnalysisManager::FillEdepRow(G4int eventID, G4int det_id, const G4String &det_name,
-                                  G4int volumeID, G4double edep_MeV, G4double tmin_ns) {
+void AnalysisManager::FillEdepRow(G4int eventID, const G4String &det_name, G4double edep_MeV) {
     G4AnalysisManager *analysisManager = G4AnalysisManager::Instance();
     analysisManager->FillNtupleIColumn(edepNT, 0, eventID);
-    // analysisManager->FillNtupleIColumn(edepNT, 1, det_id);
-    analysisManager->FillNtupleSColumn(edepNT, 2, det_name);
-    // analysisManager->FillNtupleIColumn(edepNT, 3, volumeID);
-    analysisManager->FillNtupleDColumn(edepNT, 4, edep_MeV);
-    // analysisManager->FillNtupleDColumn(edepNT, 5, tmin_ns);
+    analysisManager->FillNtupleSColumn(edepNT, 1, det_name);
+    analysisManager->FillNtupleDColumn(edepNT, 2, edep_MeV);
     analysisManager->AddNtupleRow(edepNT);
+}
+
+void AnalysisManager::FillCrystalH2(const G4double x_mm, const G4double y_mm) {
+    G4AnalysisManager::Instance()->FillH2(crystalH2, x_mm, y_mm);
+}
+
+void AnalysisManager::FillVetoH2(const G4double x_mm, const G4double y_mm) {
+    G4AnalysisManager::Instance()->FillH2(vetoH2, x_mm, y_mm);
+}
+
+void AnalysisManager::FillVetoBottomH2(const G4double z_mm, G4double phi_rad) {
+    while (phi_rad < 0) phi_rad += CLHEP::twopi;
+    while (phi_rad >= CLHEP::twopi) phi_rad -= CLHEP::twopi;
+    G4AnalysisManager::Instance()->FillH2(vetoBottomH2, phi_rad, z_mm);
 }

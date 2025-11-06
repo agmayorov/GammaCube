@@ -1,16 +1,24 @@
+#include <utility>
+
 #include "PrimaryGeneratorAction.hh"
 
 
-PrimaryGeneratorAction::PrimaryGeneratorAction(const G4bool vFlux, const G4String &fluxType)
+PrimaryGeneratorAction::PrimaryGeneratorAction(G4String fDir, const G4String &fluxType)
     : particleGun(new G4ParticleGun(1)),
       center(G4ThreeVector(0, 0, -(Sizes::modelHeight - Sizes::tunaCanThickTop - Sizes::tunaCanThickBottom) / 2.0)),
       detectorHalfSize(G4ThreeVector(0 * mm, Sizes::modelRadius, Sizes::modelHeight)),
-      verticalFlux(vFlux) {
+      fluxDirection(std::move(fDir)) {
     const G4ThreeVector tempVec = G4ThreeVector(0,
                                                 detectorHalfSize.y(),
                                                 detectorHalfSize.z());
     radius = sqrt(tempVec.y() * tempVec.y() + tempVec.z() * tempVec.z()) + 5 * mm;
 
+    std::vector<G4String> fluxDirList = {"isotropic", "vertical", "horizontal"};
+    if (std::find(fluxDirList.begin(), fluxDirList.end(), fluxDirection) == fluxDirList.end()) {
+        G4Exception("PrimaryGeneratorAction::GeneratePrimaries", "FluxDirection", FatalException,
+                    ("Flux direction is not implemented: " + fluxDirection +
+                     ".\nAvailable flux directions: isotropic, vertical, horizontal").c_str());
+    }
     std::vector<G4String> fluxTypeList = {"Uniform", "PLAW", "COMP", "SEP", "Galactic", "Table"};
     if (std::find(fluxTypeList.begin(), fluxTypeList.end(), fluxType) == fluxTypeList.end()) {
         G4Exception("PrimaryGeneratorAction::GeneratePrimaries", "FluxType", FatalException,
@@ -67,11 +75,19 @@ void PrimaryGeneratorAction::GenerateOnSphere(G4ThreeVector &pos, G4ThreeVector 
 
 void PrimaryGeneratorAction::GeneratePrimaries(G4Event *evt) {
     G4ThreeVector x, v;
-    if (verticalFlux) {
+    if (fluxDirection == "vertical") {
         v = G4ThreeVector(0., 0., -1.);
-        const G4double x_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.y();
-        const G4double y_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.y();
+        const G4double r = std::sqrt(G4UniformRand() * detectorHalfSize.y() * detectorHalfSize.y());
+        const G4double phi = G4UniformRand() * 2 * pi;
+        const G4double x_ = r * std::cos(phi);
+        const G4double y_ = r * std::sin(phi);
         const G4double z_ = radius;
+        x = G4ThreeVector(x_, y_, z_);
+    } else if (fluxDirection == "horizontal") {
+        v = G4ThreeVector(-1., 0., 0.);
+        const G4double x_ = radius;
+        const G4double y_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.y();
+        const G4double z_ = (G4UniformRand() - 0.5) * detectorHalfSize.z();
         x = G4ThreeVector(x_, y_, z_);
     } else {
         GenerateOnSphere(x, v);

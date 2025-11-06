@@ -1,68 +1,25 @@
 #include "Flux/TableFlux.hh"
 
 
-namespace {
-    std::string trim(const std::string &s) {
-        const auto a = s.find_first_not_of(" \t\r\n");
-        if (a == std::string::npos) return "";
-        const auto b = s.find_last_not_of(" \t\r\n");
-        return s.substr(a, b - a + 1);
-    }
-
-    std::vector<G4double> extract_numbers(const std::string &line) {
-        static const std::regex re(R"(([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?))");
-        std::vector<G4double> out;
-        for (std::sregex_iterator it(line.begin(), line.end(), re), end; it != end; ++it) {
-            out.push_back(std::stod((*it)[1].str()));
-        }
-        return out;
-    }
-
-    constexpr G4double NOT_SET = std::numeric_limits<G4double>::quiet_NaN();
-
-    bool is_set(const G4double x) { return std::isfinite(x); }
-}
-
 TableFlux::TableFlux() {
-    name = "proton";
-    GetParams();
+    configFile = "../Flux_config/Table_params.txt";
+    path = GetParam(configFile, "table_path", "../TableSpectrum/flare_M2.csv");
+    particle = GetParam(configFile, "particle", "proton");
+
+    Emin = GetParam(configFile, "E_min", 10.) * MeV;
+    Emax = GetParam(configFile, "E_max", 100.) * MeV;
+
     BuildCDF();
 }
 
-void TableFlux::GetParams() {
-    path.clear();
 
-    Emin = NOT_SET;
-    Emax = NOT_SET;
-
-    const std::string filepath = "../Flux_config/Table_Params.txt";
-    std::ifstream fin(filepath);
-    if (!fin.is_open()) {
-        G4Exception("TableFlux::GetParams", "FILE_OPEN_FAIL",
-                    JustWarning, ("Cannot open " + filepath + ", using fallbacks.").c_str());
-        return;
+inline std::vector<G4double> ExtractNumbers(const std::string &line) {
+    static const std::regex re(R"(([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?))");
+    std::vector<G4double> out;
+    for (std::sregex_iterator it(line.begin(), line.end(), re), end; it != end; ++it) {
+        out.push_back(std::stod((*it)[1].str()));
     }
-
-    std::string line;
-    while (std::getline(fin, line)) {
-        auto pos = line.find(':');
-        if (pos == std::string::npos) continue;
-        const std::string key = trim(line.substr(0, pos));
-        const std::string val = trim(line.substr(pos + 1));
-
-        if (key == "path") {
-            path = val;
-        } else if (key == "Emin") {
-            if (!val.empty()) {
-                try { Emin = std::stod(val) * MeV; } catch (...) { Emin = NOT_SET; }
-            }
-        } else if (key == "Emax") {
-            if (!val.empty()) {
-                try { Emax = std::stod(val) * MeV; } catch (...) { Emax = NOT_SET; }
-            }
-        }
-    }
-    fin.close();
+    return out;
 }
 
 void TableFlux::BuildCDF() {
@@ -91,7 +48,7 @@ void TableFlux::BuildCDF() {
 
     std::string line;
     while (std::getline(in, line)) {
-        const auto nums = extract_numbers(line);
+        const auto nums = ExtractNumbers(line);
         if (nums.size() < 2) continue;
         const G4double E_G4 = nums[0] * MeV;
         const G4double flx = nums[1];
@@ -124,21 +81,14 @@ void TableFlux::BuildCDF() {
     G4double dataEmin = rows.front().E_MeV;
     G4double dataEmax = rows.back().E_MeV;
 
-    const bool useBounds =
-        is_set(Emin) || is_set(Emax);
+    G4double lo = std::max(Emin, dataEmin);
+    G4double hi = std::min(Emax, dataEmax);
 
-    G4double lo = dataEmin;
-    G4double hi = dataEmax;
-
-    if (useBounds) {
-        if (is_set(Emin)) lo = std::max(Emin, dataEmin);
-        if (is_set(Emax)) hi = std::min(Emax, dataEmax);
-        if (!(hi > lo)) {
-            G4Exception("TableFlux::BuildCDF", "CSV_RANGE_INVALID",
-                        JustWarning, "Invalid Emin/Emax vs data range, falling back to data bounds.");
-            lo = dataEmin;
-            hi = dataEmax;
-        }
+    if (!(hi > lo)) {
+        G4Exception("TableFlux::BuildCDF", "CSV_RANGE_INVALID",
+                    JustWarning, "Invalid Emin/Emax vs data range, falling back to data bounds.");
+        lo = dataEmin;
+        hi = dataEmax;
     } else {
         Emin = dataEmin;
         Emax = dataEmax;
@@ -153,7 +103,7 @@ void TableFlux::BuildCDF() {
 
     auto interp_at = [&](const G4double E) -> G4double {
         const auto it = std::upper_bound(rows.begin(), rows.end(), E,
-                                   [](const G4double x, const Row &r) { return x < r.E_MeV; });
+                                         [](const G4double x, const Row &r) { return x < r.E_MeV; });
         if (it == rows.begin()) return rows.front().flux;
         if (it == rows.end()) return rows.back().flux;
         const size_t j = static_cast<size_t>(it - rows.begin());

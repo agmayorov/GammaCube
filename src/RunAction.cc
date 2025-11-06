@@ -2,13 +2,7 @@
 
 
 RunAction::RunAction() : crystalOnly(0), crystalAndVeto(0) {
-    auto formatDouble = [](G4double value) {
-        std::ostringstream ss;
-        ss << std::setprecision(4) << value;
-        return ss.str();
-    };
-
-    G4String fileName = "GammaCube.root";
+    const G4String fileName = "GammaCube.root";
     analysisManager = new AnalysisManager(fileName);
 
     auto *mgr = G4AccumulableManager::Instance();

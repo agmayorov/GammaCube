@@ -44,7 +44,11 @@ class Loader {
     bool useUI;
     G4String detectorType;
     G4String fluxType;
-    G4bool verticalFlux;
+    G4String fluxDirection;
+    G4bool useOptics;
+    G4bool lightCollection;
+    G4double eCrystalThreshold;
+    G4double eVetoThreshold;
 
 #ifdef G4MULTITHREADED
     G4MTRunManager *runManager;
@@ -62,6 +66,7 @@ private:
     std::string configPath;
     G4int crystalOnly{};
     G4int crystalAndVeto{};
+    std::array<G4long, 16> optPhotons{};
 
     std::string geomConfigPath;
 

@@ -25,6 +25,8 @@
 #include <G4VSolid.hh>
 #include <G4Trd.hh>
 #include <G4Tubs.hh>
+#include <G4LogicalBorderSurface.hh>
+#include <G4LogicalSkinSurface.hh>
 
 #include "Sizes.hh"
 
@@ -35,7 +37,8 @@ public:
     G4String detectorType;
 
     G4LogicalVolume *detContainerLV;
-    G4ThreeVector detContainerSize;
+    G4VPhysicalVolume *detContainerPVP;
+    G4double detContainerSizeZ;
 
     G4VisAttributes *visTyvekOut{};
     G4VisAttributes *visTyvekMid{};
@@ -48,8 +51,7 @@ public:
     G4VisAttributes *visBoard{};
     G4VisAttributes *visRubber{};
 
-    Detector(G4LogicalVolume *, const G4ThreeVector &, G4NistManager *, G4double,
-             const G4String &);
+    Detector(G4LogicalVolume *, G4VPhysicalVolume *, G4double, G4NistManager *, G4double, const G4String &, G4bool);
     ~Detector() = default;
 
     void DefineMaterials();
@@ -73,9 +75,12 @@ private:
 
     G4double viewDeg;
 
+    G4bool lightCollection;
+
     G4double zCorrection;
 
     G4double additionalLength;
+    G4double sensSurfThick;
 
     G4ThreeVector crystalSize;
     G4ThreeVector vetoSize;
@@ -85,14 +90,13 @@ private:
 
     G4Material *vetoMat{};
     G4Material *CrystalMat{};
-    G4Material *tyvekInMat{};
-    G4Material *tyvekOutMat{};
-    G4Material *tyvekMidMat{};
+    G4Material *tyvekMat{};
     G4Material *LEDMat{};
     G4Material *AlMat{};
     G4Material *rubberMat{};
     G4Material *wireMat{};
     G4Material *boardMat{};
+    G4Material *galacticMat{};
 
     G4LogicalVolume *crystalLV{};
     G4LogicalVolume *tyvekInLV{};
@@ -105,6 +109,25 @@ private:
     G4LogicalVolume *vetoLEDLV{};
     G4LogicalVolume *vetoBottomLEDLV{};
 
+    G4LogicalVolume *crystalSensSurfLV{};
+    G4LogicalVolume *vetoSensSurfLV{};
+    G4LogicalVolume *vetoBottomSensSurfLV{};
+
+    G4VPhysicalVolume *crystalPVP{};
+    G4VPhysicalVolume *tyvekInPVP{};
+    G4VPhysicalVolume *AlPVP{};
+    G4VPhysicalVolume *rubberPVP{};
+    G4VPhysicalVolume *tyvekMidPVP{};
+    G4VPhysicalVolume *vetoPVP{};
+    G4VPhysicalVolume *tyvekOutPVP{};
+    G4VPhysicalVolume *crystalLEDPVP{};
+    G4VPhysicalVolume *vetoLEDPVP{};
+    G4VPhysicalVolume *vetoBottomLEDPVP{};
+
+    G4VPhysicalVolume *crystalSensSurfPVP{};
+    G4VPhysicalVolume *vetoSensSurfPVP{};
+    G4VPhysicalVolume *vetoBottomSensSurfPVP{};
+
     void ConstructCrystal();
     void ConstructAl();
     void ConstructVeto();
@@ -112,6 +135,8 @@ private:
     void ConstructCrystalLED();
     void ConstructVetoLED();
     void ConstructVetoBottomLED();
+
+    void AddOptics();
 };
 
 

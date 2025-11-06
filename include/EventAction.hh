@@ -54,7 +54,7 @@ public:
     std::vector<PrimaryRec> primBuf;
     std::vector<InteractionRec> interBuf;
 
-    EventAction(AnalysisManager *, RunAction *);
+    EventAction(AnalysisManager *, RunAction *, G4double, G4double, G4bool);
     ~EventAction() override = default;
 
     void BeginOfEventAction(const G4Event *) override;
@@ -64,6 +64,7 @@ private:
     void WritePrimaries_(int eventID);
     int WriteInteractions_(int eventID);
     int WriteEdepFromSD_(const G4Event *evt, int eventID);
+    int WriteOptFromSD_(const G4Event* evt);
 
     inline void MarkCrystal() { hasCrystal = true; }
     inline void MarkVeto() { hasVeto = true; }
@@ -71,6 +72,8 @@ private:
     AnalysisManager *analysisManager = nullptr;
 
     std::vector<std::tuple<G4String, int, G4String>> detMap;
+    std::vector<std::tuple<G4String, int, G4String>> optMap;
+    std::vector<int> optHCIDs;
     std::vector<int> HCIDs;
 
     int nPrimaries = 0;
@@ -80,6 +83,9 @@ private:
     RunAction* run = nullptr;
     bool hasCrystal = false;
     bool hasVeto = false;
+
+    G4double eCrystalThreshold;
+    G4double eVetoThreshold;
 };
 
 #endif //EVENTACTION_HH

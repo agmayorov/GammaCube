@@ -32,7 +32,7 @@
 
 class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction {
 public:
-    PrimaryGeneratorAction(G4bool, const G4String &);
+    PrimaryGeneratorAction(G4String , const G4String &);
     ~PrimaryGeneratorAction() override;
 
     void GeneratePrimaries(G4Event *evt) override;
@@ -44,7 +44,7 @@ private:
     G4ThreeVector center;
     G4ThreeVector detectorHalfSize;
 
-    G4bool verticalFlux;
+    G4String fluxDirection;
     ParticleInfo pInfo{};
 
     Flux *flux;

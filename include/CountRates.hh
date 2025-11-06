@@ -11,7 +11,7 @@
 #include <limits>
 #include <algorithm>
 
-enum class FluxType { PLAW, COMP, SEP, UNIFORM, GALACTIC };
+enum class FluxType { PLAW, COMP, SEP, UNIFORM, GALACTIC, TABLE };
 
 struct EnergyRange {
     double Emin;
@@ -33,6 +33,9 @@ struct FluxParams {
     // Galactic
     double phiMV = 600.0;
     std::string particle = "proton";
+
+    // Table
+    std::string table_path;
 };
 
 struct RateCounts {
@@ -54,13 +57,15 @@ double fluxCOMP(double E, double A, double alpha, double E_piv, double E_peak);
 
 double fluxSEP(double E, int year, int order, const std::string &csvPath);
 
+double fluxTable(double E, const std::string &csvPath);
+
 double fluxUniform(double E);
 
 double fluxGalactic(double E);
 
 double J_proton(double E_GeV);
 
-enum class FluxDir { Vertical, Isotropic };
+enum class FluxDir { Vertical, Horizontal, Isotropic };
 
 double effectiveArea_cm2(double R_mm, double H_mm, FluxDir dir);
 

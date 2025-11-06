@@ -8,9 +8,6 @@ class COMPFlux : public Flux {
 public:
     COMPFlux();
 
-protected:
-    G4double SampleEnergy() override;
-
 private:
     G4double alpha{};
     G4double E_Peak{};
@@ -18,8 +15,9 @@ private:
     std::vector<double> energyGrid;
     std::vector<double> cdfGrid;
 
-    void GetParams();
     void BuildCDF();
+
+    G4double SampleEnergy() override;
 };
 
 #endif //COMPFLUX_HH

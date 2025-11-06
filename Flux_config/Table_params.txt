@@ -1,5 +1,5 @@
-path: ../Table_spectrum.csv
-particle: proton
+table_path: ../TableSpectrum/flare_M2.csv
+particle: gamma
 
-E_min: 0.1
-E_max: 1000
+E_min: 0.268420812940632
+E_max: 286.329624849177

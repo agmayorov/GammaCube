@@ -1,8 +1,15 @@
 #include "Flux/COMPFlux.hh"
 
 COMPFlux::COMPFlux() {
-    name = "gamma";
-    GetParams();
+    particle = "gamma";
+
+    configFile = "../Flux_config/COMP_params.txt";
+    alpha = GetParam(configFile, "alpha", 1.18511);
+    E_Peak = GetParam(configFile, "E_Peak", 1.809619) * MeV;
+
+    Emin = GetParam(configFile, "E_min", 0.01) * MeV;
+    Emax = GetParam(configFile, "E_max", 50.) * MeV;
+
     BuildCDF();
 }
 
@@ -52,50 +59,6 @@ void COMPFlux::BuildCDF() {
     cdfGrid.back() = 1.0;
 }
 
-void COMPFlux::GetParams() {
-    const std::string filepath = "../Flux_config/COMP_params.txt";
-    std::ifstream paramFile(filepath);
-    if (!paramFile.is_open()) {
-        G4Exception("COMPFlux::GetParams", "FILE_OPEN_FAIL",
-                    JustWarning, ("Cannot open " + filepath).c_str());
-        alpha = -1.0;
-        E_Peak = 500.0 * MeV;
-        Emin = 10.0 * keV;
-        Emax = 10000.0 * MeV;
-        paramFile.close();
-        return;
-    }
-
-    std::string line;
-    alpha = MAXFLOAT;
-    E_Peak = MAXFLOAT;
-    Emin = MAXFLOAT;
-    Emax = MAXFLOAT;
-
-    while (std::getline(paramFile, line)) {
-        if (line.find("alpha") != std::string::npos) {
-            alpha = std::stod(line.substr(line.find(':') + 1));
-        } else if (line.find("E_Peak") != std::string::npos) {
-            E_Peak = std::stod(line.substr(line.find(':') + 1)) * MeV;
-        } else if (line.find("E_min") != std::string::npos) {
-            Emin = std::stod(line.substr(line.find(':') + 1)) * MeV;
-        } else if (line.find("E_max") != std::string::npos) {
-            Emax = std::stod(line.substr(line.find(':') + 1)) * MeV;
-        }
-
-        if (alpha != MAXFLOAT && E_Peak != MAXFLOAT && Emin != MAXFLOAT && Emax != MAXFLOAT) {
-            paramFile.close();
-            return;
-        }
-    }
-    G4Exception("COMPFlux::GetParams", "POOR_CONTENT",
-                JustWarning, ("Cannot find all parameters in file " + filepath).c_str());
-    alpha = -1.0;
-    E_Peak = 1.18511 * MeV;
-    Emin = 10.0 * keV;
-    Emax = 10000.0 * MeV;
-    paramFile.close();
-}
 
 double COMPFlux::SampleEnergy() {
     double u = G4UniformRand();

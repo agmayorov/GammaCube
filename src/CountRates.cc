@@ -64,6 +64,73 @@ double fluxSEP(const double E, const int year, const int order, const std::strin
     return std::pow(10.0, poly);
 }
 
+// --- Table ---
+double fluxTable(const double E, const std::string &csvPath) {
+    static std::string cached_path;
+    static std::vector<double> cached_energies;
+    static std::vector<double> cached_fluxes;
+
+    if (csvPath != cached_path || cached_energies.empty()) {
+        std::ifstream in(csvPath);
+        if (!in.is_open()) {
+            throw std::runtime_error("Cannot open CSV file: " + csvPath);
+        }
+
+        std::string line;
+        std::vector<double> energies;
+        std::vector<double> fluxes;
+
+        while (std::getline(in, line)) {
+            if (line.empty()) continue;
+
+            std::stringstream ss(line);
+            std::string energy_str, flux_str;
+            double energy, flux;
+
+            std::getline(ss, energy_str, ',');
+            std::getline(ss, flux_str, ',');
+
+            try {
+                energy = std::stod(energy_str);
+                flux = std::stod(flux_str);
+            } catch (...) {
+                continue;
+            }
+
+            energies.push_back(energy);
+            fluxes.push_back(flux);
+        }
+
+        if (energies.empty() || fluxes.empty()) {
+            throw std::runtime_error("No valid data found in the CSV.");
+        }
+
+        cached_energies = std::move(energies);
+        cached_fluxes = std::move(fluxes);
+        cached_path = csvPath;
+    }
+
+    for (size_t i = 0; i < cached_energies.size(); ++i) {
+        if (std::abs(cached_energies[i] - E) < 1e-6) {
+            return cached_fluxes[i];
+        }
+    }
+
+    for (size_t i = 1; i < cached_energies.size(); ++i) {
+        if (cached_energies[i] > E) {
+            double E1 = cached_energies[i - 1];
+            double flux1 = cached_fluxes[i - 1];
+            double E2 = cached_energies[i];
+            double flux2 = cached_fluxes[i];
+
+            double flux = flux1 + (flux2 - flux1) * (E - E1) / (E2 - E1);
+            return flux;
+        }
+    }
+
+    throw std::runtime_error("Energy is out of range in the CSV file.");
+}
+
 // --- Uniform ---
 double fluxUniform(double) { return 1.0; }
 
@@ -174,7 +241,10 @@ double effectiveArea_cm2(const double R_mm, const double H_mm, const FluxDir dir
     const double H_cm = H_mm / 10.0;
 
     if (dir == FluxDir::Vertical) {
-        return 4.0 * R_cm * R_cm;
+        return M_PI * R_cm * R_cm;
+    }
+    if (dir == FluxDir::Horizontal) {
+        return 2 * R_cm * H_cm;
     }
     const double val = std::sqrt(R_cm * R_cm + H_cm * H_cm) + 0.5;
     return 2.0 * M_PI * M_PI * val * val;
@@ -228,6 +298,9 @@ RateResult computeRate(const FluxType type,
         case FluxType::SEP:
             f = [=](const double E) { return fluxSEP(E, p.sep_year, p.sep_order, p.sep_csv_path); };
             break;
+        case FluxType::TABLE:
+            f = [=](const double E) { return fluxTable(E, p.table_path); };
+            break;
         case FluxType::UNIFORM:
             f = [=](const double E) { return fluxUniform(E); };
             break;
@@ -243,6 +316,7 @@ RateResult computeRate(const FluxType type,
     }
 
     const double integral = integrateAdaptiveSimpson(f, eRange.Emin, eRange.Emax, 1e-6, 22);
+    // const double integral = 1;
     const double Ndot = A_eff_cm2 * integral;
 
     RateResult R;

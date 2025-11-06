@@ -13,8 +13,8 @@ void Geometry::CheckSizes() {
 }
 
 
-Geometry::Geometry(G4String detType)
-    : detectorType(std::move(detType)) {
+Geometry::Geometry(G4String detType, const G4bool useOpt, const G4bool lightCollect) : useOptics(useOpt),
+    lightCollection(lightCollect), detectorType(std::move(detType)) {
     std::vector<G4String> detectorList = {"NaI", "CsI"};
     if (std::find(detectorList.begin(), detectorList.end(), detectorType) == detectorList.end()) {
         G4Exception("Geometry::ConstructDetector", "DetectorType", FatalException,
@@ -87,10 +87,12 @@ void Geometry::ConstructDetector() {
     detContainer = new G4Tubs("DetectorContainer", detContainerSize.x(), detContainerSize.y(), detContainerSize.z(), 0,
                               360 * deg);
     detContainerLV = new G4LogicalVolume(detContainer, worldMat, "DetectorContainerLV");
-    new G4PVPlacement(zeroRot, detContainerPos, detContainerLV, "DetectorContainerPVPL", worldLV, false, 0, true);
+    detContainerPVPL = new G4PVPlacement(zeroRot, detContainerPos, detContainerLV, "DetectorContainerPVPL", worldLV,
+                                         false, 0, true);
     detContainerLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
-    detector = new Detector(detContainerLV, detContainerSize, nist, viewDeg, detectorType);
+    detector = new Detector(detContainerLV, detContainerPVPL, detContainerSize.z(), nist, viewDeg, detectorType,
+                            lightCollection);
     detector->Construct();
     std::vector<G4LogicalVolume *> sensitiveLV = detector->GetSensitiveLV();
     crystalLV = sensitiveLV.at(0);
@@ -103,20 +105,30 @@ void Geometry::ConstructDetector() {
     crystalLEDLV = sensitiveLV.at(7);
     vetoLEDLV = sensitiveLV.at(8);
     vetoBottomLEDLV = sensitiveLV.at(9);
+    crystalSensSurfLV = sensitiveLV.at(10);
+    vetoSensSurfLV = sensitiveLV.at(11);
+    vetoBottomSensSurfLV = sensitiveLV.at(12);
 }
 
 
 G4VPhysicalVolume *Geometry::Construct() {
     G4GeometryManager::GetInstance()->OpenGeometry();
-    G4PhysicalVolumeStore::GetInstance()->Clean();
-    G4LogicalVolumeStore::GetInstance()->Clean();
-    G4SolidStore::GetInstance()->Clean();
+    G4PhysicalVolumeStore::Clean();
+    G4LogicalVolumeStore::Clean();
+    G4SolidStore::Clean();
 
     worldMat = nist->FindOrBuildMaterial("G4_Galactic");
 
+    auto *mptVac = new G4MaterialPropertiesTable();
+    const G4int N = 2;
+    G4double E[N] = {2.0 * eV, 3.4 * eV};
+    G4double n1[N] = {1.0, 1.0};
+    mptVac->AddProperty("RINDEX", E, n1, N);
+    worldMat->SetMaterialPropertiesTable(mptVac);
+
     worldBox = new G4Box("World", worldHalfSize, worldHalfSize, worldHalfSize);
     worldLV = new G4LogicalVolume(worldBox, worldMat, "WorldLV");
-    worldPVP = new G4PVPlacement(zeroRot, G4ThreeVector(0, 0, 0), worldLV, "WorldPVPL", 0, false, 0, false);
+    worldPVP = new G4PVPlacement(zeroRot, G4ThreeVector(0, 0, 0), worldLV, "WorldPVPL", nullptr, false, 0, false);
     worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
     ConstructDetector();
@@ -190,20 +202,34 @@ void Geometry::ConstructSDandField() {
     }
 
     if (crystalLEDMinSize > 0.) {
-        auto *crystalLEDSD = new SensitiveDetector("CrystalLEDSD", 8, "CrystalLED");
+        auto *crystalLEDSD = new SensitiveDetector("CrystalLEDSD", 8, "CrystalLED", true);
         sdManager->AddNewDetector(crystalLEDSD);
         crystalLEDLV->SetSensitiveDetector(crystalLEDSD);
     }
 
-    if (crystalLEDMinSize > 0.) {
-        auto *vetoLEDSD = new SensitiveDetector("VetoLEDSD", 9, "VetoLED");
+    if (vetoLEDMinSize > 0.) {
+        auto *vetoLEDSD = new SensitiveDetector("VetoLEDSD", 9, "VetoLED", true);
         sdManager->AddNewDetector(vetoLEDSD);
         vetoLEDLV->SetSensitiveDetector(vetoLEDSD);
     }
 
-    if (crystalLEDMinSize > 0.) {
-        auto *vetoBottomLEDSD = new SensitiveDetector("VetoBottomLEDSD", 10, "VetoBottomLED");
+    if (vetoBottomLEDMinSize > 0.) {
+        auto *vetoBottomLEDSD = new SensitiveDetector("VetoBottomLEDSD", 10, "VetoBottomLED", true);
         sdManager->AddNewDetector(vetoBottomLEDSD);
         vetoBottomLEDLV->SetSensitiveDetector(vetoBottomLEDSD);
+    }
+
+    if (lightCollection) {
+        auto *crystalSensSurfSD = new SensitiveDetector("CrystalSensSurfSD", 11, "CrystalSensSurf", true);
+        sdManager->AddNewDetector(crystalSensSurfSD);
+        crystalSensSurfLV->SetSensitiveDetector(crystalSensSurfSD);
+
+        auto *vetoSensSurfSD = new SensitiveDetector("VetoSensSurfSD", 12, "VetoSensSurf", true);
+        sdManager->AddNewDetector(vetoSensSurfSD);
+        vetoSensSurfLV->SetSensitiveDetector(vetoSensSurfSD);
+
+        auto *vetoBottomSensSurfSD = new SensitiveDetector("VetoBottomSensSurfSD", 13, "VetoBottomSensSurf", true);
+        sdManager->AddNewDetector(vetoBottomSensSurfSD);
+        vetoBottomSensSurfLV->SetSensitiveDetector(vetoBottomSensSurfSD);
     }
 }

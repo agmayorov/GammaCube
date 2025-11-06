@@ -10,9 +10,11 @@
 #include <cmath>
 #include <vector>
 #include <string>
+#include <numeric>
+#include <unordered_map>
 
 struct ParticleInfo {
-    std::string name;
+    G4String name;
     G4int pdg;
     G4ParticleDefinition *def;
     G4double energy;
@@ -26,11 +28,26 @@ public:
     virtual ParticleInfo GenerateParticle();
 
 protected:
-    G4String name;
+    G4String particle;
+    G4String configFile;
     G4double Emin{};
     G4double Emax{};
 
     virtual G4double SampleEnergy() = 0;
+
+    static G4String Trim(const G4String &);
+
+    G4String GetParam(const G4String &,
+                      const G4String &,
+                      const G4String &);
+    G4double GetParam(const G4String &,
+                      const G4String &,
+                      G4double);
+
+private:
+    std::unordered_map<std::string, std::string> cache{};
+
+    void LoadFileIfNeeded(const G4String &);
 };
 
 

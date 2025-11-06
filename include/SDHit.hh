@@ -21,6 +21,14 @@ public:
     G4int volumeID = -1;
     G4double edep = 0.0;
     G4double tmin = DBL_MAX;
+    G4bool isOptical = false;
+
+    G4double x_loc_mm = 0.0;
+    G4double y_loc_mm = 0.0;
+    G4double z_loc_mm = 0.0;
+    G4double phi = 0.0;
+    G4double t_ns = 0.0;
+    G4int copyNo = 0;
 
     void AddEdep(G4double);
     void UpdateTmin(G4double t);

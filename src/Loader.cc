@@ -7,7 +7,11 @@ Loader::Loader(int argc, char **argv) {
     detectorType = "CsI";
     fluxType = "Uniform";
     geomConfigPath = "../geometry_config.txt";
-    verticalFlux = false;
+    fluxDirection = "isotropic";
+    useOptics = false;
+    lightCollection = false;
+    eCrystalThreshold = 0 * MeV;
+    eVetoThreshold = 0 * MeV;
 
     for (int i = 0; i < argc; i++) {
         if (std::string input(argv[i]); input == "-i" || input == "-input") {
@@ -15,14 +19,23 @@ Loader::Loader(int argc, char **argv) {
             useUI = false;
         } else if (input == "-t" || input == "-threads") {
             numThreads = std::stoi(argv[i + 1]);
+        } else if (input == "-ct" || input == "--crystal-threshold") {
+            eCrystalThreshold = std::stod(argv[i + 1]) * MeV;
+        } else if (input == "-vt" || input == "--veto-threshold") {
+            eVetoThreshold = std::stod(argv[i + 1]) * MeV;
         } else if (input == "-noUI") {
             useUI = false;
         } else if (input == "-d" || input == "--detector") {
             detectorType = argv[i + 1];
         } else if (input == "-f" || input == "--flux-type") {
             fluxType = argv[i + 1];
-        } else if (input == "--vertical-flux") {
-            verticalFlux = true;
+        } else if (input == "--flux-dir" || input == "--f-dir" || input == "-fd") {
+            fluxDirection = argv[i + 1];
+        } else if (input == "--use-optics") {
+            useOptics = true;
+        } else if (input == "--light-collection") {
+            lightCollection = true;
+            useOptics = true;
         } else if (input == "-g" || input == "--geom-config") {
             geomConfigPath = argv[i + 1];
         }
@@ -41,23 +54,37 @@ Loader::Loader(int argc, char **argv) {
     runManager = new G4RunManager;
 #endif
 
-    Geometry *realWorld = new Geometry(detectorType);
+    Geometry *realWorld = new Geometry(detectorType, useOptics, lightCollection);
     runManager->SetUserInitialization(realWorld);
-    G4VModularPhysicsList *physicsList = new FTFP_BERT;
+    auto *physicsList = new FTFP_BERT;
     physicsList->ReplacePhysics(new G4EmStandardPhysics_option4());
     physicsList->ReplacePhysics(new G4RadioactiveDecayPhysics());
-    // auto* opticalPhysics = new G4OpticalPhysics();
-    // auto* op = G4OpticalParameters::Instance();
-    // op->SetProcessActivation("Scintillation", true);
-    // op->SetProcessActivation("OpAbsorption", true);
-    // op->SetProcessActivation("OpRayleigh", true);
-    // op->SetProcessActivation("OpMieHG", true);
-    // op->SetProcessActivation("OpBoundary", true);
-    // physicsList->RegisterPhysics(opticalPhysics);
+
+    if (useOptics) {
+        auto *opticalPhysics = new G4OpticalPhysics();
+
+        auto *op = G4OpticalParameters::Instance();
+        op->SetProcessActivation("Cerenkov", true);
+        op->SetProcessActivation("Scintillation", true);
+        op->SetProcessActivation("OpAbsorption", true);
+        op->SetProcessActivation("OpRayleigh", true);
+        op->SetProcessActivation("OpMieHG", true);
+        op->SetProcessActivation("OpBoundary", true);
+
+        op->SetScintTrackSecondariesFirst(true);
+        op->SetCerenkovTrackSecondariesFirst(true);
+        // op->SetScintByParticleType(true);
+        // op->SetCerenkovMaxPhotonsPerStep(200);
+        // op->SetCerenkovMaxBetaChange(10.0);
+
+        physicsList->RegisterPhysics(opticalPhysics);
+    }
+
     physicsList->RegisterPhysics(new G4StepLimiterPhysics());
     runManager->SetUserInitialization(physicsList);
 
-    runManager->SetUserInitialization(new ActionInitialization(verticalFlux, fluxType));
+    runManager->SetUserInitialization(
+        new ActionInitialization(fluxDirection, fluxType, eCrystalThreshold, eVetoThreshold, lightCollection));
     runManager->Initialize();
 
     visManager = new G4VisExecutive;
@@ -107,10 +134,38 @@ std::string Loader::ReadValue(const std::string &key, const std::string &filepat
 }
 
 
+inline std::string Trim(std::string st) {
+    auto notSpace = [](const unsigned char c) { return !std::isspace(c); };
+    st.erase(st.begin(), std::find_if(st.begin(), st.end(), notSpace));
+    st.erase(std::find_if(st.rbegin(), st.rend(), notSpace).base(), st.end());
+    return st;
+}
+
+
+std::vector<G4String> Split(const G4String &line) {
+    std::vector<G4String> result;
+    std::stringstream ss(line);
+    G4String token;
+    while (std::getline(ss, token, ',')) {
+        token = Trim(token);
+        if (!token.empty())
+            result.push_back(token);
+    }
+    return result;
+}
+
+
 void Loader::SaveConfig() const {
     const int N = std::stoi(ReadValue("/run/beamOn", "../run.mac"));
 
-    const FluxDir dir = verticalFlux ? FluxDir::Vertical : FluxDir::Isotropic;
+    FluxDir dir{};
+    if (fluxDirection == "isotropic") {
+        dir = FluxDir::Isotropic;
+    } else if (fluxDirection == "vertical") {
+        dir = FluxDir::Vertical;
+    } else if (fluxDirection == "horizontal") {
+        dir = FluxDir::Horizontal;
+    }
     double A_eff_cm2 = effectiveArea_cm2(Sizes::modelRadius, Sizes::modelHeight, dir);
 
     EnergyRange er{};
@@ -145,6 +200,12 @@ void Loader::SaveConfig() const {
         fp.particle = ReadValue("particle:");
         er.Emin = std::stod(ReadValue("E_min:"));
         er.Emax = std::stod(ReadValue("E_max:"));
+    } else if (fluxType == "Table") {
+        fType = FluxType::TABLE;
+        fp.particle = ReadValue("particle:");
+        fp.table_path = ReadValue("table_path:");
+        er.Emin = std::stod(ReadValue("E_min:"));
+        er.Emax = std::stod(ReadValue("E_max:"));
     } else {
         fType = FluxType::UNIFORM;
         er.Emin = 0.001;
@@ -167,7 +228,7 @@ void Loader::SaveConfig() const {
     buf << "N: " << N << "\n\n";
     buf << "Detector_type: " << detectorType << "\n\n";
     buf << "Flux_type: " << fluxType << "\n";
-    buf << "Flux_dir: " << (verticalFlux ? "vertical" : "isotropic") << "\n";
+    buf << "Flux_dir: " << fluxDirection << "\n";
 
     buf << "Flux_params:\n{\n\t";
     if (fluxType == "PLAW") {
@@ -185,8 +246,11 @@ void Loader::SaveConfig() const {
     } else if (fluxType == "Galactic") {
         buf << "phiMV: " << std::stod(ReadValue("phiMV:")) << ",\n\t";
         buf << "particle: " << ReadValue("particle:") << "\n";
-    } else {
-        buf << "\n";
+    } else if (fluxType == "Table") {
+        buf << "table_path: " << ReadValue("table_path:") << ",\n\t";
+        buf << "particle: " << ReadValue("particle:") << "\n";
+    } else if (fluxType == "Uniform") {
+        buf << "fractions: " << ReadValue("fractions:") << "\n";
     }
     buf << "}\n\n";
 
@@ -195,10 +259,10 @@ void Loader::SaveConfig() const {
         buf << "gamma";
     } else if (fluxType == "SEP") {
         buf << "proton";
-    } else if (fluxType == "Galactic") {
+    } else if (fluxType == "Galactic" or fluxType == "Table") {
         buf << ReadValue("particle:");
-    } else {
-        buf << "gamma, proton, electron, alpha";
+    } else if (fluxType == "Uniform") {
+        buf << ReadValue("particles:");
     }
     buf << "]\n";
 
@@ -207,13 +271,15 @@ void Loader::SaveConfig() const {
         buf << "gamma: ";
     } else if (fluxType == "SEP") {
         buf << "proton: ";
-    } else if (fluxType == "Galactic") {
+    } else if (fluxType == "Galactic" or fluxType == "Table") {
         buf << ReadValue("particle:") << ": ";
     } else if (fluxType == "Uniform") {
-        buf << "gamma: (0.001, 500),\n\t";
-        buf << "electron: (0.001, 100),\n\t";
-        buf << "proton: (1, 10000),\n\t";
-        buf << "alpha: (10, 10000),\n";
+        std::vector<G4String> particles = Split(ReadValue("particles:"));
+        std::vector<G4String> EminVec = Split(ReadValue("E_min:"));
+        std::vector<G4String> EmaxVec = Split(ReadValue("E_max:"));
+        for (size_t i = 0; i < particles.size(); i++) {
+            buf << (i == 0 ? "" : "\t") << particles[i] << ": (" << EminVec[i] << ", " << EmaxVec[i] << "),\n";
+        }
     }
     if (fluxType != "Uniform") {
         buf << "(" << ReadValue("E_min:") << ", " << ReadValue("E_max:") << ")\n";
@@ -272,14 +338,7 @@ void Loader::SaveConfig() const {
 }
 
 
-inline std::string trim(std::string st) {
-    auto notspace = [](const unsigned char c) { return !std::isspace(c); };
-    st.erase(st.begin(), std::find_if(st.begin(), st.end(), notspace));
-    st.erase(std::find_if(st.rbegin(), st.rend(), notspace).base(), st.end());
-    return st;
-}
-
-inline std::string to_upper(std::string st) {
+inline std::string ToUpper(std::string st) {
     std::transform(st.begin(), st.end(), st.begin(),
                    [](const unsigned char c) { return std::toupper(c); });
     return st;
@@ -307,7 +366,7 @@ void Loader::ParseGeomConfig() {
     auto stripInlineComment = [](std::string &str) {
         auto pos = str.find('#');
         if (pos != std::string::npos) str.erase(pos);
-        str = trim(str);
+        str = Trim(str);
     };
 
     std::unordered_map<std::string, std::function<void(const std::string &)> > setters = {
@@ -383,7 +442,7 @@ void Loader::ParseGeomConfig() {
     while (std::getline(geomConfigFile, line)) {
         ++lineNo;
 
-        std::string trimmed = trim(line);
+        std::string trimmed = Trim(line);
         if (trimmed.empty() || (!trimmed.empty() && trimmed[0] == '#'))
             continue;
 
@@ -394,7 +453,7 @@ void Loader::ParseGeomConfig() {
         }
 
         std::string key = match[1].str();
-        std::string val = trim(match[2].str());
+        std::string val = Trim(match[2].str());
         stripInlineComment(val);
 
         if (key == "Detector_type") {
@@ -411,15 +470,13 @@ void Loader::ParseGeomConfig() {
         it->second(val);
     }
 
-    Sizes::tunaCanMinSize = std::min({Sizes::tunaCanThickTop, Sizes::tunaCanThickBottom, Sizes::tunaCanThickWall});
-    Sizes::tyvekInMinSize = std::min({Sizes::tyvekInThickTop, Sizes::tyvekInThickBottom, Sizes::tyvekInThickWall});
-    Sizes::tyvekOutMinSize = std::min({Sizes::tyvekOutThickTop, Sizes::tyvekOutThickBottom, Sizes::tyvekOutThickWall});
-    Sizes::tyvekMidMinSize = std::min({Sizes::tyvekMidThickTop, Sizes::tyvekMidThickBottom, Sizes::tyvekMidThickWall});
-    Sizes::vetoMinSize = std::min({Sizes::vetoThickTop, Sizes::vetoThickBottom, Sizes::vetoThickWall});
-    Sizes::AlMinSize = std::min({
-        Sizes::AlThickTop, Sizes::AlCapThickBottom, Sizes::AlThickWall, Sizes::AlCapThickWall
-    });
-    Sizes::rubberMinSize = std::min({Sizes::rubberRadius, Sizes::rubberHeight});
+    Sizes::tunaCanMinSize = Sizes::tunaCanThickTop + Sizes::tunaCanThickBottom + Sizes::tunaCanThickWall;
+    Sizes::tyvekInMinSize = Sizes::tyvekInThickTop + Sizes::tyvekInThickBottom + Sizes::tyvekInThickWall;
+    Sizes::tyvekOutMinSize = Sizes::tyvekOutThickTop + Sizes::tyvekOutThickBottom + Sizes::tyvekOutThickWall;
+    Sizes::tyvekMidMinSize = Sizes::tyvekMidThickTop + Sizes::tyvekMidThickBottom + Sizes::tyvekMidThickWall;
+    Sizes::vetoMinSize = Sizes::vetoThickTop + Sizes::vetoThickBottom + Sizes::vetoThickWall;
+    Sizes::AlMinSize = Sizes::AlThickTop + Sizes::AlCapThickBottom + Sizes::AlThickWall + Sizes::AlCapThickWall;
+    Sizes::rubberMinSize = Sizes::rubberRadius + Sizes::rubberHeight;
     Sizes::crystalLEDMinSize = std::min({
         static_cast<G4double>(Sizes::crystalLEDCount), Sizes::crystalLEDWidth, Sizes::vetoBottomLEDLength,
         Sizes::crystalLEDHeight

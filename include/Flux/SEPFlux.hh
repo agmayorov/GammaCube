@@ -24,7 +24,6 @@ private:
     std::vector<G4double> EList;
     std::vector<G4double> CDF;
 
-    void GetParams();
     void BuildCDF();
 
     G4double SampleEnergy() override;
