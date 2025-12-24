@@ -62,21 +62,20 @@ void AnalysisManager::Book() {
     analysisManager->CreateNtupleDColumn("edep_MeV");
     analysisManager->FinishNtuple(edepNT);
 
-    crystalH2 = analysisManager->CreateH2("CrystalH2",
-                                          "Crystal;X [mm];Y [mm]",
-                                          200, -20., 20.,
-                                          200, -20., 20.);
+    SiPMEventNT = analysisManager->CreateNtuple("sipm_event", "SiPM p.e. per event");
+    analysisManager->CreateNtupleIColumn("eventID");
+    analysisManager->CreateNtupleIColumn("npe_crystal");
+    analysisManager->CreateNtupleIColumn("npe_veto");
+    analysisManager->CreateNtupleIColumn("npe_bottom_veto");
+    analysisManager->FinishNtuple(SiPMEventNT);
 
-    vetoH2 = analysisManager->CreateH2("VetoH2",
-                                       "Veto;X [mm];Y [mm]",
-                                       240, -31., 31.,
-                                       240, -31., 31.);
+    SiPMChannelNT = analysisManager->CreateNtuple("sipm_ch", "SiPM p.e. per channel");
+    analysisManager->CreateNtupleIColumn("eventID");
+    analysisManager->CreateNtupleSColumn("subdet");
+    analysisManager->CreateNtupleIColumn("ch");
+    analysisManager->CreateNtupleIColumn("npe");
+    analysisManager->FinishNtuple(SiPMChannelNT);
 
-    vetoBottomH2 = analysisManager->CreateH2("VetoBottomH2",
-                                             "VetoBottom side;#phi [rad]:Z [mm]",
-                                             180, 0.0, CLHEP::twopi,
-                                             200, -45, 10
-    );
 }
 
 void AnalysisManager::Open() {
@@ -147,16 +146,20 @@ void AnalysisManager::FillEdepRow(G4int eventID, const G4String &det_name, G4dou
     analysisManager->AddNtupleRow(edepNT);
 }
 
-void AnalysisManager::FillCrystalH2(const G4double x_mm, const G4double y_mm) {
-    G4AnalysisManager::Instance()->FillH2(crystalH2, x_mm, y_mm);
+void AnalysisManager::FillSiPMEventRow(int eventID, int npeC, int npeV, int npeBV) {
+    auto* analysisManager = G4AnalysisManager::Instance();
+    analysisManager->FillNtupleIColumn(SiPMEventNT, 0, eventID);
+    analysisManager->FillNtupleIColumn(SiPMEventNT, 1, npeC);
+    analysisManager->FillNtupleIColumn(SiPMEventNT, 2, npeV);
+    analysisManager->FillNtupleIColumn(SiPMEventNT, 3, npeBV);
+    analysisManager->AddNtupleRow(SiPMEventNT);
 }
 
-void AnalysisManager::FillVetoH2(const G4double x_mm, const G4double y_mm) {
-    G4AnalysisManager::Instance()->FillH2(vetoH2, x_mm, y_mm);
-}
-
-void AnalysisManager::FillVetoBottomH2(const G4double z_mm, G4double phi_rad) {
-    while (phi_rad < 0) phi_rad += CLHEP::twopi;
-    while (phi_rad >= CLHEP::twopi) phi_rad -= CLHEP::twopi;
-    G4AnalysisManager::Instance()->FillH2(vetoBottomH2, phi_rad, z_mm);
+void AnalysisManager::FillSiPMChannelRow(int eventID, const G4String& subdet, int ch, int npe) {
+    auto* analysisManager = G4AnalysisManager::Instance();
+    analysisManager->FillNtupleIColumn(SiPMChannelNT, 0, eventID);
+    analysisManager->FillNtupleSColumn(SiPMChannelNT, 1, subdet);
+    analysisManager->FillNtupleIColumn(SiPMChannelNT, 2, ch);
+    analysisManager->FillNtupleIColumn(SiPMChannelNT, 3, npe);
+    analysisManager->AddNtupleRow(SiPMChannelNT);
 }

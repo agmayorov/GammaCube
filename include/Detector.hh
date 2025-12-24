@@ -33,25 +33,36 @@
 
 class Detector {
 public:
-    G4NistManager *nist;
+    G4NistManager* nist;
     G4String detectorType;
 
-    G4LogicalVolume *detContainerLV;
-    G4VPhysicalVolume *detContainerPVP;
+    G4ThreeVector detContainerTopSize;
+
+    G4LogicalVolume* detContainerLV;
+    G4VPhysicalVolume* detContainerPVP;
     G4double detContainerSizeZ;
 
-    G4VisAttributes *visTyvekOut{};
-    G4VisAttributes *visTyvekMid{};
-    G4VisAttributes *visTyvekIn{};
-    G4VisAttributes *visCrystal{};
-    G4VisAttributes *visVeto{};
-    G4VisAttributes *visLED{};
-    G4VisAttributes *visAl{};
-    G4VisAttributes *visWire{};
-    G4VisAttributes *visBoard{};
-    G4VisAttributes *visRubber{};
+    G4VisAttributes* visTyvekOut{};
+    G4VisAttributes* visTyvekMid{};
+    G4VisAttributes* visTyvekIn{};
+    G4VisAttributes* visTyvekBottom{};
+    G4VisAttributes* visCrystal{};
+    G4VisAttributes* visVeto{};
+    G4VisAttributes* visSpring{};
+    G4VisAttributes* visSiPM{};
+    G4VisAttributes* visSiPMFrame{};
+    G4VisAttributes* visAl{};
+    G4VisAttributes* visShell{};
+    G4VisAttributes* visHolder{};
+    G4VisAttributes* visGlass{};
+    G4VisAttributes* visOpticLayer{};
+    G4VisAttributes* visBottomVetoShell{};
+    G4VisAttributes* visGasket{};
+    G4VisAttributes* visBoard{};
+    G4VisAttributes* visPayload{};
+    G4VisAttributes* visRubber{};
 
-    Detector(G4LogicalVolume *, G4VPhysicalVolume *, G4double, G4NistManager *, G4double, const G4String &, G4bool);
+    Detector(G4LogicalVolume*, G4NistManager*, G4double, const G4String&);
     ~Detector() = default;
 
     void DefineMaterials();
@@ -60,83 +71,91 @@ public:
     void Construct();
 
     [[nodiscard]] G4String GetDetectorType() const;
-    [[nodiscard]] std::vector<G4LogicalVolume *>GetSensitiveLV() const;
+    [[nodiscard]] std::vector<G4LogicalVolume*> GetSensitiveLV() const;
+
+    G4LogicalVolume* GetSiPMWindowLV() const { return SiPMWindowLV; }
 
 private:
-    G4MultiUnion *crystalLED;
-    G4MultiUnion *elongatedLED;
-    G4MultiUnion *vetoLED;
-    G4MultiUnion *vetoBottomLED;
-    G4MultiUnion *vetoLEDWire;
-    G4MultiUnion *vetoLEDWireInsulation;
-    G4MultiUnion *vetoLEDFictive;
-    G4MultiUnion *vetoWireFictive;
-    G4MultiUnion *vetoBottomLEDFictive;
-
     G4double viewDeg;
-
-    G4bool lightCollection;
-
-    G4double zCorrection;
-
-    G4double additionalLength;
-    G4double sensSurfThick;
 
     G4ThreeVector crystalSize;
     G4ThreeVector vetoSize;
     G4ThreeVector tyvekInSize;
     G4ThreeVector tyvekMidSize;
     G4ThreeVector tyvekOutSize;
+    G4ThreeVector tyvekBottomSize;
+    G4ThreeVector coreTopSize;
+    G4ThreeVector crystalContSize;
 
-    G4Material *vetoMat{};
-    G4Material *CrystalMat{};
-    G4Material *tyvekMat{};
-    G4Material *LEDMat{};
-    G4Material *AlMat{};
-    G4Material *rubberMat{};
-    G4Material *wireMat{};
-    G4Material *boardMat{};
-    G4Material *galacticMat{};
+    G4Material* vetoMat{};
+    G4Material* CrystalMat{};
+    G4Material* tyvekMat{};
+    G4Material* SiPMMat{};
+    G4Material* SiPMFrameMat{};
+    G4Material* AlMat{};
+    G4Material* rubberMat{};
+    G4Material* boardMat{};
+    G4Material* payloadMat{};
+    G4Material* glassMat{};
+    G4Material* SiPMGlassMat{};
+    G4Material* opticLayerMat{};
+    G4Material* galacticMat{};
 
-    G4LogicalVolume *crystalLV{};
-    G4LogicalVolume *tyvekInLV{};
-    G4LogicalVolume *AlLV{};
-    G4LogicalVolume *rubberLV{};
-    G4LogicalVolume *tyvekMidLV{};
-    G4LogicalVolume *vetoLV{};
-    G4LogicalVolume *tyvekOutLV{};
-    G4LogicalVolume *crystalLEDLV{};
-    G4LogicalVolume *vetoLEDLV{};
-    G4LogicalVolume *vetoBottomLEDLV{};
+    G4LogicalVolume* crystalLV{};
+    G4LogicalVolume* coreLV{};
+    G4LogicalVolume* crystalGlassLV;
+    G4LogicalVolume* crystalContLV{};
+    G4LogicalVolume* tyvekInLV{};
+    G4LogicalVolume* tyvekOutLV{};
+    G4LogicalVolume* tyvekMidLV{};
+    G4LogicalVolume* tyvekBottomLV{};
+    G4LogicalVolume* vetoLV{};
+    G4LogicalVolume* bottomVetoLV{};
+    G4LogicalVolume* SiPMBodyLV{};
+    G4LogicalVolume* SiPMWindowLV{};
+    G4LogicalVolume* SiPMFrameLV{};
 
-    G4LogicalVolume *crystalSensSurfLV{};
-    G4LogicalVolume *vetoSensSurfLV{};
-    G4LogicalVolume *vetoBottomSensSurfLV{};
+    G4LogicalVolume* crystalOpticLayerLV{};
+    G4LogicalVolume* vetoOpticLayerLV{};
+    G4LogicalVolume* bottomVetoOpticLayerLV{};
 
-    G4VPhysicalVolume *crystalPVP{};
-    G4VPhysicalVolume *tyvekInPVP{};
-    G4VPhysicalVolume *AlPVP{};
-    G4VPhysicalVolume *rubberPVP{};
-    G4VPhysicalVolume *tyvekMidPVP{};
-    G4VPhysicalVolume *vetoPVP{};
-    G4VPhysicalVolume *tyvekOutPVP{};
-    G4VPhysicalVolume *crystalLEDPVP{};
-    G4VPhysicalVolume *vetoLEDPVP{};
-    G4VPhysicalVolume *vetoBottomLEDPVP{};
+    G4OpticalSurface* SiPMPhotocathodeSurf = nullptr;
 
-    G4VPhysicalVolume *crystalSensSurfPVP{};
-    G4VPhysicalVolume *vetoSensSurfPVP{};
-    G4VPhysicalVolume *vetoBottomSensSurfPVP{};
+    G4VPhysicalVolume* crystalPVP{};
+    G4VPhysicalVolume* tyvekInPVP{};
+    G4VPhysicalVolume* AlPVP{};
+    G4VPhysicalVolume* rubberPVP{};
+    G4VPhysicalVolume* tyvekMidPVP{};
+    G4VPhysicalVolume* tyvekBottomPVP{};
+    G4VPhysicalVolume* vetoPVP{};
+    G4VPhysicalVolume* bottomVetoPVP{};
+    G4VPhysicalVolume* tyvekOutPVP{};
+    G4VPhysicalVolume* crystalOpticLayerPVP{};
+    G4VPhysicalVolume* vetoOpticLayerPVP{};
+    G4VPhysicalVolume* bottomVetoOpticLayerPVP{};
 
     void ConstructCrystal();
-    void ConstructAl();
+    void ConstructShell();
     void ConstructVeto();
+    void ConstructBottomVeto();
+    void ConstructHolder(G4ThreeVector&, const G4String&);
 
-    void ConstructCrystalLED();
-    void ConstructVetoLED();
-    void ConstructVetoBottomLED();
+    void ConstructSiPM();
+    void ConstructCrystalSiPM();
+    void ConstructVetoSiPM();
+    void ConstructBottomVetoSiPM();
 
-    void AddOptics();
+    void AddBorderSurface(const G4String& name,
+                          G4VPhysicalVolume* pvFrom,
+                          G4VPhysicalVolume* pvTo,
+                          G4OpticalSurface* surf);
+
+    void AddBidirectionalBorder(const G4String& nameAToB,
+                                const G4String& nameBToA,
+                                G4VPhysicalVolume* pvA,
+                                G4VPhysicalVolume* pvB,
+                                G4OpticalSurface* surf);
+    void ConstructOpticalSurfaces();
 };
 
 

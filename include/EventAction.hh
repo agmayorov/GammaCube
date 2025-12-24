@@ -18,7 +18,7 @@
 #include "Sizes.hh"
 #include "AnalysisManager.hh"
 #include "SDHit.hh"
-
+#include "SiPMOpticalSD.hh"
 
 class G4Event;
 class Geometry;
@@ -64,7 +64,8 @@ private:
     void WritePrimaries_(int eventID);
     int WriteInteractions_(int eventID);
     int WriteEdepFromSD_(const G4Event *evt, int eventID);
-    int WriteOptFromSD_(const G4Event* evt);
+
+    void WriteSiPMFromSD_(int eventID);
 
     inline void MarkCrystal() { hasCrystal = true; }
     inline void MarkVeto() { hasVeto = true; }
@@ -83,6 +84,8 @@ private:
     RunAction* run = nullptr;
     bool hasCrystal = false;
     bool hasVeto = false;
+
+    bool saveOptics = false;
 
     G4double eCrystalThreshold;
     G4double eVetoThreshold;

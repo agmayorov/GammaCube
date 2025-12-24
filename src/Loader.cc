@@ -33,16 +33,13 @@ Loader::Loader(int argc, char **argv) {
             fluxDirection = argv[i + 1];
         } else if (input == "--use-optics") {
             useOptics = true;
-        } else if (input == "--light-collection") {
-            lightCollection = true;
-            useOptics = true;
         } else if (input == "-g" || input == "--geom-config") {
             geomConfigPath = argv[i + 1];
         }
     }
 
     configPath = "../Flux_config/" + fluxType + "_params.txt";
-    ParseGeomConfig();
+    // ParseGeomConfig();
 
     CLHEP::HepRandom::setTheEngine(new CLHEP::RanecuEngine);
     CLHEP::HepRandom::setTheSeed(time(nullptr));
@@ -84,7 +81,7 @@ Loader::Loader(int argc, char **argv) {
     runManager->SetUserInitialization(physicsList);
 
     runManager->SetUserInitialization(
-        new ActionInitialization(fluxDirection, fluxType, eCrystalThreshold, eVetoThreshold, lightCollection));
+        new ActionInitialization(fluxDirection, fluxType, eCrystalThreshold, eVetoThreshold, useOptics));
     runManager->Initialize();
 
     visManager = new G4VisExecutive;
@@ -375,39 +372,39 @@ void Loader::ParseGeomConfig() {
 
         {"TunaCan_thick_wall", setD(Sizes::tunaCanThickWall, "TunaCan_thick_wall")},
         {"TunaCan_thick_top", setD(Sizes::tunaCanThickTop, "TunaCan_thick_top")},
-        {"TunaCan_thick_bottom", setD(Sizes::tunaCanThickBottom, "TunaCan_thick_bottom")},
+        // {"TunaCan_thick_bottom", setD(Sizes::tunaCanThickBottom, "TunaCan_thick_bottom")},
 
         {"Crystal_height", setD(Sizes::crystalHeight, "Crystal_Height")},
         {"Crystal_radius", setD(Sizes::crystalRadius, "Crystal_Radius")},
 
         {"TyvekOut_thick_wall", setD(Sizes::tyvekOutThickWall, "TyvekOut_thick_wall")},
         {"TyvekOut_thick_top", setD(Sizes::tyvekOutThickTop, "TyvekOut_thick_top")},
-        {"TyvekOut_thick_bottom", setD(Sizes::tyvekOutThickBottom, "TyvekOut_thick_bottom")},
+        // {"TyvekOut_thick_bottom", setD(Sizes::tyvekOutThickBottom, "TyvekOut_thick_bottom")},
 
         {"Veto_thick_wall", setD(Sizes::vetoThickWall, "Veto_thick_wall")},
         {"Veto_thick_top", setD(Sizes::vetoThickTop, "Veto_thick_top")},
-        {"Veto_thick_bottom", setD(Sizes::vetoThickBottom, "Veto_thick_bottom")},
+        // {"Veto_thick_bottom", setD(Sizes::vetoThickBottom, "Veto_thick_bottom")},
 
-        {"Veto_chamfer_heigh", setD(Sizes::vetoChamferHeigh, "Veto_chamfer_heigh")},
+        // {"Veto_chamfer_heigh", setD(Sizes::vetoChamferHeigh, "Veto_chamfer_heigh")},
 
         {"TyvekMid_thick_wall", setD(Sizes::tyvekMidThickWall, "TyvekMid_thick_wall")},
         {"TyvekMid_thick_top", setD(Sizes::tyvekMidThickTop, "TyvekMid_thick_top")},
-        {"TyvekMid_thick_bottom", setD(Sizes::tyvekMidThickBottom, "TyvekMid_thick_bottom")},
+        // {"TyvekMid_thick_bottom", setD(Sizes::tyvekMidThickBottom, "TyvekMid_thick_bottom")},
 
         {"Rubber_radius", setD(Sizes::rubberRadius, "Rubber_radius")},
         {"Rubber_height", setD(Sizes::rubberHeight, "Rubber_height")},
 
-        {"Aluminium_thick_wall", setD(Sizes::AlThickWall, "Aluminium_thick_wall")},
-        {"Aluminium_thick_top", setD(Sizes::AlThickTop, "Aluminium_thick_top")},
+        // {"Aluminium_thick_wall", setD(Sizes::AlThickWall, "Aluminium_thick_wall")},
+        // {"Aluminium_thick_top", setD(Sizes::AlThickTop, "Aluminium_thick_top")},
 
-        {"AluminiumCap_thick_wall", setD(Sizes::AlCapThickWall, "AluminiumCap_thick_wall")},
-        {"AluminiumCap_thick_bottom", setD(Sizes::AlCapThickBottom, "AluminiumCap_thick_bottom")},
+        // {"AluminiumCap_thick_wall", setD(Sizes::AlCapThickWall, "AluminiumCap_thick_wall")},
+        // {"AluminiumCap_thick_bottom", setD(Sizes::AlCapThickBottom, "AluminiumCap_thick_bottom")},
 
         {"TyvekIn_thick_wall", setD(Sizes::tyvekInThickWall, "TyvekIn_thick_wall")},
         {"TyvekIn_thick_top", setD(Sizes::tyvekInThickTop, "TyvekIn_thick_top")},
-        {"TyvekIn_thick_bottom", setD(Sizes::tyvekInThickBottom, "TyvekIn_thick_bottom")},
+        // {"TyvekIn_thick_bottom", setD(Sizes::tyvekInThickBottom, "TyvekIn_thick_bottom")},
 
-        {"CrystalLED_count", setI(Sizes::crystalLEDCount, "CrystalLED_count")},
+        // {"CrystalLED_count", setI(Sizes::crystalLEDCount, "CrystalLED_count")},
         {"CrystalLED_width", setD(Sizes::crystalLEDWidth, "CrystalLED_width")},
         {"CrystalLED_length", setD(Sizes::crystalLEDLength, "CrystalLED_length")},
         {"CrystalLED_height", setD(Sizes::crystalLEDHeight, "CrystalLED_height")},
@@ -429,8 +426,8 @@ void Loader::ParseGeomConfig() {
         {"Pin_radius", setD(Sizes::pinRadius, "Pin_radius")},
 
         {"Board_height", setD(Sizes::boardHeight, "Board_height")},
-        {"Board_length", setD(Sizes::boardLength, "Board_length")},
-        {"Board_width", setD(Sizes::boardWidth, "Board_width")},
+        // {"Board_length", setD(Sizes::boardLength, "Board_length")},
+        // {"Board_width", setD(Sizes::boardWidth, "Board_width")},
 
         {"Board_space", setD(Sizes::boardSpace, "Board_space")},
     };
@@ -470,15 +467,15 @@ void Loader::ParseGeomConfig() {
         it->second(val);
     }
 
-    Sizes::tunaCanMinSize = Sizes::tunaCanThickTop + Sizes::tunaCanThickBottom + Sizes::tunaCanThickWall;
-    Sizes::tyvekInMinSize = Sizes::tyvekInThickTop + Sizes::tyvekInThickBottom + Sizes::tyvekInThickWall;
-    Sizes::tyvekOutMinSize = Sizes::tyvekOutThickTop + Sizes::tyvekOutThickBottom + Sizes::tyvekOutThickWall;
-    Sizes::tyvekMidMinSize = Sizes::tyvekMidThickTop + Sizes::tyvekMidThickBottom + Sizes::tyvekMidThickWall;
-    Sizes::vetoMinSize = Sizes::vetoThickTop + Sizes::vetoThickBottom + Sizes::vetoThickWall;
-    Sizes::AlMinSize = Sizes::AlThickTop + Sizes::AlCapThickBottom + Sizes::AlThickWall + Sizes::AlCapThickWall;
+    Sizes::tunaCanMinSize = Sizes::tunaCanThickTop + Sizes::tunaCanThickWall;
+    Sizes::tyvekInMinSize = Sizes::tyvekInThickTop + Sizes::tyvekInThickWall;
+    Sizes::tyvekOutMinSize = Sizes::tyvekOutThickTop + Sizes::tyvekOutThickWall;
+    Sizes::tyvekMidMinSize = Sizes::tyvekMidThickTop + Sizes::tyvekMidThickWall;
+    Sizes::vetoMinSize = Sizes::vetoThickTop + Sizes::vetoThickWall;
+    Sizes::AlMinSize = 6;
     Sizes::rubberMinSize = Sizes::rubberRadius + Sizes::rubberHeight;
     Sizes::crystalLEDMinSize = std::min({
-        static_cast<G4double>(Sizes::crystalLEDCount), Sizes::crystalLEDWidth, Sizes::vetoBottomLEDLength,
+        Sizes::crystalLEDWidth, Sizes::vetoBottomLEDLength,
         Sizes::crystalLEDHeight
     });
     Sizes::vetoLEDMinSize = std::min({

@@ -49,22 +49,19 @@ private:
     G4String detectorType;
     G4ThreeVector detContainerSize;
 
-    G4Tubs *detContainer;
+    G4VSolid *detContainer;
     G4LogicalVolume *detContainerLV;
     G4VPhysicalVolume *detContainerPVPL;
     G4ThreeVector detContainerPos;
 
     G4LogicalVolume *crystalLV;
-    G4LogicalVolume *tyvekInLV;
-    G4LogicalVolume *AlLV;
-    G4LogicalVolume *rubberLV;
-    G4LogicalVolume *tyvekMidLV;
     G4LogicalVolume *vetoLV;
+    G4LogicalVolume *bottomVetoLV;
     G4LogicalVolume *tyvekOutLV;
+    G4LogicalVolume *tyvekMidLV;
+    G4LogicalVolume *tyvekInLV;
+    G4LogicalVolume *tyvekBottomLV;
     G4LogicalVolume *tunaCanLV;
-    G4LogicalVolume *vetoLEDLV;
-    G4LogicalVolume *crystalLEDLV;
-    G4LogicalVolume *vetoBottomLEDLV;
 
     G4LogicalVolume *crystalSensSurfLV;
     G4LogicalVolume *vetoSensSurfLV;
@@ -86,8 +83,7 @@ private:
     G4ProductionCuts *vetoCuts;
 
     G4VisAttributes *tunaCanVisAttr;
-
-    void CheckSizes();
+    G4VisAttributes *detContVisAttr;
 
     void ConstructDetector();
     void ConstructTunaCan();

@@ -5,7 +5,7 @@
 
 PrimaryGeneratorAction::PrimaryGeneratorAction(G4String fDir, const G4String &fluxType)
     : particleGun(new G4ParticleGun(1)),
-      center(G4ThreeVector(0, 0, -(Sizes::modelHeight - Sizes::tunaCanThickTop - Sizes::tunaCanThickBottom) / 2.0)),
+      center(G4ThreeVector(0, 0, -(Sizes::modelHeight - Sizes::tunaCanThickTop) / 2.0)),
       detectorHalfSize(G4ThreeVector(0 * mm, Sizes::modelRadius, Sizes::modelHeight)),
       fluxDirection(std::move(fDir)) {
     const G4ThreeVector tempVec = G4ThreeVector(0,

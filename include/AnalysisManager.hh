@@ -33,9 +33,8 @@ public:
 
     void FillEdepRow(G4int eventID, const G4String &det_name, G4double edep_MeV);
 
-    void FillCrystalH2(G4double x_mm, G4double y_mm);
-    void FillVetoBottomH2(G4double z_mm, G4double phi_rad);
-    void FillVetoH2(G4double x_mm, G4double y_mm);
+    void FillSiPMEventRow(int eventID, int npeC, int npeV, int npeB);
+    void FillSiPMChannelRow(int eventID, const G4String& subdet, int ch, int npe);
 
 private:
     G4int eventNT{-1};
@@ -43,9 +42,8 @@ private:
     G4int interactionsNT{-1};
     G4int edepNT{-1};
 
-    G4int crystalH2{-1};
-    G4int vetoH2{-1};
-    G4int vetoBottomH2{-1};
+    G4int SiPMEventNT{-1};
+    G4int SiPMChannelNT{-1};
 
     void Book();
 };
