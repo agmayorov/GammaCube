@@ -3,7 +3,8 @@
 using namespace Sizes;
 
 
-Detector::Detector(G4LogicalVolume* detContLV, G4NistManager* nistMan, G4double vDeg, const G4String& detType) {
+Detector::Detector(G4LogicalVolume* detContLV, G4NistManager* nistMan, G4double vDeg, const G4int yScale,
+                   const G4String& detType) {
     detectorType = detType;
     detContainerLV = detContLV;
 
@@ -12,6 +13,7 @@ Detector::Detector(G4LogicalVolume* detContLV, G4NistManager* nistMan, G4double 
 
     nist = nistMan;
     viewDeg = vDeg;
+    yieldScale = yScale;
 
     crystalSize = G4ThreeVector(0, crystalRadius, crystalHeight);
 
@@ -52,6 +54,7 @@ void Detector::DefineMaterials() {
     auto* elTl = nist->FindOrBuildElement("Tl");
     auto* elSi = nist->FindOrBuildElement("Si");
     auto* elO = nist->FindOrBuildElement("O");
+    G4Material* SiO2 = nist->FindOrBuildMaterial("G4_SILICON_DIOXIDE");
 
     std::vector<G4double> eAL, eRI, eEI, absLength, rIndex, emitIntens;
 
@@ -228,7 +231,13 @@ void Detector::DefineMaterials() {
 
     rubberMat = nist->FindOrBuildMaterial("G4_RUBBER_NEOPRENE");
 
-    boardMat = nist->FindOrBuildMaterial("G4_Si");
+    G4Material* Epoxy = new G4Material("Epoxy", 1.2 * g / cm3, 2);
+    Epoxy->AddElement(elH, 2);
+    Epoxy->AddElement(elC, 2);
+
+    boardMat = new G4Material("FiberglassLaminate", 1.86 * g / cm3, 2);
+    boardMat->AddMaterial(Epoxy, 0.472);
+    boardMat->AddMaterial(SiO2, 0.528);
 
     {
         glassMat = nist->FindOrBuildMaterial("G4_Pyrex_Glass");
@@ -274,7 +283,7 @@ void Detector::DefineMaterials() {
         opticLayerMat->SetMaterialPropertiesTable(mptGrease);
     }
 
-    payloadMat = nist->FindOrBuildMaterial("G4_Galactic");
+    payloadMat = nist->FindOrBuildMaterial("G4_Si");
 }
 
 

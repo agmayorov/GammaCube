@@ -9,7 +9,8 @@ Loader::Loader(int argc, char **argv) {
     geomConfigPath = "../geometry_config.txt";
     fluxDirection = "isotropic";
     useOptics = false;
-    lightCollection = false;
+    viewDeg = 360 * deg;
+    yieldScale = 1;
     eCrystalThreshold = 0 * MeV;
     eVetoThreshold = 0 * MeV;
 
@@ -17,8 +18,13 @@ Loader::Loader(int argc, char **argv) {
         if (std::string input(argv[i]); input == "-i" || input == "-input") {
             macroFile = argv[i + 1];
             useUI = false;
+            viewDeg = 360 * deg;
         } else if (input == "-t" || input == "-threads") {
             numThreads = std::stoi(argv[i + 1]);
+        } else if (input == "-ys" || input == "--yield-scale") {
+            yieldScale = std::stoi(argv[i + 1]);
+        } else if ((input == "-vd" || input == "--view-deg") and useUI) {
+            viewDeg = std::stod(argv[i + 1]) * deg;
         } else if (input == "-ct" || input == "--crystal-threshold") {
             eCrystalThreshold = std::stod(argv[i + 1]) * MeV;
         } else if (input == "-vt" || input == "--veto-threshold") {
@@ -51,7 +57,7 @@ Loader::Loader(int argc, char **argv) {
     runManager = new G4RunManager;
 #endif
 
-    Geometry *realWorld = new Geometry(detectorType, useOptics, lightCollection);
+    Geometry *realWorld = new Geometry(detectorType, useOptics, viewDeg, yieldScale);
     runManager->SetUserInitialization(realWorld);
     auto *physicsList = new FTFP_BERT;
     physicsList->ReplacePhysics(new G4EmStandardPhysics_option4());

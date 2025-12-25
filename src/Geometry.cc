@@ -3,8 +3,8 @@
 using namespace Sizes;
 
 
-Geometry::Geometry(G4String detType, const G4bool useOpt, const G4bool lightCollect) : useOptics(useOpt),
-    lightCollection(lightCollect), detectorType(std::move(detType)) {
+Geometry::Geometry(G4String detType, const G4bool useOpt, const G4double vDeg, const G4int yScale) :
+    useOptics(useOpt), viewDeg(vDeg), yieldScale(yScale), detectorType(std::move(detType)) {
     std::vector<G4String> detectorList = {"NaI", "CsI"};
     if (std::find(detectorList.begin(), detectorList.end(), detectorType) == detectorList.end()) {
         G4Exception("Geometry::ConstructDetector", "DetectorType", FatalException,
@@ -13,8 +13,6 @@ Geometry::Geometry(G4String detType, const G4bool useOpt, const G4bool lightColl
 
     nist = G4NistManager::Instance();
     zeroRot = new G4RotationMatrix(0, 0, 0);
-
-    viewDeg = 360 * deg;
 
     detContainerSize = G4ThreeVector(0 * mm,
                                      modelRadius - tunaCanThickWall,
@@ -132,9 +130,9 @@ void Geometry::ConstructDetector() {
                                          false, 0, true);
     detContainerLV->SetVisAttributes(detContVisAttr);
 
-    detector = new Detector(detContainerLV,  nist, viewDeg, detectorType);
+    detector = new Detector(detContainerLV, nist, viewDeg, yieldScale, detectorType);
     detector->Construct();
-    std::vector<G4LogicalVolume *> sensitiveLV = detector->GetSensitiveLV();
+    std::vector<G4LogicalVolume*> sensitiveLV = detector->GetSensitiveLV();
     crystalLV = sensitiveLV.at(0);
     vetoLV = sensitiveLV.at(1);
     bottomVetoLV = sensitiveLV.at(2);
@@ -189,31 +187,31 @@ void Geometry::SetStepLimits() {
 void Geometry::ConstructSDandField() {
     G4SDManager* sdManager = G4SDManager::GetSDMpointer();
 
-    auto *detectorSD = new SensitiveDetector("DetectorSD", 0, "Crystal");
+    auto* detectorSD = new SensitiveDetector("DetectorSD", 0, "Crystal");
     sdManager->AddNewDetector(detectorSD);
     crystalLV->SetSensitiveDetector(detectorSD);
 
-    auto *vetoSD = new SensitiveDetector("VetoSD", 1, "Veto");
+    auto* vetoSD = new SensitiveDetector("VetoSD", 1, "Veto");
     sdManager->AddNewDetector(vetoSD);
     vetoLV->SetSensitiveDetector(vetoSD);
 
-    auto *bottomVetoSD = new SensitiveDetector("BottomVetoSD", 2, "BottomVeto");
+    auto* bottomVetoSD = new SensitiveDetector("BottomVetoSD", 2, "BottomVeto");
     sdManager->AddNewDetector(bottomVetoSD);
     bottomVetoLV->SetSensitiveDetector(bottomVetoSD);
 
-    auto *tyvekOutSD = new SensitiveDetector("TyvekOutSD", 3, "TyvekOut");
+    auto* tyvekOutSD = new SensitiveDetector("TyvekOutSD", 3, "TyvekOut");
     sdManager->AddNewDetector(tyvekOutSD);
     tyvekOutLV->SetSensitiveDetector(tyvekOutSD);
 
-    auto *tyvekMidSD = new SensitiveDetector("TyvekMidSD", 4, "TyvekMid");
+    auto* tyvekMidSD = new SensitiveDetector("TyvekMidSD", 4, "TyvekMid");
     sdManager->AddNewDetector(tyvekMidSD);
     tyvekMidLV->SetSensitiveDetector(tyvekMidSD);
 
-    auto *tyvekInSD = new SensitiveDetector("TyvekInSD", 5, "TyvekIn");
+    auto* tyvekInSD = new SensitiveDetector("TyvekInSD", 5, "TyvekIn");
     sdManager->AddNewDetector(tyvekInSD);
     tyvekInLV->SetSensitiveDetector(tyvekInSD);
 
-    auto *tyvekBottomSD = new SensitiveDetector("TyvekBottomSD", 6, "TyvekBottom");
+    auto* tyvekBottomSD = new SensitiveDetector("TyvekBottomSD", 6, "TyvekBottom");
     sdManager->AddNewDetector(tyvekBottomSD);
     tyvekBottomLV->SetSensitiveDetector(tyvekBottomSD);
 

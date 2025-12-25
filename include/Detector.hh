@@ -62,7 +62,7 @@ public:
     G4VisAttributes* visPayload{};
     G4VisAttributes* visRubber{};
 
-    Detector(G4LogicalVolume*, G4NistManager*, G4double, const G4String&);
+    Detector(G4LogicalVolume*, G4NistManager*, G4double, G4int, const G4String&);
     ~Detector() = default;
 
     void DefineMaterials();
@@ -77,6 +77,7 @@ public:
 
 private:
     G4double viewDeg;
+    G4int yieldScale;
 
     G4ThreeVector crystalSize;
     G4ThreeVector vetoSize;

@@ -28,7 +28,7 @@
 
 class Geometry : public G4VUserDetectorConstruction {
 public:
-    Geometry(G4String, G4bool, G4bool);
+    Geometry(G4String, G4bool, G4double, G4int);
 
     G4VPhysicalVolume *Construct() override;
     void ConstructSDandField() override;
@@ -42,8 +42,8 @@ private:
     G4VPhysicalVolume *worldPVP;
 
     G4double viewDeg;
+    G4int yieldScale;
     G4bool useOptics;
-    G4bool lightCollection;
 
     Detector *detector;
     G4String detectorType;
