@@ -11,7 +11,7 @@
 
 class ActionInitialization : public G4VUserActionInitialization {
 public:
-    ActionInitialization(G4String, G4String, G4double, G4double, G4bool);
+    ActionInitialization(G4String, G4String, G4double, G4double, G4bool, G4bool);
     ~ActionInitialization() override = default;
 
     void BuildForMaster() const override;
@@ -22,7 +22,8 @@ private:
     G4ThreeVector modelSize;
     G4String fluxDirection;
     G4String fluxType;
-    G4bool lightCollection;
+    G4bool useOptics;
+    G4bool saveSecondaries;
 
     G4double eCrystalThreshold;
     G4double eVetoThreshold;

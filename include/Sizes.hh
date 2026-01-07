@@ -106,7 +106,7 @@ namespace  Sizes {
     inline G4double boardHeight{2 * mm};
 
     inline G4double SiPMHeight{0.6 * mm};
-    inline G4double SiPMWindowThick{0.1 * mm};
+    inline G4double SiPMWindowThick{0.21 * mm};
     inline G4double SiPMLength{7 * mm};
     inline G4double SiPMWidth{7 * mm};
     inline G4double SiPMFrameSize{0.5 * mm};

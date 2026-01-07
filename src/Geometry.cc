@@ -217,8 +217,9 @@ void Geometry::ConstructSDandField() {
 
     if (useOptics) {
         auto* sipmSD = new SiPMOpticalSD("SiPMOpticalSD");
-        sdManager->AddNewDetector(sipmSD);
         auto* sipmWindowLV = detector->GetSiPMWindowLV();
+        sipmSD->SetSiPMWindowLV(sipmWindowLV);
+        sdManager->AddNewDetector(sipmSD);
         sipmWindowLV->SetSensitiveDetector(sipmSD);
     }
 }

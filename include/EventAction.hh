@@ -54,7 +54,7 @@ public:
     std::vector<PrimaryRec> primBuf;
     std::vector<InteractionRec> interBuf;
 
-    EventAction(AnalysisManager *, RunAction *, G4double, G4double, G4bool);
+    EventAction(AnalysisManager *, RunAction *, G4double, G4double, G4bool, G4bool);
     ~EventAction() override = default;
 
     void BeginOfEventAction(const G4Event *) override;
@@ -67,8 +67,8 @@ private:
 
     void WriteSiPMFromSD_(int eventID);
 
-    inline void MarkCrystal() { hasCrystal = true; }
-    inline void MarkVeto() { hasVeto = true; }
+    void MarkCrystal() { hasCrystal = true; }
+    void MarkVeto() { hasVeto = true; }
 
     AnalysisManager *analysisManager = nullptr;
 
@@ -86,6 +86,7 @@ private:
     bool hasVeto = false;
 
     bool saveOptics = false;
+    bool saveSecondaries = false;
 
     G4double eCrystalThreshold;
     G4double eVetoThreshold;

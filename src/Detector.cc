@@ -21,30 +21,6 @@ Detector::Detector(G4LogicalVolume* detContLV, G4NistManager* nistMan, G4double 
     DefineVisual();
 }
 
-inline void readCSV(const std::string& filename, std::vector<double>& energy, std::vector<double>& value) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("Can't open file: " + filename);
-    }
-
-    std::string line;
-    while (std::getline(file, line)) {
-        if (line.empty()) continue;
-
-        std::stringstream ss(line);
-        std::string col1, col2;
-
-        if (std::getline(ss, col1, ',') && std::getline(ss, col2)) {
-            double e = std::stod(col1) * eV;
-            double v = std::stod(col2);
-            energy.push_back(e);
-            value.push_back(v);
-        }
-    }
-    file.close();
-}
-
-
 void Detector::DefineMaterials() {
     auto* elH = nist->FindOrBuildElement("H");
     auto* elC = nist->FindOrBuildElement("C");
@@ -52,237 +28,220 @@ void Detector::DefineMaterials() {
     auto* elCs = nist->FindOrBuildElement("Cs");
     auto* elI = nist->FindOrBuildElement("I");
     auto* elTl = nist->FindOrBuildElement("Tl");
-    auto* elSi = nist->FindOrBuildElement("Si");
+    auto* elN = nist->FindOrBuildElement("N");
     auto* elO = nist->FindOrBuildElement("O");
+
     G4Material* SiO2 = nist->FindOrBuildMaterial("G4_SILICON_DIOXIDE");
 
-    std::vector<G4double> eAL, eRI, eEI, absLength, rIndex, emitIntens;
+    // --------- helper lambdas
+    const std::string base = "../OpticalParameters/";
 
-    readCSV("../OpticalParameters/" + detectorType + "_absorption_length.csv", eAL, absLength);
-    readCSV("../OpticalParameters/" + detectorType + "_refractive_index.csv", eRI, rIndex);
-    readCSV("../OpticalParameters/" + detectorType + "_normalised_emission_intensity.csv", eEI, emitIntens);
+    auto loadRIndex = [&](const std::string& prefix) -> Utils::Table {
+        // rindex is dimensionless
+        return Utils::ReadCSV(base + prefix + "_refractive_index.csv", /*valueScale=*/1.0, /*clampNonNegative=*/false);
+    };
 
-    constexpr G4double factor = 1;
+    auto loadAbsLengthMM = [&](const std::string& prefix) -> Utils::Table {
+        // ABSLENGTH values are stored in mm in your files
+        return Utils::ReadCSV(base + prefix + "_absorption_length.csv", /*valueScale=*/mm, /*clampNonNegative=*/true);
+    };
 
-    if (detectorType == "NaI") {
-        const G4double rhoCrystal = 3.67 * g / cm3;
-        CrystalMat = new G4Material("CrystalMat", rhoCrystal, 3, kStateSolid);
+    auto loadEmission = [&](const std::string& prefix, const std::string& suffix = "_normalised_emission_intensity.csv")
+        -> Utils::Table {
+        // emission intensity is dimensionless; we also clamp negatives and normalize to max=1 (robustness)
+        auto t = Utils::ReadCSV(base + prefix + suffix, /*valueScale=*/1.0, /*clampNonNegative=*/true);
+        Utils::NormalizeMaxToOne(t);
+        return t;
+    };
 
-        const G4double wTl = 0.065;
-        const G4double wNa_noTl = 0.153;
-        const G4double wI_noTl = 0.847;
-        const G4double scale = 1.0 - wTl;
+    auto loadConsts = [&](const std::string& prefix) -> Utils::ConstMap {
+        return Utils::ReadConstFile(base + prefix + "_optical_consts.txt");
+    };
 
-        CrystalMat->AddElement(elNa, wNa_noTl * scale);
-        CrystalMat->AddElement(elI, wI_noTl * scale);
-        CrystalMat->AddElement(elTl, wTl);
+    auto applyYieldScaleIfPresent = [&](Utils::ConstMap& c) {
+        auto it = c.find("SCINTILLATIONYIELD");
+        if (it != c.end() && yieldScale > 0) {
+            it->second /= (G4double)yieldScale;
+        }
+    };
 
-        auto* mptCrystal = new G4MaterialPropertiesTable();
-        mptCrystal->AddProperty("RINDEX", eRI.data(), rIndex.data(), eRI.size());
-        mptCrystal->AddProperty("ABSLENGTH", eAL.data(), absLength.data(), eAL.size());
-        mptCrystal->AddProperty("SCINTILLATIONCOMPONENT1", eEI.data(), emitIntens.data(), eEI.size());
-        mptCrystal->AddProperty("SCINTILLATIONCOMPONENT2", eEI.data(), emitIntens.data(), eEI.size());
-
-        mptCrystal->AddConstProperty("SCINTILLATIONYIELD", 41000 / factor / MeV);
-        mptCrystal->AddConstProperty("RESOLUTIONSCALE", 3.50);
-        mptCrystal->AddConstProperty("SCINTILLATIONTIMECONSTANT1", 220. * ns);
-        mptCrystal->AddConstProperty("SCINTILLATIONTIMECONSTANT2", 1500. * ns);
-        mptCrystal->AddConstProperty("SCINTILLATIONYIELD1", 0.96);
-        mptCrystal->AddConstProperty("SCINTILLATIONYIELD2", 0.04);
-
-        CrystalMat->SetMaterialPropertiesTable(mptCrystal);
-        CrystalMat->GetIonisation()->SetBirksConstant(0.15 * mm / MeV);
-    }
-    else if (detectorType == "CsI") {
-        const G4double rhoCrystal = 4.51 * g / cm3;
-        CrystalMat = new G4Material("CrystalMat", rhoCrystal, 3, kStateSolid);
-
-        const G4double wTl = 0.0008;
-        const G4double wCs_noTl = 0.511549;
-        const G4double wI_noTl = 0.488451;
-        const G4double scale = 1.0 - wTl;
-
-        CrystalMat->AddElement(elCs, wCs_noTl * scale);
-        CrystalMat->AddElement(elI, wI_noTl * scale);
-        CrystalMat->AddElement(elTl, wTl);
-
-        auto* mptCrystal = new G4MaterialPropertiesTable();
-        mptCrystal->AddProperty("RINDEX", eRI.data(), rIndex.data(), eRI.size());
-        mptCrystal->AddProperty("ABSLENGTH", eAL.data(), absLength.data(), eAL.size());
-        mptCrystal->AddProperty("SCINTILLATIONCOMPONENT1", eEI.data(), emitIntens.data(), eEI.size());
-
-        mptCrystal->AddConstProperty("SCINTILLATIONYIELD", 61000 / factor / MeV);
-        mptCrystal->AddConstProperty("RESOLUTIONSCALE", 4.87);
-        mptCrystal->AddConstProperty("SCINTILLATIONTIMECONSTANT1", 1000. * ns);
-        mptCrystal->AddConstProperty("SCINTILLATIONYIELD1", 1.0);
-
-        CrystalMat->SetMaterialPropertiesTable(mptCrystal);
-        CrystalMat->GetIonisation()->SetBirksConstant(0.126 * mm / MeV);
-    }
-
+    // Crystal (NaI or CsI)
     {
-        vetoMat = new G4Material("VetoMat", 1.032 * g / cm3, 2, kStateSolid);
-        vetoMat->AddElement(elC, 9);
-        vetoMat->AddElement(elH, 10);
+        const std::string matPrefix = detectorType;
 
-        const G4int n = 8;
-        G4double E[n] = {2.0 * eV, 2.2 * eV, 2.4 * eV, 2.6 * eV, 2.8 * eV, 3.0 * eV, 3.2 * eV, 3.4 * eV};
+        // --- Create material by composition (as you had)
+        if (detectorType == "NaI") {
+            const G4double rhoCrystal = 3.67 * g / cm3;
+            CrystalMat = new G4Material("CrystalMat", rhoCrystal, 3, kStateSolid);
 
-        G4double nind[n];
-        for (double& i : nind) {
-            i = 1.58;
+            const G4double wTl = 0.065;
+            const G4double wNa_noTl = 0.153;
+            const G4double wI_noTl = 0.847;
+            const G4double scale = 1.0 - wTl;
+
+            CrystalMat->AddElement(elNa, wNa_noTl * scale);
+            CrystalMat->AddElement(elI, wI_noTl * scale);
+            CrystalMat->AddElement(elTl, wTl);
         }
-        G4double labs[n];
-        for (double& lab : labs) {
-            lab = 380. * cm;
+        else if (detectorType == "CsI") {
+            const G4double rhoCrystal = 4.51 * g / cm3;
+            CrystalMat = new G4Material("CrystalMat", rhoCrystal, 3, kStateSolid);
+
+            const G4double wTl = 0.0008;
+            const G4double wCs_noTl = 0.511549;
+            const G4double wI_noTl = 0.488451;
+            const G4double scale = 1.0 - wTl;
+
+            CrystalMat->AddElement(elCs, wCs_noTl * scale);
+            CrystalMat->AddElement(elI, wI_noTl * scale);
+            CrystalMat->AddElement(elTl, wTl);
+        }
+        else {
+            throw std::runtime_error("Unknown detectorType (expected NaI or CsI): " + std::string(detectorType));
         }
 
-        G4double emit[n] = {0.01, 0.10, 0.40, 0.85, 1.00, 0.60, 0.15, 0.02};
+        // --- Load optical tables
+        const auto rindex = loadRIndex(matPrefix);
+        const auto absl = loadAbsLengthMM(matPrefix);
+        auto emission = loadEmission(matPrefix);
+
+        // --- Load scint consts
+        auto c = loadConsts(matPrefix);
+        applyYieldScaleIfPresent(c);
+
+        // --- Build MPT
+        auto* mpt = new G4MaterialPropertiesTable();
+        mpt->AddProperty("RINDEX", rindex.E, rindex.V, rindex.E.size());
+        mpt->AddProperty("ABSLENGTH", absl.E, absl.V, absl.E.size());
+
+        Utils::ApplyScintillation(CrystalMat, mpt, c, emission, /*scintComponent2=*/nullptr, /*requireYield=*/true);
+        CrystalMat->SetMaterialPropertiesTable(mpt);
+
+        Utils::ApplyBirksIfPresent(CrystalMat, c);
+    }
+
+    // Veto (plastic scintillator)
+    {
+        vetoMat = nist->FindOrBuildMaterial("G4_PLASTIC_SC_VINYLTOLUENE");
+
+        const std::string p = "Veto";
+
+        const auto rindex = loadRIndex(p);
+        const auto absl = loadAbsLengthMM(p);
+        auto emission = loadEmission(p);
+
+        auto c = loadConsts(p);
+        applyYieldScaleIfPresent(c);
 
         auto* mpt = new G4MaterialPropertiesTable();
-        mpt->AddProperty("RINDEX", E, nind, n);
-        mpt->AddProperty("ABSLENGTH", E, labs, n);
-        mpt->AddProperty("SCINTILLATIONCOMPONENT1", E, emit, n);
+        mpt->AddProperty("RINDEX", rindex.E, rindex.V, rindex.E.size());
+        mpt->AddProperty("ABSLENGTH", absl.E, absl.V, absl.E.size());
 
-        mpt->AddConstProperty("SCINTILLATIONYIELD", 10000. / factor / MeV);
-        mpt->AddConstProperty("SCINTILLATIONTIMECONSTANT1", 2.1 * ns);
-        mpt->AddConstProperty("SCINTILLATIONYIELD1", 1.0);
-        mpt->AddConstProperty("RESOLUTIONSCALE", 1.0);
-
+        Utils::ApplyScintillation(vetoMat, mpt, c, emission, &emission, true);
         vetoMat->SetMaterialPropertiesTable(mpt);
 
-        vetoMat->GetIonisation()->SetBirksConstant(0.126 * mm / MeV);
+        Utils::ApplyBirksIfPresent(vetoMat, c);
     }
 
+    // Tyvek material
     {
         const G4double rhoTyvek = 0.38 * g / cm3;
         tyvekMat = new G4Material("Tyvek", rhoTyvek, 2, kStateSolid);
-        tyvekMat->AddElement(elC, 1);
-        tyvekMat->AddElement(elH, 2);
-
-        const G4int N = 8;
-        G4double eph[N] = {2.0 * eV, 2.2 * eV, 2.4 * eV, 2.6 * eV, 2.8 * eV, 3.0 * eV, 3.2 * eV, 3.4 * eV};
-
-        G4double rindexTyvek[N];
-        for (double& i : rindexTyvek) i = 1.50;
-        G4double absTyvek[N];
-        for (double& i : absTyvek) i = 10 * m;
-        G4double mieTyvek[N];
-        for (double& i : mieTyvek) i = 30 * um;
-
-        auto* mptTyvek = new G4MaterialPropertiesTable();
-        mptTyvek->AddProperty("RINDEX", eph, rindexTyvek, N);
-        mptTyvek->AddProperty("ABSLENGTH", eph, absTyvek, N);
-        mptTyvek->AddProperty("MIEHG", eph, mieTyvek, N);
-
-        mptTyvek->AddConstProperty("MIEHG_FORWARD", 0.0);
-        mptTyvek->AddConstProperty("MIEHG_BACKWARD", 0.0);
-        mptTyvek->AddConstProperty("MIEHG_FORWARD_RATIO", 1.0);
-
-        tyvekMat->SetMaterialPropertiesTable(mptTyvek);
+        tyvekMat->AddElement(elC, 2);
+        tyvekMat->AddElement(elH, 4);
     }
 
-    galacticMat = nist->FindOrBuildMaterial("G4_Galactic");
-
-    auto* mptVac = new G4MaterialPropertiesTable();
-    const G4int N = 2;
-    G4double E[N] = {2.0 * eV, 3.4 * eV};
-    G4double n1[N] = {1.0, 1.0};
-    mptVac->AddProperty("RINDEX", E, n1, N);
-    galacticMat->SetMaterialPropertiesTable(mptVac);
-
+    // World / Vacuum
     {
-        SiPMMat = nist->FindOrBuildMaterial("G4_Si");
+        galacticMat = nist->FindOrBuildMaterial("G4_Galactic");
 
-        auto* mptSi = new G4MaterialPropertiesTable();
-        const G4int N = 2;
-        G4double E[N] = {2.0 * eV, 3.4 * eV};
-
-        G4double rindexSi[N] = {3.5, 3.5};
-
-        G4double absSi[N] = {1.0 * um, 1.0 * um};
-
-        mptSi->AddProperty("RINDEX", E, rindexSi, N);
-        mptSi->AddProperty("ABSLENGTH", E, absSi, N);
-        SiPMMat->SetMaterialPropertiesTable(mptSi);
+        auto tN = Utils::MakeConstantTable(2.0, 3.4, 1.0);
+        auto tA = Utils::MakeConstantTable(2.0, 3.4, 1e6 * m);
+        Utils::ApplyMaterialTable(galacticMat, tN, &tA);
     }
 
+    // SiPM bulk (silicon)
+    SiPMMat = nist->FindOrBuildMaterial("G4_Si");
+
+        // SiPM encapsulant (clear epoxy proxy): Bisphenol A diglycidyl ether (BADGE / DGEBA)
     {
-        SiPMGlassMat = nist->FindOrBuildMaterial("G4_Pyrex_Glass");
+        const G4double rho = 1.16 * g / cm3;
 
-        auto* mptSiPMGlass = new G4MaterialPropertiesTable();
+        SiPMEncapsulantMat = new G4Material("SiPMEncapsulant_DGEBA", rho, 3, kStateSolid);
 
-        const G4int N = 2;
-        G4double E[N] = {2.0 * eV, 3.4 * eV};
+        // Stoichiometry from molecular formula C21H24O4
+        SiPMEncapsulantMat->AddElement(elC, 21);
+        SiPMEncapsulantMat->AddElement(elH, 24);
+        SiPMEncapsulantMat->AddElement(elO, 4);
 
-        G4double rindex[N] = {1.52, 1.52};
+        const auto rindex = loadRIndex("SiPM_Encapsulant");
+        const auto absl   = loadAbsLengthMM("SiPM_Encapsulant");
 
-        G4double abs[N] = {10 * m, 10 * m};
-
-        mptSiPMGlass->AddProperty("RINDEX", E, rindex, N);
-        mptSiPMGlass->AddProperty("ABSLENGTH", E, abs, N);
-
-        SiPMGlassMat->SetMaterialPropertiesTable(mptSiPMGlass);
+        Utils::ApplyMaterialTable(SiPMEncapsulantMat, rindex, &absl);
     }
 
+
+
+    // SiPM frame / Aluminum
     SiPMFrameMat = nist->FindOrBuildMaterial("G4_Al");
-
     AlMat = nist->FindOrBuildMaterial("G4_Al");
 
+    // Rubber
     rubberMat = nist->FindOrBuildMaterial("G4_RUBBER_NEOPRENE");
 
-    G4Material* Epoxy = new G4Material("Epoxy", 1.2 * g / cm3, 2);
-    Epoxy->AddElement(elH, 2);
-    Epoxy->AddElement(elC, 2);
+    // Board
+    {
+        G4Material* Epoxy = new G4Material("Epoxy", 1.2 * g / cm3, 2);
+        Epoxy->AddElement(elH, 2);
+        Epoxy->AddElement(elC, 2);
 
-    boardMat = new G4Material("FiberglassLaminate", 1.86 * g / cm3, 2);
-    boardMat->AddMaterial(Epoxy, 0.472);
-    boardMat->AddMaterial(SiO2, 0.528);
+        boardMat = new G4Material("FiberglassLaminate", 1.86 * g / cm3, 2);
+        boardMat->AddMaterial(Epoxy, 0.472);
+        boardMat->AddMaterial(SiO2, 0.528);
+    }
 
+    // Crystal glass interface plate
     {
         glassMat = nist->FindOrBuildMaterial("G4_Pyrex_Glass");
-
-        auto* mptGlass = new G4MaterialPropertiesTable();
-
-        const G4int N = 8;
-        G4double E[N] = {2.0 * eV, 2.2 * eV, 2.4 * eV, 2.6 * eV, 2.8 * eV, 3.0 * eV, 3.2 * eV, 3.4 * eV};
-
-        G4double nGlass[N];
-        for (auto& v : nGlass) v = 1.52;
-        G4double absGlass[N];
-        for (auto& v : absGlass) v = 10 * m;
-
-        mptGlass->AddProperty("RINDEX", E, nGlass, N);
-        mptGlass->AddProperty("ABSLENGTH", E, absGlass, N);
-
-        glassMat->SetMaterialPropertiesTable(mptGlass);
+        const auto rindex = loadRIndex("Glass");
+        const auto absl = loadAbsLengthMM("Glass");
+        Utils::ApplyMaterialTable(glassMat, rindex, &absl);
     }
 
+    // Optical coupling layer
     {
-        const G4double rhoGrease = 1.06 * g / cm3;
-        opticLayerMat = new G4Material("OpticLayerMat", rhoGrease, 4, kStateSolid);
-        opticLayerMat->AddElement(elC, 2);
-        opticLayerMat->AddElement(elH, 6);
-        opticLayerMat->AddElement(elO, 1);
-        opticLayerMat->AddElement(elSi, 1);
+        // DGEBA (C19H20O4), 0.56 by weight
+        auto* matDGEBA = new G4Material("Epotek301_DGEBA", 1.16 * g / cm3, 3, kStateSolid);
+        matDGEBA->AddElement(elC, 19);
+        matDGEBA->AddElement(elH, 20);
+        matDGEBA->AddElement(elO, 4);
 
-        auto* mptGrease = new G4MaterialPropertiesTable();
+        // 1,4-Butanediol Diglycidyl Ether (C10H18O4)
+        auto* matBDDE = new G4Material("Epotek301_BDDE", 1.10 * g / cm3, 3, kStateSolid);
+        matBDDE->AddElement(elC, 10);
+        matBDDE->AddElement(elH, 18);
+        matBDDE->AddElement(elO, 4);
 
-        const G4int N = 8;
-        G4double E[N] = {2.0 * eV, 2.2 * eV, 2.4 * eV, 2.6 * eV, 2.8 * eV, 3.0 * eV, 3.2 * eV, 3.4 * eV};
+        // 1,6-Hexanediamine 2,2,4-trimethyl- (C9H22N2)
+        auto* matAmine = new G4Material("Epotek301_Amine", 0.865 * g / cm3, 3, kStateSolid);
+        matAmine->AddElement(elC, 9);
+        matAmine->AddElement(elH, 22);
+        matAmine->AddElement(elN, 2);
 
-        G4double rindex[N];
-        for (auto& v : rindex) v = 1.46;
+        // ЕPO-TEK 301-1
+        const G4double rhoOpticLayer = 1.19 * g / cm3;
+        opticLayerMat = new G4Material("OpticLayerMat_Epotek301_1", rhoOpticLayer, 3, kStateSolid);
 
-        G4double abs[N];
-        for (auto& v : abs) v = 20. * m;
+        opticLayerMat->AddMaterial(matDGEBA, 0.56);
+        opticLayerMat->AddMaterial(matBDDE, 0.24);
+        opticLayerMat->AddMaterial(matAmine, 0.20);
 
-        mptGrease->AddProperty("RINDEX", E, rindex, N);
-        mptGrease->AddProperty("ABSLENGTH", E, abs, N);
-
-        opticLayerMat->SetMaterialPropertiesTable(mptGrease);
+        const auto rindex = loadRIndex("OpticLayer");
+        const auto absl = loadAbsLengthMM("OpticLayer");
+        Utils::ApplyMaterialTable(opticLayerMat, rindex, &absl);
     }
 
+    // Payload
     payloadMat = nist->FindOrBuildMaterial("G4_Si");
 }
 
@@ -623,7 +582,7 @@ void Detector::ConstructSiPM() {
     // SiPM Optical Window
     auto* SiPMWindow = new G4Box("SiPMWindow", SiPMLength / 2. - SiPMFrameSize, SiPMWidth / 2. - SiPMFrameSize,
                                  SiPMWindowThick / 2.);
-    SiPMWindowLV = new G4LogicalVolume(SiPMWindow, SiPMGlassMat, "SiPMWindowLV");
+    SiPMWindowLV = new G4LogicalVolume(SiPMWindow, SiPMEncapsulantMat, "SiPMWindowLV");
     SiPMWindowLV->SetVisAttributes(visGlass);
 
     if (!SiPMPhotocathodeSurf) {
@@ -632,14 +591,15 @@ void Detector::ConstructSiPM() {
         SiPMPhotocathodeSurf->SetType(dielectric_metal);
         SiPMPhotocathodeSurf->SetFinish(polished);
 
-        const G4int N = 2;
-        G4double E[N] = {2.0 * eV, 3.4 * eV};
-        G4double pde[N] = {0.25, 0.25}; // замените на ваш PDE(E)
-        G4double refl[N] = {0.05, 0.05}; // при желании
-
         auto* mpt = new G4MaterialPropertiesTable();
-        mpt->AddProperty("EFFICIENCY", E, pde, N);
-        mpt->AddProperty("REFLECTIVITY", E, refl, N);
+
+        auto pde = Utils::ReadCSV("../OpticalParameters/SiPM_PDE.csv", 1.0, true);
+        Utils::NormalizeMaxToOne(pde);
+        mpt->AddProperty("EFFICIENCY", pde.E, pde.V, pde.E.size());
+
+        std::vector refl(pde.E.size(), 0.02);
+        mpt->AddProperty("REFLECTIVITY", pde.E, refl, pde.E.size());
+
         SiPMPhotocathodeSurf->SetMaterialPropertiesTable(mpt);
     }
 }
@@ -917,14 +877,10 @@ void Detector::ConstructOpticalSurfaces() {
     tyvekSurf->SetFinish(groundfrontpainted);
     tyvekSurf->SetSigmaAlpha(0.2);
 
-    const G4int N = 8;
-    G4double E[N] = {2.0 * eV, 2.2 * eV, 2.4 * eV, 2.6 * eV, 2.8 * eV, 3.0 * eV, 3.2 * eV, 3.4 * eV};
-
-    G4double R[N];
-    for (auto& v : R) v = 0.97;
-
+    const auto refl = Utils::ReadCSV("../OpticalParameters/Tyvek_reflectivity.csv", 1.0, true);
     auto* mpt = new G4MaterialPropertiesTable();
-    mpt->AddProperty("REFLECTIVITY", E, R, N);
+    mpt->AddProperty("REFLECTIVITY", refl.E, refl.V, refl.E.size());
+
     tyvekSurf->SetMaterialPropertiesTable(mpt);
 
     // 1) Crystal <-> TyvekIn

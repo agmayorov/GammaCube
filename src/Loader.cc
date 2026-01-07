@@ -13,6 +13,7 @@ Loader::Loader(int argc, char **argv) {
     yieldScale = 1;
     eCrystalThreshold = 0 * MeV;
     eVetoThreshold = 0 * MeV;
+    saveSecondaries = false;
 
     for (int i = 0; i < argc; i++) {
         if (std::string input(argv[i]); input == "-i" || input == "-input") {
@@ -39,6 +40,8 @@ Loader::Loader(int argc, char **argv) {
             fluxDirection = argv[i + 1];
         } else if (input == "--use-optics") {
             useOptics = true;
+        } else if (input == "--save-secondaries") {
+            saveSecondaries = true;
         } else if (input == "-g" || input == "--geom-config") {
             geomConfigPath = argv[i + 1];
         }
@@ -87,7 +90,8 @@ Loader::Loader(int argc, char **argv) {
     runManager->SetUserInitialization(physicsList);
 
     runManager->SetUserInitialization(
-        new ActionInitialization(fluxDirection, fluxType, eCrystalThreshold, eVetoThreshold, useOptics));
+        new ActionInitialization(fluxDirection, fluxType, eCrystalThreshold, eVetoThreshold, useOptics,
+                                 saveSecondaries));
     runManager->Initialize();
 
     visManager = new G4VisExecutive;

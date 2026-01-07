@@ -46,6 +46,7 @@ class Loader {
     G4String fluxType;
     G4String fluxDirection;
     G4bool useOptics;
+    G4bool saveSecondaries;
     G4double viewDeg;
     G4int yieldScale;
     G4double eCrystalThreshold;

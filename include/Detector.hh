@@ -29,6 +29,7 @@
 #include <G4LogicalSkinSurface.hh>
 
 #include "Sizes.hh"
+#include "Utils.hh"
 
 
 class Detector {
@@ -98,7 +99,7 @@ private:
     G4Material* boardMat{};
     G4Material* payloadMat{};
     G4Material* glassMat{};
-    G4Material* SiPMGlassMat{};
+    G4Material* SiPMEncapsulantMat{};
     G4Material* opticLayerMat{};
     G4Material* galacticMat{};
 

@@ -3,8 +3,9 @@
 using namespace Sizes;
 
 EventAction::EventAction(AnalysisManager* an, RunAction* r, const G4double eCrystalThr, const G4double eVetoThr,
-                         const G4bool saveOpt) : analysisManager(an), run(r), eCrystalThreshold(eCrystalThr),
-                                                eVetoThreshold(eVetoThr), saveOptics(saveOpt) {
+                         const G4bool saveOpt, const G4bool saveSec) : analysisManager(an), run(r), eCrystalThreshold(eCrystalThr),
+                                                 eVetoThreshold(eVetoThr), saveOptics(saveOpt),
+                                                 saveSecondaries(saveSec) {
     detMap = {
         {"DetectorSD/EdepHits", 0, "Crystal"},
         {"VetoSD/EdepHits", 1, "Veto"},
@@ -38,7 +39,9 @@ void EventAction::EndOfEventAction(const G4Event* evt) {
 
     nEdepHits = WriteEdepFromSD_(evt, eventID);
 
-    // analysisManager->FillEventRow(eventID, nPrimaries, nInteractions, nEdepHits);
+    if (saveSecondaries) {
+        analysisManager->FillEventRow(eventID, nPrimaries, nInteractions, nEdepHits);
+    }
 
     if (hasCrystal && !hasVeto) run->AddCrystalOnly(1);
     if (hasCrystal && hasVeto) run->AddCrystalAndVeto(1);
@@ -55,16 +58,16 @@ void EventAction::WritePrimaries_(int eventID) {
 }
 
 int EventAction::WriteInteractions_(int eventID) {
-    int n = 0;
-    for (const auto& r : interBuf) {
-        // analysisManager->FillInteractionRow(eventID,
-        //                                     r.trackID, r.parentID,
-        //                                     r.process, r.volumeName, r.pos_mm,
-        //                                     r.secIndex, r.secName,
-        //                                     r.secE_MeV, r.secDir);
-        n++;
+    if (saveSecondaries) {
+        for (const auto& r : interBuf) {
+            analysisManager->FillInteractionRow(eventID,
+                                                r.trackID, r.parentID,
+                                                r.process, r.volumeName, r.pos_mm,
+                                                r.secIndex, r.secName,
+                                                r.secE_MeV, r.secDir);
+        }
     }
-    return n;
+    return static_cast<int>(interBuf.size());
 }
 
 int EventAction::WriteEdepFromSD_(const G4Event* evt, int eventID) {

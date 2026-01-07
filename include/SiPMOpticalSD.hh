@@ -13,9 +13,13 @@
 #include <G4ProcessManager.hh>
 #include <G4VPhysicalVolume.hh>
 
+enum class SiPMGroup { Unknown, Crystal, Veto, Bottom };
+
 class SiPMOpticalSD : public G4VSensitiveDetector {
 public:
     explicit SiPMOpticalSD(const G4String& name);
+
+    void SetSiPMWindowLV(G4LogicalVolume* lv) { SiPMWindowLV = lv; }
 
     void Initialize(G4HCofThisEvent*) override;
     G4bool ProcessHits(G4Step* step, G4TouchableHistory*) override;
@@ -33,6 +37,7 @@ private:
     G4OpBoundaryProcess* GetBoundaryProcess();
 
     G4OpBoundaryProcess* boundary{nullptr};
+    G4LogicalVolume* SiPMWindowLV{nullptr};
 
     int npeCrystal{0};
     int npeVeto{0};
@@ -41,6 +46,8 @@ private:
     std::unordered_map<int,int> perChCrystal;
     std::unordered_map<int,int> perChVeto;
     std::unordered_map<int,int> perChBottom;
+
+    static SiPMGroup ClassifyByPVName(const G4VPhysicalVolume* pv);
 };
 
 #endif // SIPMOPTICALSD_HH

@@ -16,6 +16,8 @@ G4OpBoundaryProcess* SiPMOpticalSD::GetBoundaryProcess() {
     if (!pm) return nullptr;
 
     auto* plist = pm->GetProcessList();
+    if (!plist) return nullptr;
+
     for (int i = 0; i < plist->size(); ++i) {
         auto* p = (*plist)[i];
         if (p && p->GetProcessName() == "OpBoundary") {
@@ -26,36 +28,91 @@ G4OpBoundaryProcess* SiPMOpticalSD::GetBoundaryProcess() {
     return boundary;
 }
 
+
+SiPMGroup SiPMOpticalSD::ClassifyByPVName(const G4VPhysicalVolume* pv) {
+    if (!pv) return SiPMGroup::Unknown;
+    const std::string name = pv->GetName();
+
+    if (name.find("CrystalSiPM") != std::string::npos) return SiPMGroup::Crystal;
+    if (name.find("VetoSiPM") != std::string::npos) return SiPMGroup::Veto;
+    if (name.find("BottomVetoSiPM") != std::string::npos) return SiPMGroup::Bottom;
+
+    return SiPMGroup::Unknown;
+}
+
 G4bool SiPMOpticalSD::ProcessHits(G4Step* step, G4TouchableHistory*) {
+    if (!step) return false;
+
     auto* track = step->GetTrack();
     if (!track) return false;
 
     if (track->GetDefinition() != G4OpticalPhoton::Definition()) return false;
 
-    if (step->GetPostStepPoint()->GetStepStatus() != fGeomBoundary) return false;
+    // We only care about geometry boundary crossings
+    auto* post = step->GetPostStepPoint();
+    auto* pre = step->GetPreStepPoint();
+    if (!pre || !post) return false;
+
+    if (post->GetStepStatus() != fGeomBoundary) return false;
 
     auto* b = GetBoundaryProcess();
     if (!b) return false;
 
     if (b->GetStatus() != Detection) return false;
 
-    const auto& touch = step->GetPreStepPoint()->GetTouchableHandle();
-    const int ch = touch->GetCopyNumber(0);
+    // Determine on which PV we are (prefer PRE, but keep fallback)
+    auto* prePV = pre->GetPhysicalVolume();
+    auto* postPV = post->GetPhysicalVolume();
 
-    auto* pv = step->GetPreStepPoint()->GetPhysicalVolume();
-    const auto pvName = pv ? pv->GetName() : "";
+    // Prefer pre-step touchable for copy number (normally it's the "window" volume)
+    int ch = -1;
+    {
+        const auto& t = pre->GetTouchableHandle();
+        if (t) ch = t->GetCopyNumber(0);
+    }
+    if (ch < 0) {
+        const auto& t = post->GetTouchableHandle();
+        if (t) ch = t->GetCopyNumber(0);
+    }
 
-    if (pvName.find("CrystalSiPMWindowPVP") != std::string::npos) {
+    SiPMGroup grp = SiPMGroup::Unknown;
+
+    if (SiPMWindowLV) {
+        auto* preLV = prePV ? prePV->GetLogicalVolume() : nullptr;
+        auto* postLV = postPV ? postPV->GetLogicalVolume() : nullptr;
+
+        if (preLV == SiPMWindowLV) {
+            grp = ClassifyByPVName(prePV);
+        }
+        else if (postLV == SiPMWindowLV) {
+            grp = ClassifyByPVName(postPV);
+        }
+        else {
+            // Not on a SiPM window at all (or LV pointers differ); fall back to name check
+            grp = ClassifyByPVName(prePV);
+            if (grp == SiPMGroup::Unknown) grp = ClassifyByPVName(postPV);
+        }
+    }
+    else {
+        grp = ClassifyByPVName(prePV);
+        if (grp == SiPMGroup::Unknown) grp = ClassifyByPVName(postPV);
+    }
+
+    if (grp == SiPMGroup::Crystal) {
         ++npeCrystal;
-        ++perChCrystal[ch];
+        if (ch >= 0) ++perChCrystal[ch];
     }
-    else if (pvName.find("VetoSiPMWindowPVP") != std::string::npos) {
+    else if (grp == SiPMGroup::Veto) {
         ++npeVeto;
-        ++perChVeto[ch];
+        if (ch >= 0) ++perChVeto[ch];
     }
-    else if (pvName.find("BottomVetoSiPMWindowPVP") != std::string::npos) {
+    else if (grp == SiPMGroup::Bottom) {
         ++npeBottom;
-        ++perChBottom[ch];
+        if (ch >= 0) ++perChBottom[ch];
+    }
+    else {
+        // Unknown classification: still kill photon to avoid infinite bouncing after "Detection"
+        // but do not count it.
     }
 
     track->SetTrackStatus(fStopAndKill);
