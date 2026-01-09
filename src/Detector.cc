@@ -114,7 +114,7 @@ void Detector::DefineMaterials() {
         mpt->AddProperty("RINDEX", rindex.E, rindex.V, rindex.E.size());
         mpt->AddProperty("ABSLENGTH", absl.E, absl.V, absl.E.size());
 
-        Utils::ApplyScintillation(CrystalMat, mpt, c, emission, /*scintComponent2=*/nullptr, /*requireYield=*/true);
+        Utils::ApplyScintillation(CrystalMat, mpt, c, emission, nullptr, true, yieldScale);
         CrystalMat->SetMaterialPropertiesTable(mpt);
 
         Utils::ApplyBirksIfPresent(CrystalMat, c);
@@ -137,7 +137,7 @@ void Detector::DefineMaterials() {
         mpt->AddProperty("RINDEX", rindex.E, rindex.V, rindex.E.size());
         mpt->AddProperty("ABSLENGTH", absl.E, absl.V, absl.E.size());
 
-        Utils::ApplyScintillation(vetoMat, mpt, c, emission, &emission, true);
+        Utils::ApplyScintillation(vetoMat, mpt, c, emission, &emission, true, yieldScale);
         vetoMat->SetMaterialPropertiesTable(mpt);
 
         Utils::ApplyBirksIfPresent(vetoMat, c);

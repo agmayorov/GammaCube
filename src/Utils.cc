@@ -240,7 +240,8 @@ void Utils::ApplyScintillation(G4Material* mat,
                                const ConstMap& c,
                                const Table& scintComponent1,
                                const Table* scintComponent2,
-                               bool requireYield)
+                               bool requireYield,
+                               G4int yieldScale)
 {
     if (!mat || !mpt) return;
 
@@ -248,7 +249,7 @@ void Utils::ApplyScintillation(G4Material* mat,
     mpt->AddProperty("SCINTILLATIONCOMPONENT1",
                      scintComponent1.E, scintComponent1.V, scintComponent1.E.size());
 
-    const bool has2 = (scintComponent2 != nullptr);
+    const bool has2 = scintComponent2 != nullptr;
     if (has2) {
         mpt->AddProperty("SCINTILLATIONCOMPONENT2",
                          scintComponent2->E, scintComponent2->V, scintComponent2->E.size());
@@ -259,9 +260,7 @@ void Utils::ApplyScintillation(G4Material* mat,
         const auto it = c.find("SCINTILLATIONYIELD");
         if (it == c.end())
             throw std::runtime_error("Missing SCINTILLATIONYIELD in const map");
-        mpt->AddConstProperty("SCINTILLATIONYIELD", it->second); // photons/MeV (already scaled to 1/MeV)
-    } else {
-        AddConstIfPresent(mpt, c, "SCINTILLATIONYIELD");
+        mpt->AddConstProperty("SCINTILLATIONYIELD", it->second / yieldScale);
     }
 
     // Always ok

@@ -49,7 +49,8 @@ public:
                                    const ConstMap& c,
                                    const Table& scintComponent1,
                                    const Table* scintComponent2 = nullptr,
-                                   bool requireYield = true);
+                                   bool requireYield = true,
+                                   G4int yieldScale = 1.0);
 
     static void ApplySurface(G4OpticalSurface* surf,
                              const ConstMap& c,
