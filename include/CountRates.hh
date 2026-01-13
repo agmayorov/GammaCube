@@ -39,25 +39,26 @@ struct FluxParams {
 };
 
 struct RateCounts {
-    int crystalOnly = 0; // N_det (Crystal && !Veto)
+    int crystalOnly = 0;    // N_det (Crystal && !Veto)
     int crystalAndVeto = 0; // N_det (Crystal && Veto)
 };
 
 struct RateResult {
     double area = 0.0;
-    double integral = 0.0; // ∫ flux(E) dE
-    double Ndot = 0.0; // A_eff * integral
-    double rateCrystal = 0.0; // crystalOnly / (N / Ndot)
-    double rateBoth = 0.0; // (crystalOnly+crystalAndVeto) / (N / Ndot)
+    double integral = 0.0;        // ∫ flux(E) dE
+    double Ndot = 0.0;            // A_eff * integral
+    double rateCrystal = 0.0;     // crystalOnly / (N / Ndot)
+    double rateBoth = 0.0;        // (crystalOnly+crystalAndVeto) / (N / Ndot)
+    double rateRealCrystal = 0.0; // ∫ flux(E) * Aeff(E) dE
 };
 
 double fluxPLAW(double E, double A, double alpha, double E_piv);
 
 double fluxCOMP(double E, double A, double alpha, double E_piv, double E_peak);
 
-double fluxSEP(double E, int year, int order, const std::string &csvPath);
+double fluxSEP(double E, int year, int order, const std::string& csvPath);
 
-double fluxTable(double E, const std::string &csvPath);
+double fluxTable(double E, const std::string& csvPath);
 
 double fluxUniform(double E);
 
@@ -67,18 +68,25 @@ double J_proton(double E_GeV);
 
 enum class FluxDir { Vertical, Horizontal, Isotropic };
 
-double effectiveArea_cm2(double R_mm, double H_mm, FluxDir dir);
+double Area_cm2(double R_mm, double H_mm, FluxDir dir);
 
-double integrateAdaptiveSimpson(const std::function<double(double)> &f,
+double integrateAdaptiveSimpson(const std::function<double(double)>& f,
                                 double a, double b,
                                 double rel_tol = 1e-6, int max_depth = 20);
 
 
 RateResult computeRate(FluxType type,
-                       const FluxParams &p,
+                       const FluxParams& p,
                        EnergyRange eRange,
                        double A_eff_cm2,
                        int N_histories,
-                       const RateCounts &detCounts);
+                       const RateCounts& detCounts);
+
+RateResult computeRateReal(FluxType type,
+                           const FluxParams& p,
+                           EnergyRange eRange,
+                           const std::vector<double>& Aeff,
+                           int nBins);
+
 
 #endif //COUNTRATES_HH

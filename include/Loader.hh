@@ -40,6 +40,7 @@
 
 class Loader {
     G4String macroFile;
+    G4String outputFile;
     int numThreads;
     bool useUI;
     G4String detectorType;
@@ -51,6 +52,10 @@ class Loader {
     G4int yieldScale;
     G4double eCrystalThreshold;
     G4double eVetoThreshold;
+    G4int nBins;
+
+    G4double area;
+    std::vector<G4double> effArea;
 
 #ifdef G4MULTITHREADED
     G4MTRunManager *runManager;
@@ -71,6 +76,8 @@ private:
     std::array<G4long, 16> optPhotons{};
 
     std::string geomConfigPath;
+
+    FluxDir dir{};
 
     [[nodiscard]] std::string ReadValue(const std::string &, const std::string &) const;
     void SaveConfig() const;

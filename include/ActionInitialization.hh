@@ -11,15 +11,14 @@
 
 class ActionInitialization : public G4VUserActionInitialization {
 public:
-    ActionInitialization(G4String, G4String, G4double, G4double, G4bool, G4bool);
+    ActionInitialization(G4String, G4String, G4bool, G4bool, G4double, G4double, G4double, G4int, G4double, G4double,
+                         G4String);
     ~ActionInitialization() override = default;
 
     void BuildForMaster() const override;
     void Build() const override;
 
 private:
-    G4ThreeVector center;
-    G4ThreeVector modelSize;
     G4String fluxDirection;
     G4String fluxType;
     G4bool useOptics;
@@ -27,6 +26,13 @@ private:
 
     G4double eCrystalThreshold;
     G4double eVetoThreshold;
+
+    G4int nBins;
+    G4double EminMeV;
+    G4double EmaxMeV;
+    G4double area;
+
+    G4String fileName;
 };
 
 #endif //ACTIONINITIALIZATION_HH

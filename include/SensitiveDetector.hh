@@ -24,7 +24,7 @@
 
 class SensitiveDetector : public G4VSensitiveDetector {
 public:
-    SensitiveDetector(const G4String &sdName, G4int detID, const G4String &detName, G4bool isOpt=false);
+    SensitiveDetector(const G4String &sdName, G4int detID, G4String detName);
     ~SensitiveDetector() override = default;
 
     void Initialize(G4HCofThisEvent *hce) override;

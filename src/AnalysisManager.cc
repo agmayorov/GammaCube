@@ -2,13 +2,18 @@
 
 using namespace Sizes;
 
-AnalysisManager::AnalysisManager(const std::string &fName) : fileName(fName) {
+AnalysisManager::AnalysisManager(const std::string& fName) : fileName(fName) {
+    Book();
+}
+
+AnalysisManager::AnalysisManager(const std::string& fName, const int bins, const double vMin, const double vMax) :
+    fileName(fName), nBins(bins), xMin(vMin), xMax(vMax) {
     Book();
 }
 
 
 void AnalysisManager::Book() {
-    G4AnalysisManager *analysisManager = G4AnalysisManager::Instance();
+    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
     analysisManager->SetDefaultFileType("root");
     analysisManager->SetFileName(fileName);
     analysisManager->SetVerboseLevel(0);
@@ -76,6 +81,40 @@ void AnalysisManager::Book() {
     analysisManager->CreateNtupleIColumn("npe");
     analysisManager->FinishNtuple(SiPMChannelNT);
 
+    const G4String unit = "MeV";
+    const G4String logScheme = "log";
+
+    genEnergyHist = analysisManager->CreateH1("genEnergyHist",
+                                              "N_{gen} vs E",
+                                              nBins, xMin, xMax, unit, "none", logScheme);
+
+    trigEnergyHist = analysisManager->CreateH1("trigEnergyHist",
+                                               "N_{trig} vs E",
+                                               nBins, xMin, xMax, unit, "none", logScheme);
+
+    trigOptEnergyHist = analysisManager->CreateH1("trigOptEnergyHist",
+                                                  "N_{trig,opt} vs E",
+                                                  nBins, xMin, xMax, unit, "none", logScheme);
+
+    effAreaHist = analysisManager->CreateH1("effAreaHist",
+                                            "A_{eff} vs E",
+                                            nBins, xMin, xMax, unit, "none", logScheme);
+
+    effAreaOptHist = analysisManager->CreateH1("effAreaOptHist",
+                                               "A_{eff,opt} vs E",
+                                               nBins, xMin, xMax, unit, "none", logScheme);
+
+    sensitivityHist = analysisManager->CreateH1("sensitivityHist",
+                                                "Sensitivity vs E",
+                                                nBins, xMin, xMax, unit, "none", logScheme);
+
+    lightYieldHist = analysisManager->CreateH1("lightYieldHist",
+                                               "Light yield vs E",
+                                               nBins, xMin, xMax, unit, "none", logScheme);
+
+    lightYieldOptHist = analysisManager->CreateH1("lightYieldOptHist",
+                                                  "Light yield (opt) vs E",
+                                                  nBins, xMin, xMax, unit, "none", logScheme);
 }
 
 void AnalysisManager::Open() {
@@ -83,13 +122,13 @@ void AnalysisManager::Open() {
 }
 
 void AnalysisManager::Close() {
-    G4AnalysisManager *analysisManager = G4AnalysisManager::Instance();
+    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
     analysisManager->Write();
     analysisManager->CloseFile();
 }
 
 void AnalysisManager::FillEventRow(G4int eventID, G4int nPrimaries, G4int nInteractions, G4int nEdepHits) {
-    G4AnalysisManager *analysisManager = G4AnalysisManager::Instance();
+    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
     analysisManager->FillNtupleIColumn(eventNT, 0, eventID);
     analysisManager->FillNtupleIColumn(eventNT, 1, nPrimaries);
     analysisManager->FillNtupleIColumn(eventNT, 2, nInteractions);
@@ -97,10 +136,10 @@ void AnalysisManager::FillEventRow(G4int eventID, G4int nPrimaries, G4int nInter
     analysisManager->AddNtupleRow(eventNT);
 }
 
-void AnalysisManager::FillPrimaryRow(G4int eventID, const G4String &primaryName,
-                                     G4double E_MeV, const G4ThreeVector &dir,
-                                     const G4ThreeVector &pos_mm) {
-    G4AnalysisManager *analysisManager = G4AnalysisManager::Instance();
+void AnalysisManager::FillPrimaryRow(G4int eventID, const G4String& primaryName,
+                                     G4double E_MeV, const G4ThreeVector& dir,
+                                     const G4ThreeVector& pos_mm) {
+    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
     analysisManager->FillNtupleIColumn(primaryNT, 0, eventID);
     analysisManager->FillNtupleSColumn(primaryNT, 1, primaryName);
     analysisManager->FillNtupleDColumn(primaryNT, 2, E_MeV);
@@ -115,12 +154,12 @@ void AnalysisManager::FillPrimaryRow(G4int eventID, const G4String &primaryName,
 
 void AnalysisManager::FillInteractionRow(G4int eventID,
                                          G4int trackID, G4int parentID,
-                                         const G4String &process,
-                                         const G4String &volumeName,
-                                         const G4ThreeVector &x_mm,
-                                         G4int secIndex, const G4String &secName,
-                                         G4double secE_MeV, const G4ThreeVector &secDir) {
-    G4AnalysisManager *analysisManager = G4AnalysisManager::Instance();
+                                         const G4String& process,
+                                         const G4String& volumeName,
+                                         const G4ThreeVector& x_mm,
+                                         G4int secIndex, const G4String& secName,
+                                         G4double secE_MeV, const G4ThreeVector& secDir) {
+    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
     analysisManager->FillNtupleIColumn(interactionsNT, 0, eventID);
     analysisManager->FillNtupleIColumn(interactionsNT, 1, trackID);
     analysisManager->FillNtupleIColumn(interactionsNT, 2, parentID);
@@ -138,8 +177,8 @@ void AnalysisManager::FillInteractionRow(G4int eventID,
     analysisManager->AddNtupleRow(interactionsNT);
 }
 
-void AnalysisManager::FillEdepRow(G4int eventID, const G4String &det_name, G4double edep_MeV) {
-    G4AnalysisManager *analysisManager = G4AnalysisManager::Instance();
+void AnalysisManager::FillEdepRow(G4int eventID, const G4String& det_name, G4double edep_MeV) {
+    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
     analysisManager->FillNtupleIColumn(edepNT, 0, eventID);
     analysisManager->FillNtupleSColumn(edepNT, 1, det_name);
     analysisManager->FillNtupleDColumn(edepNT, 2, edep_MeV);
@@ -162,4 +201,44 @@ void AnalysisManager::FillSiPMChannelRow(int eventID, const G4String& subdet, in
     analysisManager->FillNtupleIColumn(SiPMChannelNT, 2, ch);
     analysisManager->FillNtupleIColumn(SiPMChannelNT, 3, npe);
     analysisManager->AddNtupleRow(SiPMChannelNT);
+}
+
+void AnalysisManager::FillGenEnergyHist(G4double E_MeV, G4double weight) {
+    auto* analysisManager = G4AnalysisManager::Instance();
+    analysisManager->FillH1(genEnergyHist, E_MeV, weight);
+}
+
+void AnalysisManager::FillTrigEnergyHist(G4double E_MeV, G4double weight) {
+    auto* analysisManager = G4AnalysisManager::Instance();
+    analysisManager->FillH1(trigEnergyHist, E_MeV, weight);
+}
+
+void AnalysisManager::FillTrigOptEnergyHist(G4double E_MeV, G4double weight) {
+    auto* analysisManager = G4AnalysisManager::Instance();
+    analysisManager->FillH1(trigOptEnergyHist, E_MeV, weight);
+}
+
+void AnalysisManager::FillEffAreaHist(G4double E_MeV, G4double value) {
+    auto* analysisManager = G4AnalysisManager::Instance();
+    analysisManager->FillH1(effAreaHist, E_MeV, value);
+}
+
+void AnalysisManager::FillEffAreaOptHist(G4double E_MeV, G4double value) {
+    auto* analysisManager = G4AnalysisManager::Instance();
+    analysisManager->FillH1(effAreaOptHist, E_MeV, value);
+}
+
+void AnalysisManager::FillSensitivityHist(G4double E_MeV, G4double value) {
+    auto* analysisManager = G4AnalysisManager::Instance();
+    analysisManager->FillH1(sensitivityHist, E_MeV, value);
+}
+
+void AnalysisManager::FillLightYieldHist(G4double E_MeV, G4double value) {
+    auto* analysisManager = G4AnalysisManager::Instance();
+    analysisManager->FillH1(lightYieldHist, E_MeV, value);
+}
+
+void AnalysisManager::FillLightYieldOptHist(G4double E_MeV, G4double value) {
+    auto* analysisManager = G4AnalysisManager::Instance();
+    analysisManager->FillH1(lightYieldOptHist, E_MeV, value);
 }

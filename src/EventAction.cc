@@ -3,9 +3,10 @@
 using namespace Sizes;
 
 EventAction::EventAction(AnalysisManager* an, RunAction* r, const G4double eCrystalThr, const G4double eVetoThr,
-                         const G4bool saveOpt, const G4bool saveSec) : analysisManager(an), run(r), eCrystalThreshold(eCrystalThr),
-                                                 eVetoThreshold(eVetoThr), saveOptics(saveOpt),
-                                                 saveSecondaries(saveSec) {
+                         const G4bool saveOpt, const G4bool saveSec) : analysisManager(an), run(r), saveOptics(saveOpt),
+                                                                       saveSecondaries(saveSec),
+                                                                       eCrystalThreshold(eCrystalThr),
+                                                                       eVetoThreshold(eVetoThr) {
     detMap = {
         {"DetectorSD/EdepHits", 0, "Crystal"},
         {"VetoSD/EdepHits", 1, "Veto"},
@@ -27,11 +28,19 @@ void EventAction::BeginOfEventAction(const G4Event*) {
 }
 
 void EventAction::EndOfEventAction(const G4Event* evt) {
-    // const int runID = G4RunManager::GetRunManager()->GetCurrentRun()->GetRunID();
     const int eventID = evt->GetEventID();
 
     WritePrimaries_(eventID);
     nPrimaries = static_cast<int>(primBuf.size());
+
+    double primaryE_MeV = -1.0;
+    if (!primBuf.empty()) {
+        primaryE_MeV = primBuf.front().E_MeV;
+        if (run) {
+            run->AddGenerated(primaryE_MeV);
+        }
+    }
+
     primBuf.clear();
 
     nInteractions = WriteInteractions_(eventID);
@@ -46,10 +55,23 @@ void EventAction::EndOfEventAction(const G4Event* evt) {
     if (hasCrystal && !hasVeto) run->AddCrystalOnly(1);
     if (hasCrystal && hasVeto) run->AddCrystalAndVeto(1);
 
-    if (saveOptics) WriteSiPMFromSD_(eventID);
-}
+    if (primaryE_MeV > 0.0) {
+        if (hasCrystal && !hasVeto) {
+            if (run) {
+                run->AddTriggeredCrystalOnly(primaryE_MeV);
+            }
+        }
+    }
 
-// ------------------- приватные помощники -------------------
+    if (saveOptics) {
+        if (primaryE_MeV > 0.0 && analysisManager) {
+            if (hasCrystal && !hasVeto) {
+                analysisManager->FillTrigOptEnergyHist(primaryE_MeV, 1.0);
+            }
+        }
+        WriteSiPMFromSD_(eventID);
+    }
+}
 
 void EventAction::WritePrimaries_(int eventID) {
     for (const auto& p : primBuf) {

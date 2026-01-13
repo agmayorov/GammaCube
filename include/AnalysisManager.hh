@@ -2,6 +2,8 @@
 #define ANALYSISMANAGER_HH
 
 #include <G4AnalysisManager.hh>
+#include <G4AccumulableManager.hh>
+#include <G4Accumulable.hh>
 #include <G4UnitsTable.hh>
 #include <CLHEP/Units/SystemOfUnits.h>
 #include <globals.hh>
@@ -11,7 +13,8 @@ class AnalysisManager {
 public:
     G4String fileName = "GammaDetector";
 
-    explicit AnalysisManager(const std::string &);
+    explicit AnalysisManager(const std::string&);
+    AnalysisManager(const std::string&, int, double, double);
     ~AnalysisManager() = default;
 
     void Open();
@@ -19,22 +22,34 @@ public:
 
     void FillEventRow(G4int eventID, G4int nPrimaries, G4int nInteractions, G4int nEdepHits);
 
-    void FillPrimaryRow(G4int eventID, const G4String &primaryName,
-                        G4double E_MeV, const G4ThreeVector &dir,
-                        const G4ThreeVector &pos_mm);
+    void FillPrimaryRow(G4int eventID, const G4String& primaryName,
+                        G4double E_MeV, const G4ThreeVector& dir,
+                        const G4ThreeVector& pos_mm);
 
     void FillInteractionRow(G4int eventID,
                             G4int trackID, G4int parentID,
-                            const G4String &process,
-                            const G4String &volumeName,
-                            const G4ThreeVector &x_mm,
-                            G4int secIndex, const G4String &secName,
-                            G4double secE_MeV, const G4ThreeVector &secDir);
+                            const G4String& process,
+                            const G4String& volumeName,
+                            const G4ThreeVector& x_mm,
+                            G4int secIndex, const G4String& secName,
+                            G4double secE_MeV, const G4ThreeVector& secDir);
 
-    void FillEdepRow(G4int eventID, const G4String &det_name, G4double edep_MeV);
+    void FillEdepRow(G4int eventID, const G4String& det_name, G4double edep_MeV);
 
     void FillSiPMEventRow(int eventID, int npeC, int npeV, int npeB);
     void FillSiPMChannelRow(int eventID, const G4String& subdet, int ch, int npe);
+
+    void FillGenEnergyHist(G4double E_MeV, G4double weight = 1.0);
+    void FillTrigEnergyHist(G4double E_MeV, G4double weight = 1.0);
+    void FillTrigOptEnergyHist(G4double E_MeV, G4double weight = 1.0);
+
+    void FillEffAreaHist(G4double E_MeV, G4double value);
+    void FillEffAreaOptHist(G4double E_MeV, G4double value);
+
+    void FillSensitivityHist(G4double E_MeV, G4double value);
+
+    void FillLightYieldHist(G4double E_MeV, G4double value);
+    void FillLightYieldOptHist(G4double E_MeV, G4double value);
 
 private:
     G4int eventNT{-1};
@@ -44,6 +59,22 @@ private:
 
     G4int SiPMEventNT{-1};
     G4int SiPMChannelNT{-1};
+
+    G4int genEnergyHist{-1};
+    G4int trigEnergyHist{-1};
+    G4int trigOptEnergyHist{-1};
+
+    G4int effAreaHist{-1};
+    G4int effAreaOptHist{-1};
+
+    G4int sensitivityHist{-1};
+
+    G4int lightYieldHist{-1};
+    G4int lightYieldOptHist{-1};
+
+    G4int nBins{1000};
+    G4double xMin{0};
+    G4double xMax{1000 * MeV};
 
     void Book();
 };

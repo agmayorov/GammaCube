@@ -28,6 +28,8 @@ public:
     AnalysisManager *analysisManager;
 
     RunAction();
+    RunAction(int nbins, double Emin_MeV, double Emax_MeV, double Agen_cm2,
+              const std::string& rootFileName = "GammaCube");
     ~RunAction() override;
 
     void BeginOfRunAction(const G4Run *) override;
@@ -36,12 +38,37 @@ public:
     void AddCrystalOnly(const G4int v) { crystalOnly += v; }
     void AddCrystalAndVeto(const G4int v) { crystalAndVeto += v; }
 
+    void AddGenerated(double E_MeV);
+    void AddTriggeredCrystalOnly(double E_MeV);
+
     [[nodiscard]] const ParticleCounts& GetCounts() const { return totals; }
 
+    const std::vector<double>& GetEffArea() const { return effArea; }
+
 private:
-    G4Accumulable<G4int> crystalOnly;   // Crystal && !Veto
-    G4Accumulable<G4int> crystalAndVeto;   // Crystal && Veto
-    ParticleCounts totals;
+    G4Accumulable<G4int> crystalOnly{0};   // Crystal && !Veto
+    G4Accumulable<G4int> crystalAndVeto{0};   // Crystal && Veto
+    ParticleCounts totals{};
+
+    int nBins{0};
+    double EminMeV{0.0};
+    double EmaxMeV{0.0};
+    double area{0.0};
+
+    double logEmin{0.0};
+    double logEmax{0.0};
+    double invDlogE{0.0};
+
+    std::vector<G4Accumulable<G4double>> genCounts;
+    std::vector<G4Accumulable<G4double>> trigCounts;
+    std::vector<double> effArea;
+
+    [[nodiscard]] int FindBinLog(double E_MeV) const;
+    [[nodiscard]] double BinCenterMeV(int i) const;
+    [[nodiscard]] double BinWidthMeV(int i) const;
+
+    void BookAccumulables();
+    void FillDerivedHists();
 };
 
 #endif //RUNACTION_HH

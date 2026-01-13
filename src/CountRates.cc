@@ -236,7 +236,7 @@ double fluxGalactic(const double E, const double phiMV, const std::string &name)
 
 // ---------------- Area ----------------
 
-double effectiveArea_cm2(const double R_mm, const double H_mm, const FluxDir dir) {
+double Area_cm2(const double R_mm, const double H_mm, const FluxDir dir) {
     const double R_cm = R_mm / 10.0;
     const double H_cm = H_mm / 10.0;
 
@@ -277,6 +277,13 @@ double integrateAdaptiveSimpson(const std::function<double(double)> &f,
     const double initial = simpson(f, a, b);
     const double eps = rel_tol * std::max(1.0, std::fabs(initial));
     return adaptiveSimpsonRec(f, a, b, eps, initial, max_depth);
+}
+
+static inline double binEdgeLog(double Emin, double Emax, int nBins, int i) {
+    // i in [0..nBins], logspace like np.logspace
+    const double ratio = Emax / Emin;
+    const double t = static_cast<double>(i) / static_cast<double>(nBins);
+    return Emin * std::pow(ratio, t);
 }
 
 
@@ -326,5 +333,71 @@ RateResult computeRate(const FluxType type,
     R.rateCrystal = N_histories > 0 ? (detCounts.crystalOnly + 0.0) * Ndot / N_histories : 0.0;
     const int bothDet = detCounts.crystalOnly + detCounts.crystalAndVeto;
     R.rateBoth = N_histories > 0 ? (bothDet + 0.0) * Ndot / N_histories : 0.0;
+    return R;
+}
+
+RateResult computeRateReal(FluxType type,
+                           const FluxParams& p,
+                           EnergyRange eRange,
+                           const std::vector<double>& Aeff,
+                           int nBins) {
+
+    if (nBins <= 0) throw std::runtime_error("computeRateReal: nBins <= 0");
+    if (static_cast<int>(Aeff.size()) != nBins)
+        throw std::runtime_error("computeRateReal: Aeff.size() != nBins");
+    if (eRange.Emin <= 0.0 || eRange.Emax <= 0.0 || eRange.Emax <= eRange.Emin)
+        throw std::runtime_error("computeRateReal: invalid energy range");
+
+    std::function<double(double)> fluxF;
+
+
+    double areaScale = 1.0;
+    double energyScale = 1.0;
+
+    switch (type) {
+        case FluxType::PLAW:
+            fluxF = [=](double E_MeV){ return fluxPLAW(E_MeV, p.A, p.alpha, p.E_piv); };
+            break;
+        case FluxType::COMP:
+            fluxF = [=](double E_MeV){ return fluxCOMP(E_MeV, p.A, p.alpha, p.E_piv, p.E_peak); };
+            break;
+        case FluxType::SEP:
+            fluxF = [=](double E_MeV){ return fluxSEP(E_MeV, p.sep_year, p.sep_order, p.sep_csv_path); };
+            break;
+        case FluxType::TABLE:
+            fluxF = [=](double E_MeV){ return fluxTable(E_MeV, p.table_path); };
+            break;
+        case FluxType::UNIFORM:
+            fluxF = [=](double E_MeV){ return fluxUniform(E_MeV); };
+            break;
+        case FluxType::GALACTIC:
+            energyScale = 1.0 / 1000.0;
+            areaScale   = 1.0 / 10000.0;
+            fluxF = [=](double E_GeV){ return fluxGalactic(E_GeV, p.phiMV, p.particle); };
+            break;
+        default:
+            throw std::runtime_error("computeRateReal: unknown flux type");
+    }
+
+    double rateReal = 0.0;
+
+    for (int i = 0; i < nBins; ++i) {
+        const double e1 = binEdgeLog(eRange.Emin, eRange.Emax, nBins, i);
+        const double e2 = binEdgeLog(eRange.Emin, eRange.Emax, nBins, i + 1);
+        const double Ec = std::sqrt(e1 * e2);
+        const double dE = e2 - e1;
+
+        double A = Aeff[i];
+
+        const double Earg = Ec * energyScale;
+        const double dEarg = dE * energyScale;
+        const double Aarg = A * areaScale;
+
+        const double phi = fluxF(Earg);
+        rateReal += phi * Aarg * dEarg;
+    }
+
+    RateResult R;
+    R.rateRealCrystal = rateReal;
     return R;
 }
