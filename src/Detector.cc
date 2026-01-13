@@ -46,12 +46,15 @@ void Detector::DefineMaterials() {
         return Utils::ReadCSV(base + prefix + "_absorption_length.csv", /*valueScale=*/mm, /*clampNonNegative=*/true);
     };
 
-    auto loadEmission = [&](const std::string& prefix, const std::string& suffix = "_normalised_emission_intensity.csv")
-        -> Utils::Table {
-        // emission intensity is dimensionless; we also clamp negatives and normalize to max=1 (robustness)
-        auto t = Utils::ReadCSV(base + prefix + suffix, /*valueScale=*/1.0, /*clampNonNegative=*/true);
-        Utils::NormalizeMaxToOne(t);
-        return t;
+    auto loadEmission2 = [&](const std::string& prefix,
+                             const std::string& suffix = "_normalised_emission_intensity.csv")
+        -> Utils::EmissionTables {
+        auto e = Utils::ReadEmissionCSV(base + prefix + suffix, /*valueScale=*/1.0, /*clampNonNegative=*/true);
+
+        Utils::NormalizeMaxToOne(e.c1);
+        Utils::NormalizeMaxToOne(e.c2);
+
+        return e;
     };
 
     auto loadConsts = [&](const std::string& prefix) -> Utils::ConstMap {
@@ -61,7 +64,7 @@ void Detector::DefineMaterials() {
     auto applyYieldScaleIfPresent = [&](Utils::ConstMap& c) {
         auto it = c.find("SCINTILLATIONYIELD");
         if (it != c.end() && yieldScale > 0) {
-            it->second /= (G4double)yieldScale;
+            it->second /= static_cast<G4double>(yieldScale);
         }
     };
 
@@ -82,8 +85,7 @@ void Detector::DefineMaterials() {
             CrystalMat->AddElement(elNa, wNa_noTl * scale);
             CrystalMat->AddElement(elI, wI_noTl * scale);
             CrystalMat->AddElement(elTl, wTl);
-        }
-        else if (detectorType == "CsI") {
+        } else if (detectorType == "CsI") {
             const G4double rhoCrystal = 4.51 * g / cm3;
             CrystalMat = new G4Material("CrystalMat", rhoCrystal, 3, kStateSolid);
 
@@ -95,15 +97,14 @@ void Detector::DefineMaterials() {
             CrystalMat->AddElement(elCs, wCs_noTl * scale);
             CrystalMat->AddElement(elI, wI_noTl * scale);
             CrystalMat->AddElement(elTl, wTl);
-        }
-        else {
+        } else {
             throw std::runtime_error("Unknown detectorType (expected NaI or CsI): " + std::string(detectorType));
         }
 
         // --- Load optical tables
         const auto rindex = loadRIndex(matPrefix);
         const auto absl = loadAbsLengthMM(matPrefix);
-        auto emission = loadEmission(matPrefix);
+        auto emission = loadEmission2(matPrefix);
 
         // --- Load scint consts
         auto c = loadConsts(matPrefix);
@@ -114,7 +115,7 @@ void Detector::DefineMaterials() {
         mpt->AddProperty("RINDEX", rindex.E, rindex.V, rindex.E.size());
         mpt->AddProperty("ABSLENGTH", absl.E, absl.V, absl.E.size());
 
-        Utils::ApplyScintillation(CrystalMat, mpt, c, emission, nullptr, true, yieldScale);
+        Utils::ApplyScintillation(CrystalMat, mpt, c, emission.c1, emission.c2, true);
         CrystalMat->SetMaterialPropertiesTable(mpt);
 
         Utils::ApplyBirksIfPresent(CrystalMat, c);
@@ -128,7 +129,7 @@ void Detector::DefineMaterials() {
 
         const auto rindex = loadRIndex(p);
         const auto absl = loadAbsLengthMM(p);
-        auto emission = loadEmission(p);
+        auto emission = loadEmission2(p);
 
         auto c = loadConsts(p);
         applyYieldScaleIfPresent(c);
@@ -137,7 +138,7 @@ void Detector::DefineMaterials() {
         mpt->AddProperty("RINDEX", rindex.E, rindex.V, rindex.E.size());
         mpt->AddProperty("ABSLENGTH", absl.E, absl.V, absl.E.size());
 
-        Utils::ApplyScintillation(vetoMat, mpt, c, emission, &emission, true, yieldScale);
+        Utils::ApplyScintillation(vetoMat, mpt, c, emission.c1, emission.c2, true);
         vetoMat->SetMaterialPropertiesTable(mpt);
 
         Utils::ApplyBirksIfPresent(vetoMat, c);
@@ -163,7 +164,7 @@ void Detector::DefineMaterials() {
     // SiPM bulk (silicon)
     SiPMMat = nist->FindOrBuildMaterial("G4_Si");
 
-        // SiPM encapsulant (clear epoxy proxy): Bisphenol A diglycidyl ether (BADGE / DGEBA)
+    // SiPM encapsulant (clear epoxy proxy): Bisphenol A diglycidyl ether (BADGE / DGEBA)
     {
         const G4double rho = 1.16 * g / cm3;
 
@@ -175,11 +176,10 @@ void Detector::DefineMaterials() {
         SiPMEncapsulantMat->AddElement(elO, 4);
 
         const auto rindex = loadRIndex("SiPM_Encapsulant");
-        const auto absl   = loadAbsLengthMM("SiPM_Encapsulant");
+        const auto absl = loadAbsLengthMM("SiPM_Encapsulant");
 
         Utils::ApplyMaterialTable(SiPMEncapsulantMat, rindex, &absl);
     }
-
 
 
     // SiPM frame / Aluminum
@@ -364,7 +364,8 @@ void Detector::ConstructVeto() {
 void Detector::ConstructShell() {
     // Rubber gasket
     G4ThreeVector rubberPos = G4ThreeVector(
-        0, 0, (detContainerTopSize.z() - rubberHeight) / 2.0 - tyvekOutThickTop - vetoThickTop - tyvekMidThickTop);
+                                            0, 0, (detContainerTopSize.z() - rubberHeight) / 2.0 - tyvekOutThickTop -
+                                            vetoThickTop - tyvekMidThickTop);
     G4VSolid* rubber = new G4Tubs("Rubber", 0, tyvekMidSize.x(), rubberHeight / 2., 0, viewDeg);
     G4LogicalVolume* rubberLV = new G4LogicalVolume(rubber, rubberMat, "RubberLV");
     new G4PVPlacement(nullptr, rubberPos, rubberLV, "RubberPVP", detContainerLV, false, 0, true);
@@ -381,8 +382,9 @@ void Detector::ConstructShell() {
     G4VSolid* core = new G4UnionSolid("Core", coreTop, coreBottom, nullptr, coreBottomPos);
 
     G4ThreeVector corePos = G4ThreeVector(
-        0, 0, (detContainerTopSize.z() - coreTopSize.z()) / 2.0 - tyvekOutThickTop - vetoThickTop - tyvekMidThickTop -
-        rubberHeight);
+                                          0, 0, (detContainerTopSize.z() - coreTopSize.z()) / 2.0 - tyvekOutThickTop -
+                                          vetoThickTop - tyvekMidThickTop -
+                                          rubberHeight);
     coreLV = new G4LogicalVolume(core, galacticMat, "CoreLV");
     new G4PVPlacement(nullptr, corePos, coreLV, "CorePVP", detContainerLV, false, 0, true);
     coreLV->SetVisAttributes(G4VisAttributes::GetInvisible());
@@ -437,7 +439,8 @@ void Detector::ConstructBottomVeto() {
                                                       plateBottomHoleRadius - shellThickWall,
                                                       bottomVetoShellHeight / 2.);
     G4ThreeVector bottomVetoShellPos = G4ThreeVector(
-        0, 0, -((coreTopSize.z() - bottomVetoShellHeight) / 2 + bottomCapHeight - bottomCapThick - holderHeight));
+                                                     0, 0, -((coreTopSize.z() - bottomVetoShellHeight) / 2 +
+                                                         bottomCapHeight - bottomCapThick - holderHeight));
 
     G4VSolid* bottomVetoShell = new G4Tubs("BottomVetoShell", bottomVetoShellSize.x(), bottomVetoShellSize.y(),
                                            bottomVetoShellSize.z(), 0, viewDeg);
@@ -450,7 +453,9 @@ void Detector::ConstructBottomVeto() {
     G4VSolid* bottomVetoShellTab = new G4Tubs("BottomVetoShellSize", bottomVetoShellTabSize.x(),
                                               bottomVetoShellTabSize.y(), bottomVetoShellTabSize.z(), 0, viewDeg);
     G4ThreeVector bottomVetoShellTabPos = bottomVetoShellPos + G4ThreeVector(
-        0, 0, (bottomVetoShellHeight - bottomVetoShellTabHeight) / 2. - bottomVetoHeight - tyvekBottomThickTop);
+                                                                             0, 0, (bottomVetoShellHeight -
+                                                                                 bottomVetoShellTabHeight) / 2. -
+                                                                             bottomVetoHeight - tyvekBottomThickTop);
     G4LogicalVolume* bottomVetoShellTabLV = new G4LogicalVolume(bottomVetoShellTab, AlMat, "BottomVetoShellTabLV");
     new G4PVPlacement(nullptr, bottomVetoShellTabPos, bottomVetoShellTabLV, "BottomVetoShellTabPVP", coreLV, false, 0,
                       true);
@@ -460,7 +465,8 @@ void Detector::ConstructBottomVeto() {
     tyvekBottomSize = G4ThreeVector(bottomVetoRadius, bottomVetoRadius + tyvekBottomThickWall,
                                     (bottomVetoHeight + tyvekBottomThickTop) / 2.);
     G4ThreeVector tyvekBottomPos = bottomVetoShellTabPos + G4ThreeVector(
-        0, 0, tyvekBottomSize.z() + bottomVetoShellTabHeight / 2.);
+                                                                         0, 0, tyvekBottomSize.z() +
+                                                                         bottomVetoShellTabHeight / 2.);
 
     G4VSolid* tyvekBottomWall = new G4Tubs("TyvekBottomWall", tyvekBottomSize.x(), tyvekBottomSize.y(),
                                            tyvekBottomSize.z(), 0, viewDeg);
@@ -487,7 +493,7 @@ void Detector::ConstructBottomVeto() {
                                                 bottomVetoOpticLayerHeight / 2., 0, viewDeg);
     bottomVetoOpticLayerLV = new G4LogicalVolume(bottomVetoOpticLayer, opticLayerMat, "BottomVetoOpticLayerLV");
     G4ThreeVector bottomVetoOpticLayerPos = bottomVetoShellTabPos + G4ThreeVector(
-        0, 0, (bottomVetoShellTabHeight - bottomVetoOpticLayerHeight) / 2.0);
+     0, 0, (bottomVetoShellTabHeight - bottomVetoOpticLayerHeight) / 2.0);
     bottomVetoOpticLayerPVP = new G4PVPlacement(nullptr, bottomVetoOpticLayerPos, bottomVetoOpticLayerLV,
                                                 "BottomVetoOpticLayerPVP", coreLV, false, 0, true);
     bottomVetoOpticLayerLV->SetVisAttributes(visOpticLayer);
@@ -548,7 +554,8 @@ void Detector::ConstructCrystal() {
     G4VSolid* crystalGlass = new G4Tubs("CrystalGlass", 0, crystalShellSize.x(), crystalGlassHeight / 2., 0, viewDeg);
     crystalGlassLV = new G4LogicalVolume(crystalGlass, glassMat, "CrystalGlassLV");
     G4ThreeVector crystalGlassPos = crystalShellPos + G4ThreeVector(
-        0, 0, -crystalShellSize.z() + crystalGlassHeight / 2.0);
+                                                                    0, 0, -crystalShellSize.z() + crystalGlassHeight /
+                                                                    2.0);
     new G4PVPlacement(nullptr, crystalGlassPos, crystalGlassLV, "CrystalGlassPVP", crystalContLV, false, 0, true);
     crystalGlassLV->SetVisAttributes(visGlass);
 
@@ -557,7 +564,8 @@ void Detector::ConstructCrystal() {
                                              viewDeg);
     crystalOpticLayerLV = new G4LogicalVolume(crystalOpticLayer, opticLayerMat, "CrystalOpticLayerLV");
     G4ThreeVector crystalOpticLayerPos = crystalContPos + G4ThreeVector(
-        0, 0, -crystalContSize.z() - crystalOpticLayerHeight / 2.0);
+                                                                        0, 0, -crystalContSize.z() -
+                                                                        crystalOpticLayerHeight / 2.0);
     crystalOpticLayerPVP = new G4PVPlacement(nullptr, crystalOpticLayerPos, crystalOpticLayerLV, "CrystalOpticLayerPVP",
                                              coreLV, false, 0, true);
     crystalOpticLayerLV->SetVisAttributes(visOpticLayer);
@@ -632,8 +640,8 @@ void Detector::ConstructHolder(G4ThreeVector& refPos, const G4String& prefix) {
     G4VSolid* springHole = new G4Tubs("SpringHole", 0, springRadius, springHolderHeight / 2. + 5 * mm, 0, 360 * deg);
     G4VSolid* tempSolid;
     G4double diff = -((springHolderGapX + springHolderGapY) / 4. + springRadius) + 0.5 * std::sqrt(
-        2 * springHoleCenterRadius * springHoleCenterRadius - (springHolderGapX - springHolderGapY) * (springHolderGapX
-            - springHolderGapY) / 4.);
+     2 * springHoleCenterRadius * springHoleCenterRadius - (springHolderGapX - springHolderGapY) * (springHolderGapX
+         - springHolderGapY) / 4.);
     std::vector<std::pair<G4int, G4int>> signs = {
         {1, 1}, {-1, 1}, {-1, -1}, {1, -1}
     };
@@ -672,9 +680,11 @@ void Detector::ConstructHolder(G4ThreeVector& refPos, const G4String& prefix) {
 void Detector::ConstructCrystalSiPM() {
     // Holder
     G4ThreeVector SiPMHolderPos = G4ThreeVector(
-        0, 0, coreTopSize.z() / 2. - (shellThickTop + crystalHeight + tyvekInThickTop + crystalShellThickTop +
-            crystalGlassHeight + crystalOpticLayerHeight + SiPMHeight + boardHeight + springLength +
-            holderThickBottom));
+                                                0, 0, coreTopSize.z() / 2. - (shellThickTop + crystalHeight +
+                                                    tyvekInThickTop + crystalShellThickTop +
+                                                    crystalGlassHeight + crystalOpticLayerHeight + SiPMHeight +
+                                                    boardHeight + springLength +
+                                                    holderThickBottom));
     ConstructHolder(SiPMHolderPos, "CrystalSiPM");
 
     // SiPM Container
@@ -762,8 +772,12 @@ void Detector::ConstructVetoSiPM() {
     for (size_t i = 0; i < vetoPayloadNumber; i++) {
         G4RotationMatrix* rotMat = new G4RotationMatrix(vetoPayloadPhase + i * 360 * deg / vetoPayloadNumber, 0, 0);
         G4ThreeVector payloadPos = vetoPayloadPos + G4ThreeVector(
-            vetoPayloadRadius * std::cos(vetoPayloadPhase + i * 360 * deg / vetoPayloadNumber),
-            vetoPayloadRadius * std::sin(vetoPayloadPhase + i * 360 * deg / vetoPayloadNumber), 0);
+                                                                  vetoPayloadRadius *
+                                                                  std::cos(vetoPayloadPhase + i * 360 * deg /
+                                                                           vetoPayloadNumber),
+                                                                  vetoPayloadRadius *
+                                                                  std::sin(vetoPayloadPhase + i * 360 * deg /
+                                                                           vetoPayloadNumber), 0);
         new G4PVPlacement(rotMat, payloadPos, vetoPayloadLV, "VetoPayloadPVP", detContainerLV, false, i, true);
     }
 
@@ -803,7 +817,7 @@ void Detector::ConstructVetoSiPM() {
 void Detector::ConstructBottomVetoSiPM() {
     // Holder
     G4ThreeVector SiPMHolderPos = G4ThreeVector(
-        0, 0, -coreTopSize.z() / 2. - bottomCapHeight + bottomCapThick);
+                                                0, 0, -coreTopSize.z() / 2. - bottomCapHeight + bottomCapThick);
     ConstructHolder(SiPMHolderPos, "BottomVetoSiPM");
 
     // SiPM Container

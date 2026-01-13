@@ -43,8 +43,7 @@ Utils::ConstMap Utils::ReadConstFile(const std::string& filename) {
         }
         if (iss >> unitTok) {
             // ok
-        }
-        else {
+        } else {
             unitTok.clear(); // dimensionless
         }
 
@@ -150,9 +149,9 @@ Utils::Table Utils::ReadCSV(const std::string& filename,
         if (clampNonNegative && v < 0.0) v = 0.0;
 
         rows.push_back(Row{
-            static_cast<G4double>(e_eV) * eV,
-            v * valueScale
-        });
+                           static_cast<G4double>(e_eV) * eV,
+                           v * valueScale
+                       });
     }
     file.close();
 
@@ -181,6 +180,113 @@ Utils::Table Utils::ReadCSV(const std::string& filename,
 
     ValidateSameSize(t, filename);
     return t;
+}
+
+Utils::EmissionTables Utils::ReadEmissionCSV(const std::string& filename,
+                                             G4double valueScale,
+                                             bool clampNonNegative) {
+    std::ifstream file(filename);
+    if (!file.is_open()) throw std::runtime_error("Can't open emission CSV file: " + filename);
+
+    struct Row {
+        G4double E;
+        G4double v1;
+        G4double v2;
+    };
+
+    std::vector<Row> rows;
+    rows.reserve(512);
+
+    std::string line;
+    while (std::getline(file, line)) {
+        line = Trim(line);
+        if (line.empty()) continue;
+        if (line[0] == '#') continue;
+        if (line.size() >= 2 && line[0] == '/' && line[1] == '/') continue;
+
+        std::stringstream ss(line);
+        std::string colE, col1, col2;
+
+        if (!std::getline(ss, colE, ',')) continue;
+        if (!std::getline(ss, col1, ',')) continue;
+        std::getline(ss, col2);
+
+        colE = Trim(colE);
+        col1 = Trim(col1);
+        col2 = Trim(col2);
+
+        if (colE.empty() || col1.empty()) continue;
+
+        double e_eV = 0.0;
+        double v1 = 0.0;
+
+        try {
+            e_eV = std::stod(colE);
+            v1 = std::stod(col1);
+        }
+        catch (...) {
+            continue;
+        }
+
+        double v2 = v1;
+        if (!col2.empty()) {
+            try {
+                v2 = std::stod(col2);
+            }
+            catch (...) {
+                v2 = v1;
+            }
+        }
+
+        if (clampNonNegative) {
+            if (v1 < 0.0) v1 = 0.0;
+            if (v2 < 0.0) v2 = 0.0;
+        }
+
+        rows.push_back(Row{
+                           e_eV * eV,
+                           v1 * valueScale,
+                           v2 * valueScale
+                       });
+    }
+
+    file.close();
+
+    if (rows.size() < 2) throw std::runtime_error("Emission CSV has <2 valid rows: " + filename);
+
+    std::sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
+        return a.E < b.E;
+    });
+
+    const G4double eps = 1e-12 * eV;
+    std::vector<Row> uniq;
+    uniq.reserve(rows.size());
+
+    for (const auto& r : rows) {
+        if (uniq.empty() || std::abs(r.E - uniq.back().E) > eps) {
+            uniq.push_back(r);
+        }
+    }
+
+    if (uniq.size() < 2) throw std::runtime_error("Emission CSV energies not increasing after de-dup: " + filename);
+
+    EmissionTables out;
+    out.c1.E.reserve(uniq.size());
+    out.c1.V.reserve(uniq.size());
+    out.c2.E.reserve(uniq.size());
+    out.c2.V.reserve(uniq.size());
+
+    for (const auto& r : uniq) {
+        out.c1.E.push_back(r.E);
+        out.c1.V.push_back(r.v1);
+        out.c2.E.push_back(r.E);
+        out.c2.V.push_back(r.v2);
+    }
+
+    ValidateSameSize(out.c1, filename + " [component1]");
+    ValidateSameSize(out.c2, filename + " [component2]");
+
+    return out;
 }
 
 void Utils::ValidateSameSize(const Table& t, const std::string& filename) {
@@ -239,39 +345,63 @@ void Utils::ApplyScintillation(G4Material* mat,
                                G4MaterialPropertiesTable* mpt,
                                const ConstMap& c,
                                const Table& scintComponent1,
-                               const Table* scintComponent2,
-                               bool requireYield,
-                               G4int yieldScale)
-{
+                               const Table& scintComponent2,
+                               bool requireYield) {
     if (!mat || !mpt) return;
 
-    // Components
+    // --- Component 1 always
     mpt->AddProperty("SCINTILLATIONCOMPONENT1",
                      scintComponent1.E, scintComponent1.V, scintComponent1.E.size());
 
-    const bool has2 = scintComponent2 != nullptr;
-    if (has2) {
-        mpt->AddProperty("SCINTILLATIONCOMPONENT2",
-                         scintComponent2->E, scintComponent2->V, scintComponent2->E.size());
+    // --- Decide whether we have component2 based on:
+    // 1) Presence of SCINTILLATIONYIELD2 or SCINTILLATIONTIMECONSTANT2 in consts
+    // 2) And at least one of:
+    //    - SCINTILLATIONYIELD2 > 0
+    //    - SCINTILLATIONYIELD1 < 1.0
+    //
+    // Also: if we end up using component2 but SCINTILLATIONYIELD2 is missing,
+    // we will set it to (1.0 - SCINTILLATIONYIELD1).
+    const bool hasYield2Key = (c.find("SCINTILLATIONYIELD2") != c.end());
+    const bool hasTau2Key = (c.find("SCINTILLATIONTIMECONSTANT2") != c.end());
+
+    const G4double y1 = GetOr(c, "SCINTILLATIONYIELD1", 1.0);
+    const G4double y2 = GetOr(c, "SCINTILLATIONYIELD2", 0.0);
+
+    G4bool has2 = false;
+    if ((hasYield2Key || hasTau2Key) && (y2 > 0.0 || y1 < 1.0)) {
+        has2 = true;
     }
 
-    // Yield (required or optional)
+    if (has2) {
+        mpt->AddProperty("SCINTILLATIONCOMPONENT2",
+                         scintComponent2.E, scintComponent2.V, scintComponent2.E.size());
+    }
+
     if (requireYield) {
         const auto it = c.find("SCINTILLATIONYIELD");
         if (it == c.end())
             throw std::runtime_error("Missing SCINTILLATIONYIELD in const map");
-        mpt->AddConstProperty("SCINTILLATIONYIELD", it->second / yieldScale);
+        mpt->AddConstProperty("SCINTILLATIONYIELD", it->second);
     }
 
-    // Always ok
     AddConstIfPresent(mpt, c, "RESOLUTIONSCALE");
     AddConstIfPresent(mpt, c, "SCINTILLATIONTIMECONSTANT1");
     AddConstIfPresent(mpt, c, "SCINTILLATIONYIELD1");
 
-    // Only meaningful if component2 exists
+    // --- Component 2 constants
     if (has2) {
         AddConstIfPresent(mpt, c, "SCINTILLATIONTIMECONSTANT2");
-        AddConstIfPresent(mpt, c, "SCINTILLATIONYIELD2");
+
+        // If SCINTILLATIONYIELD2 is not provided, derive it as (1 - Y1)
+        if (hasYield2Key) {
+            AddConstIfPresent(mpt, c, "SCINTILLATIONYIELD2");
+        } else {
+            // Clamp for robustness
+            G4double y2_derived = 1.0 - y1;
+            if (y2_derived < 0.0) y2_derived = 0.0;
+            if (y2_derived > 1.0) y2_derived = 1.0;
+            mpt->AddConstProperty("SCINTILLATIONYIELD2", y2_derived);
+        }
     }
 
     mat->SetMaterialPropertiesTable(mpt);
@@ -303,16 +433,14 @@ void Utils::ApplySurface(G4OpticalSurface* surf,
 
     if (reflectivity) {
         mpt->AddProperty("REFLECTIVITY", reflectivity->E, reflectivity->V, reflectivity->E.size());
-    }
-    else if (auto it = c.find("REFLECTIVITY"); it != c.end()) {
+    } else if (auto it = c.find("REFLECTIVITY"); it != c.end()) {
         auto t = MakeConstantTable(Emin, Emax, it->second);
         mpt->AddProperty("REFLECTIVITY", t.E.data(), t.V.data(), (G4int)t.E.size());
     }
 
     if (efficiency) {
         mpt->AddProperty("EFFICIENCY", efficiency->E, efficiency->V, efficiency->E.size());
-    }
-    else if (auto it = c.find("EFFICIENCY"); it != c.end()) {
+    } else if (auto it = c.find("EFFICIENCY"); it != c.end()) {
         auto t = MakeConstantTable(Emin, Emax, it->second);
         mpt->AddProperty("EFFICIENCY", t.E.data(), t.V.data(), (G4int)t.E.size());
     }
@@ -331,5 +459,5 @@ void Utils::ApplyBirksIfPresent(G4Material* mat, const ConstMap& c) {
     auto it = c.find("BIRKSCONSTANT");
     if (it == c.end()) return;
 
-    mat->GetIonisation()->SetBirksConstant(it->second * (mm/MeV));
+    mat->GetIonisation()->SetBirksConstant(it->second * (mm / MeV));
 }

@@ -33,9 +33,18 @@ public:
         std::vector<G4double> V;
     };
 
+    struct EmissionTables {
+        Table c1;
+        Table c2;
+    };
+
     static Table ReadCSV(const std::string& filename,
                          G4double valueScale = 1.0,
                          bool clampNonNegative = false);
+
+    static EmissionTables ReadEmissionCSV(const std::string& filename,
+                                          G4double valueScale = 1.0,
+                                          bool clampNonNegative = true);
 
     static void NormalizeMaxToOne(Table& t);
     static void ClampNonNegative(Table& t);
@@ -48,9 +57,8 @@ public:
                                    G4MaterialPropertiesTable* mpt,
                                    const ConstMap& c,
                                    const Table& scintComponent1,
-                                   const Table* scintComponent2 = nullptr,
-                                   bool requireYield = true,
-                                   G4int yieldScale = 1.0);
+                                   const Table& scintComponent2,
+                                   bool requireYield = true);
 
     static void ApplySurface(G4OpticalSurface* surf,
                              const ConstMap& c,
