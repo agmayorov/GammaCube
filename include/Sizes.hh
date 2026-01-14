@@ -56,7 +56,6 @@ namespace  Sizes {
     inline G4double tyvekMidThickWall{1 * mm};
     inline G4double tyvekMidThickTop{1 * mm};
 
-    inline G4double rubberRadius{23 * mm};
     inline G4double rubberHeight{0.5 * mm};
 
     inline G4double shellThickWall{2 * mm};
@@ -114,39 +113,7 @@ namespace  Sizes {
     inline G4int crystalSiPMCount{16};
     inline G4int vetoSiPMCount{8};
     inline G4int bottomVetoSiPMCount{4};
-    inline G4double crystalLEDWidth{3 * mm};
-    inline G4double crystalLEDLength{3 * mm};
-    inline G4double crystalLEDHeight{1 * mm};
 
-    inline G4int vetoLEDCount{4};
-    inline G4double vetoLEDWidth{3 * mm};
-    inline G4double vetoLEDLength{3 * mm};
-    inline G4double vetoLEDHeight{3 * mm};
-
-    inline G4int vetoBottomLEDCount{4};
-    inline G4double vetoBottomLEDWidth{3 * mm};
-    inline G4double vetoBottomLEDLength{3 * mm};
-    inline G4double vetoBottomLEDHeight{3 * mm};
-
-    inline G4double wireRadius{1 * mm};
-    inline G4double wireInsulationThick{0.2 * mm};
-
-    inline G4int pinCount{4};
-    inline G4double pinRadius{0.5 * mm};
-
-    inline G4double boardSpace{5 * mm};
-
-    inline G4double tunaCanMinSize{5 * mm};
-    inline G4double tyvekInMinSize{5 * mm};
-    inline G4double tyvekOutMinSize{5 * mm};
-    inline G4double tyvekMidMinSize{5 * mm};
-    inline G4double vetoMinSize{5 * mm};
-    inline G4double AlMinSize{5 * mm};
-    inline G4double rubberMinSize{5 * mm};
-    inline G4double crystalLEDMinSize{5 * mm};
-    inline G4double vetoLEDMinSize{5 * mm};
-    inline G4double vetoBottomLEDMinSize{5 * mm};
-
-};
+}
 
 #endif //SIZES_HH
