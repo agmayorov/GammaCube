@@ -133,6 +133,7 @@ Loader::Loader(int argc, char** argv) {
         effArea = runAction->GetEffArea();
     }
     SaveConfig();
+    RunPostProcessing();
 }
 
 Loader::~Loader() {
@@ -318,6 +319,14 @@ void Loader::SaveConfig() const {
     buf << "Crystal_only: " << crystalOnly << "\n\t";
     buf << "Veto_then_Crystal: " << crystalAndVeto << "\n}\n\n";
 
+    buf << "Thresholds:\n{\n\t";
+    buf << std::fixed << std::setprecision(6);
+    if (rate_ok) {
+        buf << "Crystal: " << eCrystalThreshold << "\n\t";
+        buf << "Veto: " << eVetoThreshold << "\n";
+    }
+    buf << "}\n\n";
+
     buf << "Rates:\n{\n\t";
     buf << std::fixed << std::setprecision(6);
     if (rate_ok) {
@@ -334,9 +343,9 @@ void Loader::SaveConfig() const {
         buf << "Rate_Both: NaN\n";
     }
     if (rate_real_ok) {
-        buf << "Rate_Real_Crystal_only: " << rrReal.rateRealCrystal << "\n";
+        buf << "Rate_Real: " << rrReal.rateRealCrystal << "\n";
     } else {
-        buf << "Rate_Real_Crystal_only: NaN\n";
+        buf << "Rate_Real: NaN\n";
     }
     buf << "}\n\n";
 
@@ -350,10 +359,9 @@ void Loader::SaveConfig() const {
         const std::string part = ReadValue("particle:");
         const std::string phi = ReadValue("phiMV:");
         filename += "_particle:" + part + "_phiMV:" + phi + ".txt";
-        // } else if (fluxType == "SEP") {
-        //     const std::string y = ReadValue("year:");
-        //     const std::string order = ReadValue("order:");
-        //     filename += "_year:" + y + "_order:" + order + ".txt";
+    } else if (fluxType == "Uniform") {
+        const std::string part = ReadValue("particle:");
+        filename += "_particle:" + part + ".txt";
     } else {
         filename += ".txt";
     }
@@ -368,4 +376,42 @@ void Loader::SaveConfig() const {
     out.close();
 
     std::cout << "Configuration saved in " << filename << std::endl;
+}
+
+
+void Loader::RunPostProcessing() const {
+    auto sanitize = [](std::string ss) {
+        for (char& c : ss) if (c == ' ') c = '_';
+        return ss;
+    };
+    std::string part = ReadValue("particle:");
+
+    G4double Emin = std::stod(ReadValue("E_min:"));
+    G4double Emax = std::stod(ReadValue("E_max:"));
+    try {
+        std::cout << "Processing... ";
+        std::string outDir = fluxType;
+        if (fluxType == "Galactic") {
+            const std::string phi = ReadValue("phiMV:");
+            outDir += "_particle:" + part + "_phiMV:" + phi;
+        } else if (fluxType == "Uniform") {
+            outDir += "_particle:" + part;
+        } else if (fluxType == "PLAW" || fluxType == "COMP") {
+            part = "gamma";
+        } else if (fluxType == "SEP") {
+            part = "proton";
+        }
+        outDir = sanitize(outDir);
+        PostProcessing postProcessing(outputFile, outDir, saveSecondaries, useOptics, Emin, Emax, eCrystalThreshold,
+                                      part);
+
+        postProcessing.ExtractNtData();
+        postProcessing.SaveEffArea();
+        postProcessing.SaveSensitivity();
+
+        std::cout << "Done!\n";
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << "\n";
+    }
 }

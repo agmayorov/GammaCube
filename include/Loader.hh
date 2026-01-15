@@ -30,6 +30,7 @@
 #include "Sizes.hh"
 #include "ActionInitialization.hh"
 #include "CountRates.hh"
+#include "PostProcessing.hh"
 
 #ifdef G4MULTITHREADED
 #include <G4MTRunManager.hh>
@@ -81,8 +82,7 @@ private:
 
     [[nodiscard]] std::string ReadValue(const std::string &, const std::string &) const;
     void SaveConfig() const;
-
-    void ParseGeomConfig();
+    void RunPostProcessing() const;
 };
 
 #endif //LOADER_HH
