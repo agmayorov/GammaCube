@@ -360,7 +360,7 @@ void Loader::SaveConfig() const {
         const std::string phi = ReadValue("phiMV:");
         filename += "_particle:" + part + "_phiMV:" + phi + ".txt";
     } else if (fluxType == "Uniform") {
-        const std::string part = ReadValue("particle:");
+        const std::string part = ReadValue("particles:");
         filename += "_particle:" + part + ".txt";
     } else {
         filename += ".txt";
@@ -384,7 +384,7 @@ void Loader::RunPostProcessing() const {
         for (char& c : ss) if (c == ' ') c = '_';
         return ss;
     };
-    std::string part = ReadValue("particle:");
+    std::string part;
 
     G4double Emin = std::stod(ReadValue("E_min:"));
     G4double Emax = std::stod(ReadValue("E_max:"));
@@ -393,9 +393,11 @@ void Loader::RunPostProcessing() const {
         std::string outDir = fluxType;
         if (fluxType == "Galactic") {
             const std::string phi = ReadValue("phiMV:");
+            part = ReadValue("particle:");
             outDir += "_particle:" + part + "_phiMV:" + phi;
         } else if (fluxType == "Uniform") {
-            outDir += "_particle:" + part;
+            part = ReadValue("particles:");
+            outDir += "_particles:" + part;
         } else if (fluxType == "PLAW" || fluxType == "COMP") {
             part = "gamma";
         } else if (fluxType == "SEP") {
@@ -406,8 +408,10 @@ void Loader::RunPostProcessing() const {
                                       part);
 
         postProcessing.ExtractNtData();
-        postProcessing.SaveEffArea();
-        postProcessing.SaveSensitivity();
+        if (fluxDirection == "isotropic")
+            postProcessing.SaveSensitivity();
+        else
+            postProcessing.SaveEffArea();
 
         std::cout << "Done!\n";
     }
