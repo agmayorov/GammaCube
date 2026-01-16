@@ -3,7 +3,7 @@
 #include "PrimaryGeneratorAction.hh"
 
 
-PrimaryGeneratorAction::PrimaryGeneratorAction(G4String fDir, const G4String &fluxType)
+PrimaryGeneratorAction::PrimaryGeneratorAction(G4String fDir, const G4String& fluxType)
     : particleGun(new G4ParticleGun(1)),
       center(G4ThreeVector(0, 0, -Sizes::modelHeight / 2.0)),
       detectorHalfSize(G4ThreeVector(0 * mm, Sizes::modelRadius, Sizes::modelHeight)),
@@ -13,11 +13,14 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(G4String fDir, const G4String &fl
                                                 detectorHalfSize.z());
     radius = sqrt(tempVec.y() * tempVec.y() + tempVec.z() * tempVec.z()) + 5 * mm;
 
-    std::vector<G4String> fluxDirList = {"isotropic", "vertical", "horizontal"};
+    std::vector<G4String> fluxDirList = {
+        "isotropic", "isotropic_up", "isotropic_down", "vertical_up", "vertical_down", "horizontal"
+    };
     if (std::find(fluxDirList.begin(), fluxDirList.end(), fluxDirection) == fluxDirList.end()) {
         G4Exception("PrimaryGeneratorAction::GeneratePrimaries", "FluxDirection", FatalException,
                     ("Flux direction is not implemented: " + fluxDirection +
-                     ".\nAvailable flux directions: isotropic, vertical, horizontal").c_str());
+                        ".\nAvailable flux directions: isotropic, isotropic_up, isotropic_down, vertical_up," +
+                        " vertical_down, horizontal").c_str());
     }
     std::vector<G4String> fluxTypeList = {"Uniform", "PLAW", "COMP", "SEP", "Galactic", "Table"};
     if (std::find(fluxTypeList.begin(), fluxTypeList.end(), fluxType) == fluxTypeList.end()) {
@@ -47,9 +50,15 @@ PrimaryGeneratorAction::~PrimaryGeneratorAction() {
 }
 
 
-void PrimaryGeneratorAction::GenerateOnSphere(G4ThreeVector &pos, G4ThreeVector &dir) const {
-    const G4double u = 2.0 * G4UniformRand() - 1.0; // cos(theta) ~ U[-1,1]
-    // const G4double u = G4UniformRand(); // cos(theta) ~ U[0,1]
+void PrimaryGeneratorAction::GenerateOnSphere(G4ThreeVector& pos, G4ThreeVector& dir) const {
+    G4double u = 0;
+    if (fluxDirection == "isotropic") {
+        u = 2.0 * G4UniformRand() - 1.0; // cos(theta) ~ U[-1,1]
+    } else if (fluxDirection == "isotropic_up") {
+        u = G4UniformRand(); // cos(theta) ~ U[0,1]
+    } else if (fluxDirection == "isotropic_down") {
+        u = -G4UniformRand(); // cos(theta) ~ U[-1,0]
+    }
     const G4double phi = 2.0 * M_PI * G4UniformRand();
     const G4double l = std::sqrt(std::max(0.0, 1.0 - u * u));
     const G4ThreeVector rhat(l * std::cos(phi), l * std::sin(phi), u);
@@ -73,9 +82,17 @@ void PrimaryGeneratorAction::GenerateOnSphere(G4ThreeVector &pos, G4ThreeVector 
 }
 
 
-void PrimaryGeneratorAction::GeneratePrimaries(G4Event *evt) {
+void PrimaryGeneratorAction::GeneratePrimaries(G4Event* evt) {
     G4ThreeVector x, v;
-    if (fluxDirection == "vertical") {
+    if (fluxDirection == "vertical_up") {
+        v = G4ThreeVector(0., 0., 1.);
+        const G4double r = std::sqrt(G4UniformRand() * detectorHalfSize.y() * detectorHalfSize.y());
+        const G4double phi = G4UniformRand() * 2 * pi;
+        const G4double x_ = r * std::cos(phi);
+        const G4double y_ = r * std::sin(phi);
+        const G4double z_ = -radius;
+        x = G4ThreeVector(x_, y_, z_);
+    } else if (fluxDirection == "vertical_down") {
         v = G4ThreeVector(0., 0., -1.);
         const G4double r = std::sqrt(G4UniformRand() * detectorHalfSize.y() * detectorHalfSize.y());
         const G4double phi = G4UniformRand() * 2 * pi;
@@ -101,7 +118,7 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event *evt) {
     particleGun->SetParticleTime(0.0 * ns);
     particleGun->GeneratePrimaryVertex(evt);
 
-    if (auto *ea = dynamic_cast<EventAction *>(G4EventManager::GetEventManager()->GetUserEventAction())) {
+    if (auto* ea = dynamic_cast<EventAction*>(G4EventManager::GetEventManager()->GetUserEventAction())) {
         PrimaryRec rec;
         rec.index = static_cast<int>(ea->primBuf.size());
         rec.pdg = info.pdg;

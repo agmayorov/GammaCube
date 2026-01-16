@@ -42,6 +42,8 @@ public:
     void SaveEffArea();
     void SaveSensitivity();
 
+    void SaveTrigEdepCsv();
+
 private:
     std::string rootFilePath;
     std::string outputFolderName;

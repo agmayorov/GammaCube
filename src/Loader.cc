@@ -100,8 +100,14 @@ Loader::Loader(int argc, char** argv) {
 
     if (fluxDirection == "isotropic") {
         dir = FluxDir::Isotropic;
-    } else if (fluxDirection == "vertical") {
-        dir = FluxDir::Vertical;
+    } else if (fluxDirection == "isotropic_up") {
+        dir = FluxDir::Isotropic_up;
+    } else if (fluxDirection == "isotropic_down") {
+        dir = FluxDir::Isotropic_down;
+    } else if (fluxDirection == "vertical_up") {
+        dir = FluxDir::Vertical_up;
+    } else if (fluxDirection == "vertical_down") {
+        dir = FluxDir::Vertical_down;
     } else if (fluxDirection == "horizontal") {
         dir = FluxDir::Horizontal;
     }
@@ -408,10 +414,11 @@ void Loader::RunPostProcessing() const {
                                       part);
 
         postProcessing.ExtractNtData();
-        if (fluxDirection == "isotropic")
+        if (fluxDirection == "isotropic" || fluxDirection == "isotropic_down" || fluxDirection == "isotropic_up")
             postProcessing.SaveSensitivity();
         else
             postProcessing.SaveEffArea();
+        postProcessing.SaveTrigEdepCsv();
 
         std::cout << "Done!\n";
     }

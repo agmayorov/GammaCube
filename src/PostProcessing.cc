@@ -333,3 +333,109 @@ void PostProcessing::SaveSensitivity() {
 
     out.close();
 }
+
+void PostProcessing::SaveTrigEdepCsv() {
+    TTree* primary = nullptr;
+    rootFile->GetObject("primary", primary);
+    if (!primary) {
+        throw std::runtime_error("TTree not found: primary");
+    }
+
+    Int_t eventID_p = 0;
+    double E0 = 0.0;
+
+    primary->SetBranchStatus("*", false);
+    primary->SetBranchStatus("eventID", true);
+    primary->SetBranchStatus("E_MeV", true);
+
+    primary->SetBranchAddress("eventID", &eventID_p);
+    primary->SetBranchAddress("E_MeV", &E0);
+
+    std::unordered_map<int, double> e0ByEvent;
+    e0ByEvent.reserve(std::max<Long64_t>(1, primary->GetEntries()));
+
+    const Long64_t nP = primary->GetEntries();
+    for (Long64_t i = 0; i < nP; ++i) {
+        primary->GetEntry(i);
+        e0ByEvent[eventID_p] = E0;
+    }
+
+    TTree* edep = nullptr;
+    rootFile->GetObject("edep", edep);
+    if (!edep) {
+        throw std::runtime_error("TTree not found: edep");
+    }
+
+    Int_t eventID_e = 0;
+
+    Char_t det_name[64] = {};
+
+    double edep_MeV = 0.0;
+
+    edep->SetBranchStatus("*", false);
+    edep->SetBranchStatus("eventID", true);
+    edep->SetBranchStatus("det_name", true);
+    edep->SetBranchStatus("edep_MeV", true);
+
+    edep->SetBranchAddress("eventID", &eventID_e);
+    edep->SetBranchAddress("det_name", det_name);
+    edep->SetBranchAddress("edep_MeV", &edep_MeV);
+
+    struct Agg {
+        double crystal = 0.0;
+        double veto = 0.0;
+        double bottomVeto = 0.0;
+    };
+
+    std::unordered_map<int, Agg> agg;
+    agg.reserve(std::max<Long64_t>(1, edep->GetEntries()));
+
+    const Long64_t nE = edep->GetEntries();
+    for (Long64_t i = 0; i < nE; ++i) {
+        edep->GetEntry(i);
+
+        auto& a = agg[eventID_e];
+
+        if (std::strcmp(det_name, "Crystal") == 0) {
+            a.crystal += edep_MeV;
+        } else if (std::strcmp(det_name, "Veto") == 0) {
+            a.veto += edep_MeV;
+        } else if (std::strcmp(det_name, "BottomVeto") == 0) {
+            a.bottomVeto += edep_MeV;
+        }
+    }
+
+    const std::string outPath = (fs::path(histogramsDir) / "trig_edep.csv").string();
+    std::ofstream out(outPath);
+    if (!out.is_open()) {
+        throw std::runtime_error("Cannot open output CSV: " + outPath);
+    }
+
+    out << "eventID,E0,Crystal_only_edep\n";
+    out << std::setprecision(17);
+
+    std::vector<int> events;
+    events.reserve(e0ByEvent.size());
+    for (const auto& kv : e0ByEvent) events.push_back(kv.first);
+    std::sort(events.begin(), events.end());
+
+    for (int evt : events) {
+        const double e0 = e0ByEvent.at(evt);
+
+        double crystal_only = 0.0;
+        auto it = agg.find(evt);
+        if (it != agg.end()) {
+            const double c = it->second.crystal;
+            const double v = it->second.veto;
+            const double b = it->second.bottomVeto;
+
+            if (c > 0.0 && v + b == 0.0) {
+                crystal_only = c;
+            }
+        }
+
+        out << evt << "," << e0 << "," << crystal_only << "\n";
+    }
+
+    out.close();
+}

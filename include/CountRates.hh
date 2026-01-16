@@ -66,7 +66,7 @@ double fluxGalactic(double E);
 
 double J_proton(double E_GeV);
 
-enum class FluxDir { Vertical, Horizontal, Isotropic };
+enum class FluxDir { Vertical_down, Vertical_up, Horizontal, Isotropic_up, Isotropic_down, Isotropic };
 
 double Area_cm2(double R_mm, double H_mm, FluxDir dir);
 
