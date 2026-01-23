@@ -20,6 +20,11 @@ G4bool SensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *) {
     const G4double edep = step->GetTotalEnergyDeposit();
     if (edep <= 0.) return false;
 
+    auto* track = step->GetTrack();
+    if (track->GetDefinition() == G4OpticalPhoton::OpticalPhotonDefinition()) {
+        return false;
+    }
+
     const G4VTouchable *touch = step->GetPreStepPoint()->GetTouchable();
     const int volumeID = touch->GetVolume()->GetCopyNo();
 
