@@ -14,22 +14,27 @@ ActionInitialization::ActionInitialization(G4String fDir, G4String fType, const 
                                                             EminMeV(Emin),
                                                             EmaxMeV(Emax),
                                                             area(a),
-                                                            fileName(std::move(file)) {}
+                                                            fileName(std::move(file)) {
+    if (eCrystalThreshold > EmaxMeV) {
+        G4Exception("ActionInitialization", "EnergyRange", FatalException,
+                    "The energy threshold for a crystal must be less than the maximum value in a given energy range");
+    }
+}
 
 void ActionInitialization::BuildForMaster() const {
-    RunAction* runAct = new RunAction(nBins, EminMeV, EmaxMeV, area, fileName);
+    RunAction* runAct = new RunAction(nBins, EminMeV, EmaxMeV, eCrystalThreshold, area, fileName);
     SetUserAction(runAct);
 }
 
 void ActionInitialization::Build() const {
-    RunAction* runAct = new RunAction(nBins, EminMeV, EmaxMeV, area, fileName);
+    RunAction* runAct = new RunAction(nBins, EminMeV, EmaxMeV, eCrystalThreshold, area, fileName);
     SetUserAction(runAct);
 
     EventAction* eventAct = new EventAction(runAct->analysisManager, runAct, eCrystalThreshold, eVetoThreshold,
                                             useOptics, saveSecondaries);
     SetUserAction(eventAct);
 
-    PrimaryGeneratorAction* primaryGenerator = new PrimaryGeneratorAction(fluxDirection, fluxType);
+    PrimaryGeneratorAction* primaryGenerator = new PrimaryGeneratorAction(fluxDirection, fluxType, eCrystalThreshold);
     SetUserAction(primaryGenerator);
 
     SteppingAction* stepAct = new SteppingAction();

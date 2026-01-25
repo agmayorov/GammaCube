@@ -1,7 +1,7 @@
 #include "Flux/UniformFlux.hh"
 
 
-UniformFlux::UniformFlux() {
+UniformFlux::UniformFlux(G4double cThreshold) : eCrystalThreshold(cThreshold) {
     const G4String filepath = "../Flux_config/Uniform_params.txt";
 
     const G4String particleLine = GetParam(filepath, "particles", "");
@@ -71,7 +71,7 @@ std::vector<G4double> UniformFlux::ParseDoubles(const G4String &line) {
 
 G4double UniformFlux::SampleEnergy() {
     const size_t idx = SampleIndex();
-    Emin = EminVec[idx] * MeV;
+    Emin = std::max({EminVec[idx] * MeV, eCrystalThreshold});
     Emax = EmaxVec[idx] * MeV;
     particle = particles[idx];
 

@@ -281,6 +281,7 @@ static double adaptiveSimpsonRec(const std::function<double(double)>& f,
 double integrateAdaptiveSimpson(const std::function<double(double)>& f,
                                 const double a, const double b,
                                 const double rel_tol, const int max_depth) {
+    if (a == b) return 0;
     const double initial = simpson(f, a, b);
     const double eps = rel_tol * std::max(1.0, std::fabs(initial));
     return adaptiveSimpsonRec(f, a, b, eps, initial, max_depth);

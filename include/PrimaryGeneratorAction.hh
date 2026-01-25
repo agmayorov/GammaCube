@@ -32,7 +32,7 @@
 
 class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction {
 public:
-    PrimaryGeneratorAction(G4String , const G4String &);
+    PrimaryGeneratorAction(G4String , const G4String &, G4double cThreshold);
     ~PrimaryGeneratorAction() override;
 
     void GeneratePrimaries(G4Event *evt) override;
@@ -48,6 +48,8 @@ private:
     ParticleInfo pInfo{};
 
     Flux *flux;
+
+    G4double eCrystalThreshold;
 
     void GenerateOnSphere(G4ThreeVector &pos, G4ThreeVector &dir) const;
 };

@@ -14,7 +14,7 @@ struct Row {
 
 class SEPFlux : public Flux {
 public:
-    SEPFlux();
+    explicit SEPFlux(G4double cThreshold);
 
 private:
     std::string path;

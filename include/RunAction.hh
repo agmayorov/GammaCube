@@ -28,7 +28,7 @@ public:
     AnalysisManager *analysisManager;
 
     RunAction();
-    RunAction(int nbins, double Emin_MeV, double Emax_MeV, double Agen_cm2,
+    RunAction(int nbins, double Emin_MeV, double Emax_MeV, double cThreshold, double Agen_cm2,
               const std::string& rootFileName = "GammaCube");
     ~RunAction() override;
 
@@ -43,7 +43,7 @@ public:
 
     [[nodiscard]] const ParticleCounts& GetCounts() const { return totals; }
 
-    const std::vector<double>& GetEffArea() const { return effArea; }
+    [[nodiscard]] const std::vector<double>& GetEffArea() const { return effArea; }
 
 private:
     G4Accumulable<G4int> crystalOnly{0};   // Crystal && !Veto
@@ -53,6 +53,7 @@ private:
     int nBins{0};
     double EminMeV{0.0};
     double EmaxMeV{0.0};
+    double eCrystalThreshold{0.0};
     double area{0.0};
 
     double logEmin{0.0};
@@ -61,7 +62,7 @@ private:
 
     std::vector<G4Accumulable<G4double>> genCounts;
     std::vector<G4Accumulable<G4double>> trigCounts;
-    std::vector<double> effArea;
+    std::vector<G4double> effArea;
 
     [[nodiscard]] int FindBinLog(double E_MeV) const;
     [[nodiscard]] double BinCenterMeV(int i) const;

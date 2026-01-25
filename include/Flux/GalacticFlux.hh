@@ -6,7 +6,7 @@
 
 class GalacticFlux : public Flux {
 public:
-    GalacticFlux();
+    explicit GalacticFlux(G4double cThreshold);
 
 private:
     G4double phiMV{};

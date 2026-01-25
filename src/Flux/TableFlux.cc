@@ -1,12 +1,12 @@
 #include "Flux/TableFlux.hh"
 
 
-TableFlux::TableFlux() {
+TableFlux::TableFlux(const G4double cThreshold) {
     configFile = "../Flux_config/Table_params.txt";
     path = GetParam(configFile, "table_path", "../TableSpectrum/flare_M2.csv");
     particle = GetParam(configFile, "particle", "proton");
 
-    Emin = GetParam(configFile, "E_min", 10.) * MeV;
+    Emin = std::max({GetParam(configFile, "E_min", 10.) * MeV, cThreshold});
     Emax = GetParam(configFile, "E_max", 100.) * MeV;
 
     BuildCDF();

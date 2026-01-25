@@ -1,13 +1,13 @@
 #include "Flux/PLAWFlux.hh"
 
 
-PLAWFlux::PLAWFlux() {
+PLAWFlux::PLAWFlux(const G4double cThreshold) {
     particle = "gamma";
 
     configFile = "../Flux_config/PLAW_params.txt";
     alpha = GetParam(configFile, "alpha", 1.411103);
 
-    Emin = GetParam(configFile, "E_min", 0.01) * MeV;
+    Emin = std::max({GetParam(configFile, "E_min", 0.01) * MeV, cThreshold});
     Emax = GetParam(configFile, "E_max", 100.) * MeV;
 }
 

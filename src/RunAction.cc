@@ -10,20 +10,21 @@ RunAction::RunAction() {
     mgr->Register(crystalAndVeto);
 }
 
-RunAction::RunAction(int nbins, double Emin_MeV, double Emax_MeV, double Agen_cm2,
-                     const std::string& rootFileName) : nBins(nbins),
-                                                        EminMeV(Emin_MeV),
-                                                        EmaxMeV(Emax_MeV),
-                                                        area(Agen_cm2) {
+RunAction::RunAction(const int bins, const double Emin_MeV, const double Emax_MeV, const double cThreshold,
+                     const double Agen_cm2, const std::string& rootFileName) : nBins(bins),
+                                                                               EminMeV(Emin_MeV),
+                                                                               EmaxMeV(Emax_MeV),
+                                                                               eCrystalThreshold(cThreshold),
+                                                                               area(Agen_cm2) {
     analysisManager = new AnalysisManager(rootFileName, nBins, EminMeV, EmaxMeV);
     if (nBins < 1) {
         throw std::runtime_error("RunAction: nbins must be >= 1");
     }
-    if (EminMeV <= 0.0 || EmaxMeV <= 0.0 || EmaxMeV <= EminMeV) {
+    if (EminMeV <= 0.0 || EmaxMeV <= 0.0 || EmaxMeV < EminMeV) {
         throw std::runtime_error("RunAction: invalid Emin/Emax");
     }
-
-    logEmin = std::log10(EminMeV);
+    G4double E_low = EmaxMeV > EminMeV ? EminMeV : eCrystalThreshold;
+    logEmin = std::log10(E_low);
     logEmax = std::log10(EmaxMeV);
     invDlogE = static_cast<double>(nBins) / (logEmax - logEmin);
 
@@ -40,14 +41,16 @@ void RunAction::BookAccumulables() {
 
     genCounts.clear();
     trigCounts.clear();
-    genCounts.reserve(nBins);
+    genCounts.reserve(EminMeV < EmaxMeV ? nBins : 1);
     trigCounts.reserve(nBins);
 
     for (int i = 0; i < nBins; ++i) {
-        genCounts.emplace_back(0.0);
         trigCounts.emplace_back(0.0);
-        mgr->Register(genCounts.back());
         mgr->Register(trigCounts.back());
+    }
+    for (int i = 0; i < (EminMeV < EmaxMeV ? nBins : 1); ++i) {
+        genCounts.emplace_back(0.0);
+        mgr->Register(genCounts.back());
     }
 }
 
@@ -70,14 +73,17 @@ void RunAction::EndOfRunAction(const G4Run*) {
     if (G4Threading::IsMasterThread()) {
         totals.crystalAndVeto = crystalAndVeto.GetValue();
         totals.crystalOnly = crystalOnly.GetValue();
-        FillDerivedHists();
+        if (EminMeV < EmaxMeV) {
+            FillDerivedHists();
+        }
     }
 
     analysisManager->Close();
 }
 
 int RunAction::FindBinLog(double E_MeV) const {
-    if (E_MeV < EminMeV || E_MeV >= EmaxMeV) return -1;
+    const double E_low = EmaxMeV > EminMeV ? EminMeV : eCrystalThreshold;
+    if (E_MeV < E_low || E_MeV >= EmaxMeV) return -1;
     const double le = std::log10(E_MeV);
     int idx = static_cast<int>((le - logEmin) * invDlogE);
 
@@ -111,12 +117,12 @@ double RunAction::BinWidthMeV(int i) const {
 }
 
 void RunAction::AddGenerated(double E_MeV) {
-    const int i = FindBinLog(E_MeV);
+    const int i = EminMeV < EmaxMeV ? FindBinLog(E_MeV) : 0;
     if (i < 0) return;
 
     genCounts[i] += 1.0;
 
-    if (analysisManager) {
+    if (analysisManager and EminMeV < EmaxMeV) {
         analysisManager->FillGenEnergyHist(E_MeV, 1.0);
     }
 }
@@ -127,7 +133,7 @@ void RunAction::AddTriggeredCrystalOnly(double E_MeV) {
 
     trigCounts[i] += 1.0;
 
-    if (analysisManager) {
+    if (analysisManager and EminMeV < EmaxMeV) {
         analysisManager->FillTrigEnergyHist(E_MeV, 1.0);
     }
 }

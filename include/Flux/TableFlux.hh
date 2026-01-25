@@ -20,7 +20,7 @@
 
 class TableFlux : public Flux {
 public:
-    TableFlux();
+    explicit TableFlux(G4double cThreshold);
 
 private:
     G4String path;

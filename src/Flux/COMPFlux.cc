@@ -1,13 +1,13 @@
 #include "Flux/COMPFlux.hh"
 
-COMPFlux::COMPFlux() {
+COMPFlux::COMPFlux(const G4double cThreshold) {
     particle = "gamma";
 
     configFile = "../Flux_config/COMP_params.txt";
     alpha = GetParam(configFile, "alpha", 1.18511);
     E_Peak = GetParam(configFile, "E_Peak", 1.809619) * MeV;
 
-    Emin = GetParam(configFile, "E_min", 0.01) * MeV;
+    Emin = std::max({GetParam(configFile, "E_min", 0.01) * MeV, cThreshold});
     Emax = GetParam(configFile, "E_max", 50.) * MeV;
 
     BuildCDF();

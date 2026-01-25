@@ -56,9 +56,6 @@ void PostProcessing::PrepareOutputDirs() {
         fs::remove_all(runDir);
     }
 
-    fs::create_directories(effectiveAreaDir);
-    fs::create_directories(sensitivityDir);
-    fs::create_directories(csvDir);
     fs::create_directories(histogramsDir);
 }
 
@@ -218,6 +215,8 @@ void PostProcessing::ExportTreeToCsv(const std::string& treeName,
 }
 
 void PostProcessing::ExtractNtData() {
+    fs::create_directories(csvDir);
+
     ExportTreeToCsv("edep", (fs::path(csvDir) / "edep.csv").string());
     ExportTreeToCsv("primary", (fs::path(csvDir) / "primary.csv").string());
 
@@ -233,6 +232,8 @@ void PostProcessing::ExtractNtData() {
 }
 
 void PostProcessing::SaveEffArea() {
+    fs::create_directories(effectiveAreaDir);
+
     TH1* gen = GetHistOrThrow("genEnergyHist");
     TH1* trig = GetHistOrThrow("trigEnergyHist");
     TH1* effArea = GetHistOrThrow("effAreaHist");
@@ -289,6 +290,8 @@ void PostProcessing::SaveEffArea() {
 }
 
 void PostProcessing::SaveSensitivity() {
+    fs::create_directories(sensitivityDir);
+
     TH1* gen = GetHistOrThrow("genEnergyHist");
     TH1* trig = GetHistOrThrow("trigEnergyHist");
     TH1* sens = GetHistOrThrow("sensitivityHist");

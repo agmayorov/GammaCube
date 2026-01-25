@@ -5,7 +5,7 @@
 
 class PLAWFlux : public Flux {
 public:
-    PLAWFlux();
+    explicit PLAWFlux(G4double cThreshold);
 
 private:
     G4double alpha{};

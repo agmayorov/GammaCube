@@ -3,11 +3,12 @@
 #include "PrimaryGeneratorAction.hh"
 
 
-PrimaryGeneratorAction::PrimaryGeneratorAction(G4String fDir, const G4String& fluxType)
+PrimaryGeneratorAction::PrimaryGeneratorAction(G4String fDir, const G4String& fluxType, const G4double cThreshold)
     : particleGun(new G4ParticleGun(1)),
       center(G4ThreeVector(0, 0, -Sizes::modelHeight / 2.0)),
       detectorHalfSize(G4ThreeVector(0 * mm, Sizes::modelRadius, Sizes::modelHeight)),
-      fluxDirection(std::move(fDir)) {
+      fluxDirection(std::move(fDir)),
+      eCrystalThreshold(cThreshold) {
     const G4ThreeVector tempVec = G4ThreeVector(0,
                                                 detectorHalfSize.y(),
                                                 detectorHalfSize.z());
@@ -25,22 +26,23 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(G4String fDir, const G4String& fl
     std::vector<G4String> fluxTypeList = {"Uniform", "PLAW", "COMP", "SEP", "Galactic", "Table"};
     if (std::find(fluxTypeList.begin(), fluxTypeList.end(), fluxType) == fluxTypeList.end()) {
         G4Exception("PrimaryGeneratorAction::GeneratePrimaries", "FluxType", FatalException,
-                    ("Flux type not found: " + fluxType + ".\nAvailable flux types: Uniform, PLAW, SEP, Galactic").
+                    ("Flux type not found: " + fluxType + ".\nAvailable flux types: Uniform, PLAW, SEP, Galactic")
+                    .
                     c_str());
     }
 
     if (fluxType == "Uniform") {
-        flux = new UniformFlux();
+        flux = new UniformFlux(eCrystalThreshold);
     } else if (fluxType == "PLAW") {
-        flux = new PLAWFlux();
+        flux = new PLAWFlux(eCrystalThreshold);
     } else if (fluxType == "COMP") {
-        flux = new COMPFlux();
+        flux = new COMPFlux(eCrystalThreshold);
     } else if (fluxType == "SEP") {
-        flux = new SEPFlux();
+        flux = new SEPFlux(eCrystalThreshold);
     } else if (fluxType == "Galactic") {
-        flux = new GalacticFlux();
+        flux = new GalacticFlux(eCrystalThreshold);
     } else if (fluxType == "Table") {
-        flux = new TableFlux();
+        flux = new TableFlux(eCrystalThreshold);
     }
 }
 

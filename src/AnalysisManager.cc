@@ -81,40 +81,42 @@ void AnalysisManager::Book() {
     analysisManager->CreateNtupleIColumn("npe");
     analysisManager->FinishNtuple(SiPMChannelNT);
 
-    const G4String unit = "MeV";
-    const G4String logScheme = "log";
+    if (xMin < xMax) {
+        const G4String unit = "MeV";
+        const G4String logScheme = "log";
 
-    genEnergyHist = analysisManager->CreateH1("genEnergyHist",
-                                              "N_{gen} vs E",
-                                              nBins, xMin, xMax, unit, "none", logScheme);
-
-    trigEnergyHist = analysisManager->CreateH1("trigEnergyHist",
-                                               "N_{trig} vs E",
-                                               nBins, xMin, xMax, unit, "none", logScheme);
-
-    trigOptEnergyHist = analysisManager->CreateH1("trigOptEnergyHist",
-                                                  "N_{trig,opt} vs E",
+        genEnergyHist = analysisManager->CreateH1("genEnergyHist",
+                                                  "N_{gen} vs E",
                                                   nBins, xMin, xMax, unit, "none", logScheme);
 
-    effAreaHist = analysisManager->CreateH1("effAreaHist",
-                                            "A_{eff} vs E",
-                                            nBins, xMin, xMax, unit, "none", logScheme);
+        trigEnergyHist = analysisManager->CreateH1("trigEnergyHist",
+                                                   "N_{trig} vs E",
+                                                   nBins, xMin, xMax, unit, "none", logScheme);
 
-    effAreaOptHist = analysisManager->CreateH1("effAreaOptHist",
-                                               "A_{eff,opt} vs E",
-                                               nBins, xMin, xMax, unit, "none", logScheme);
+        trigOptEnergyHist = analysisManager->CreateH1("trigOptEnergyHist",
+                                                      "N_{trig,opt} vs E",
+                                                      nBins, xMin, xMax, unit, "none", logScheme);
 
-    sensitivityHist = analysisManager->CreateH1("sensitivityHist",
-                                                "Sensitivity vs E",
+        effAreaHist = analysisManager->CreateH1("effAreaHist",
+                                                "A_{eff} vs E",
                                                 nBins, xMin, xMax, unit, "none", logScheme);
 
-    lightYieldHist = analysisManager->CreateH1("lightYieldHist",
-                                               "Light yield vs E",
-                                               nBins, xMin, xMax, unit, "none", logScheme);
+        effAreaOptHist = analysisManager->CreateH1("effAreaOptHist",
+                                                   "A_{eff,opt} vs E",
+                                                   nBins, xMin, xMax, unit, "none", logScheme);
 
-    lightYieldOptHist = analysisManager->CreateH1("lightYieldOptHist",
-                                                  "Light yield (opt) vs E",
-                                                  nBins, xMin, xMax, unit, "none", logScheme);
+        sensitivityHist = analysisManager->CreateH1("sensitivityHist",
+                                                    "Sensitivity vs E",
+                                                    nBins, xMin, xMax, unit, "none", logScheme);
+
+        lightYieldHist = analysisManager->CreateH1("lightYieldHist",
+                                                   "Light yield vs E",
+                                                   nBins, xMin, xMax, unit, "none", logScheme);
+
+        lightYieldOptHist = analysisManager->CreateH1("lightYieldOptHist",
+                                                      "Light yield (opt) vs E",
+                                                      nBins, xMin, xMax, unit, "none", logScheme);
+    }
 }
 
 void AnalysisManager::Open() {

@@ -6,7 +6,7 @@
 
 class COMPFlux : public Flux {
 public:
-    COMPFlux();
+    explicit COMPFlux(G4double cThreshold);
 
 private:
     G4double alpha{};

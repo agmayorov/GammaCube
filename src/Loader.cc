@@ -95,8 +95,8 @@ Loader::Loader(int argc, char** argv) {
     physicsList->RegisterPhysics(new G4StepLimiterPhysics());
     runManager->SetUserInitialization(physicsList);
 
-    G4double EminMeV = std::stod(ReadValue("E_min:", ""));
-    G4double EmaxMeV = std::stod(ReadValue("E_max:", ""));
+    G4double EminMeV = std::max({std::stod(ReadValue("E_min:", "")) * MeV, eCrystalThreshold});
+    G4double EmaxMeV = std::stod(ReadValue("E_max:", "")) * MeV;
 
     if (fluxDirection == "isotropic") {
         dir = FluxDir::Isotropic;
@@ -255,7 +255,7 @@ void Loader::SaveConfig() const {
     }
     catch (const std::exception& ex) {
         rate_real_ok = false;
-        G4cerr << "[SaveConfig] WARNING: real rate computation failed: " << ex.what() << G4endl;
+        G4cerr << "[SaveConfig] WARNING: Real rate computation failed: " << ex.what() << G4endl;
     }
 
     std::ostringstream buf;
@@ -392,7 +392,7 @@ void Loader::RunPostProcessing() const {
     };
     std::string part;
 
-    G4double Emin = std::stod(ReadValue("E_min:"));
+    G4double Emin = std::max({std::stod(ReadValue("E_min:")), eCrystalThreshold});
     G4double Emax = std::stod(ReadValue("E_max:"));
     try {
         std::cout << "Processing... ";
@@ -414,10 +414,12 @@ void Loader::RunPostProcessing() const {
                                       part);
 
         postProcessing.ExtractNtData();
-        if (fluxDirection == "isotropic" || fluxDirection == "isotropic_down" || fluxDirection == "isotropic_up")
-            postProcessing.SaveSensitivity();
-        else
-            postProcessing.SaveEffArea();
+        if (Emin < Emax) {
+            if (fluxDirection == "isotropic" || fluxDirection == "isotropic_down" || fluxDirection == "isotropic_up")
+                postProcessing.SaveSensitivity();
+            else
+                postProcessing.SaveEffArea();
+        }
         postProcessing.SaveTrigEdepCsv();
 
         std::cout << "Done!\n";
