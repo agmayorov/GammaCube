@@ -66,7 +66,7 @@ void EventAction::EndOfEventAction(const G4Event* evt) {
     if (saveOptics) {
         if (primaryE_MeV > 0.0 && analysisManager) {
             if (hasCrystal && !hasVeto) {
-                analysisManager->FillTrigOptEnergyHist(primaryE_MeV, 1.0);
+                // analysisManager->FillTrigOptEnergyHist(primaryE_MeV, 1.0);
             }
         }
         WriteSiPMFromSD_(eventID);

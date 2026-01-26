@@ -27,4 +27,4 @@ SCINTILLATIONYIELD1 1.0
 #SCINTILLATIONYIELD2 0.0
 
 # Optional: Birks constant for ionization quenching
-BIRKSCONSTANT 0.126 mm/MeV
+BIRKSCONSTANT 0.0067 mm/MeV

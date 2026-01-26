@@ -218,8 +218,11 @@ void Geometry::ConstructSDandField() {
     if (useOptics) {
         auto* sipmSD = new SiPMOpticalSD("SiPMOpticalSD");
         auto* sipmWindowLV = detector->GetSiPMWindowLV();
+        auto* crystalSiPMWindowLV = detector->GetCrystalSiPMWindowLV();
         sipmSD->SetSiPMWindowLV(sipmWindowLV);
+        sipmSD->SetCrystalSiPMWindowLV(crystalSiPMWindowLV);
         sdManager->AddNewDetector(sipmSD);
         sipmWindowLV->SetSensitiveDetector(sipmSD);
+        crystalSiPMWindowLV->SetSensitiveDetector(sipmSD);
     }
 }

@@ -116,7 +116,6 @@ void Detector::DefineMaterials() {
         mpt->AddProperty("ABSLENGTH", absl.E, absl.V, absl.E.size());
 
         Utils::ApplyScintillation(CrystalMat, mpt, c, emission.c1, emission.c2, true);
-        CrystalMat->SetMaterialPropertiesTable(mpt);
 
         Utils::ApplyBirksIfPresent(CrystalMat, c);
     }
@@ -139,7 +138,6 @@ void Detector::DefineMaterials() {
         mpt->AddProperty("ABSLENGTH", absl.E, absl.V, absl.E.size());
 
         Utils::ApplyScintillation(vetoMat, mpt, c, emission.c1, emission.c2, true);
-        vetoMat->SetMaterialPropertiesTable(mpt);
 
         Utils::ApplyBirksIfPresent(vetoMat, c);
     }
@@ -493,7 +491,7 @@ void Detector::ConstructBottomVeto() {
                                                 bottomVetoOpticLayerHeight / 2., 0, viewDeg);
     bottomVetoOpticLayerLV = new G4LogicalVolume(bottomVetoOpticLayer, opticLayerMat, "BottomVetoOpticLayerLV");
     G4ThreeVector bottomVetoOpticLayerPos = bottomVetoShellTabPos + G4ThreeVector(
-     0, 0, (bottomVetoShellTabHeight - bottomVetoOpticLayerHeight) / 2.0);
+         0, 0, (bottomVetoShellTabHeight - bottomVetoOpticLayerHeight) / 2.0);
     bottomVetoOpticLayerPVP = new G4PVPlacement(nullptr, bottomVetoOpticLayerPos, bottomVetoOpticLayerLV,
                                                 "BottomVetoOpticLayerPVP", coreLV, false, 0, true);
     bottomVetoOpticLayerLV->SetVisAttributes(visOpticLayer);
@@ -640,8 +638,8 @@ void Detector::ConstructHolder(G4ThreeVector& refPos, const G4String& prefix) {
     G4VSolid* springHole = new G4Tubs("SpringHole", 0, springRadius, springHolderHeight / 2. + 5 * mm, 0, 360 * deg);
     G4VSolid* tempSolid;
     G4double diff = -((springHolderGapX + springHolderGapY) / 4. + springRadius) + 0.5 * std::sqrt(
-     2 * springHoleCenterRadius * springHoleCenterRadius - (springHolderGapX - springHolderGapY) * (springHolderGapX
-         - springHolderGapY) / 4.);
+         2 * springHoleCenterRadius * springHoleCenterRadius - (springHolderGapX - springHolderGapY) * (springHolderGapX
+             - springHolderGapY) / 4.);
     std::vector<std::pair<G4int, G4int>> signs = {
         {1, 1}, {-1, 1}, {-1, -1}, {1, -1}
     };
@@ -698,38 +696,57 @@ void Detector::ConstructCrystalSiPM() {
     SiPMContLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
     // Crystal SiPM
-    std::vector<int> countVec = {2, 4, 4, 4, 2};
+    std::vector countVec = {2, 4, 4, 4, 2};
     G4int copyN = 0;
 
-    for (int i = 0; i < (int)countVec.size(); i++) {
-        for (int j = 0; j < countVec[i]; j++) {
-            G4ThreeVector SiPMPos((2 - i) * SiPMLength,
-                                  (countVec[i] / 2. - 0.5 - j) * SiPMWidth,
-                                  0);
+    // for (int i = 0; i < (int)countVec.size(); i++) {
+    //     for (int j = 0; j < countVec[i]; j++) {
+    //         G4ThreeVector SiPMPos((2 - i) * SiPMLength,
+    //                               (countVec[i] / 2. - 0.5 - j) * SiPMWidth,
+    //                               0);
+    //
+    //         new G4PVPlacement(nullptr, SiPMPos, SiPMFrameLV,
+    //                           "CrystalSiPMFramePVP", SiPMContLV, false, copyN, true);
+    //
+    //         auto* bodyPVP = new G4PVPlacement(nullptr,
+    //                                           SiPMPos + G4ThreeVector(0, 0, -SiPMWindowThick / 2.),
+    //                                           SiPMBodyLV,
+    //                                           "CrystalSiPMBodyPVP", SiPMContLV, false, copyN, true);
+    //
+    //         auto* windowPVP = new G4PVPlacement(nullptr,
+    //                                             SiPMPos + G4ThreeVector(0, 0, (SiPMHeight - SiPMWindowThick) / 2.),
+    //                                             SiPMWindowLV,
+    //                                             "CrystalSiPMWindowPVP", SiPMContLV, false, copyN, true);
+    //
+    //         new G4LogicalBorderSurface("CrystalSiPM_Photocathode_" + std::to_string(copyN),
+    //                                    windowPVP, bodyPVP, SiPMPhotocathodeSurf);
+    //
+    //         copyN++;
+    //     }
+    // }
+    G4ThreeVector SiPMPos(0, 0, 0);
+    G4VSolid* body = new G4Tubs("body", 0, coreTopSize.y() - holderThickWall - shellThickWall,
+                                (SiPMHeight - SiPMWindowThick) / 2., 0, 360 * deg);
+    G4VSolid* window = new G4Tubs("window", 0, coreTopSize.y() - holderThickWall - shellThickWall,
+                                  SiPMWindowThick / 2., 0, 360 * deg);
 
-            // frame (как было)
-            new G4PVPlacement(nullptr, SiPMPos, SiPMFrameLV,
-                              "CrystalSiPMFramePVP", SiPMContLV, false, copyN, true);
+    G4LogicalVolume* bodyLV = new G4LogicalVolume(body, SiPMMat, "bodyLV");
+    bodyLV->SetVisAttributes(visSiPM);
+    crystalSiPMWindowLV = new G4LogicalVolume(window, SiPMEncapsulantMat, "windowLV");
+    crystalSiPMWindowLV->SetVisAttributes(visGlass);
 
-            // body: IMPORTANT сохранить указатель
-            auto* bodyPVP = new G4PVPlacement(nullptr,
-                                              SiPMPos + G4ThreeVector(0, 0, -SiPMWindowThick / 2.),
-                                              SiPMBodyLV,
-                                              "CrystalSiPMBodyPVP", SiPMContLV, false, copyN, true);
+    auto* bodyPVP = new G4PVPlacement(nullptr,
+                                      SiPMPos + G4ThreeVector(0, 0, -SiPMWindowThick / 2.),
+                                      bodyLV,
+                                      "CrystalSiPMBodyPVP", SiPMContLV, false, copyN, true);
 
-            // window: IMPORTANT сохранить указатель
-            auto* windowPVP = new G4PVPlacement(nullptr,
-                                                SiPMPos + G4ThreeVector(0, 0, (SiPMHeight - SiPMWindowThick) / 2.),
-                                                SiPMWindowLV,
-                                                "CrystalSiPMWindowPVP", SiPMContLV, false, copyN, true);
+    auto* windowPVP = new G4PVPlacement(nullptr,
+                                        SiPMPos + G4ThreeVector(0, 0, (SiPMHeight - SiPMWindowThick) / 2.),
+                                        crystalSiPMWindowLV,
+                                        "CrystalSiPMWindowPVP", SiPMContLV, false, copyN, true);
 
-            // Photocathode only on Window -> Body
-            new G4LogicalBorderSurface("CrystalSiPM_Photocathode_" + std::to_string(copyN),
-                                       windowPVP, bodyPVP, SiPMPhotocathodeSurf);
-
-            copyN++;
-        }
-    }
+    new G4LogicalBorderSurface("CrystalSiPM_Photocathode_" + std::to_string(copyN),
+                               windowPVP, bodyPVP, SiPMPhotocathodeSurf);
 }
 
 void Detector::ConstructVetoSiPM() {

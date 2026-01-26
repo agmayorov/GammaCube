@@ -75,6 +75,7 @@ public:
     [[nodiscard]] std::vector<G4LogicalVolume*> GetSensitiveLV() const;
 
     G4LogicalVolume* GetSiPMWindowLV() const { return SiPMWindowLV; }
+    G4LogicalVolume* GetCrystalSiPMWindowLV() const { return crystalSiPMWindowLV; }
 
 private:
     G4double viewDeg;
@@ -115,6 +116,7 @@ private:
     G4LogicalVolume* bottomVetoLV{};
     G4LogicalVolume* SiPMBodyLV{};
     G4LogicalVolume* SiPMWindowLV{};
+    G4LogicalVolume* crystalSiPMWindowLV{};
     G4LogicalVolume* SiPMFrameLV{};
 
     G4LogicalVolume* crystalOpticLayerLV{};

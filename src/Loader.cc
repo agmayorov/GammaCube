@@ -76,15 +76,15 @@ Loader::Loader(int argc, char** argv) {
         auto* opticalPhysics = new G4OpticalPhysics();
 
         auto* op = G4OpticalParameters::Instance();
-        op->SetProcessActivation("Cerenkov", true);
+        op->SetProcessActivation("Cerenkov", false);
         op->SetProcessActivation("Scintillation", true);
         op->SetProcessActivation("OpAbsorption", true);
         op->SetProcessActivation("OpRayleigh", true);
-        op->SetProcessActivation("OpMieHG", true);
+        op->SetProcessActivation("OpMieHG", false);
         op->SetProcessActivation("OpBoundary", true);
 
         op->SetScintTrackSecondariesFirst(true);
-        op->SetCerenkovTrackSecondariesFirst(true);
+        op->SetCerenkovTrackSecondariesFirst(false);
         // op->SetScintByParticleType(true);
         // op->SetCerenkovMaxPhotonsPerStep(200);
         // op->SetCerenkovMaxBetaChange(10.0);
