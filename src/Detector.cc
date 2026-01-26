@@ -699,54 +699,31 @@ void Detector::ConstructCrystalSiPM() {
     std::vector countVec = {2, 4, 4, 4, 2};
     G4int copyN = 0;
 
-    // for (int i = 0; i < (int)countVec.size(); i++) {
-    //     for (int j = 0; j < countVec[i]; j++) {
-    //         G4ThreeVector SiPMPos((2 - i) * SiPMLength,
-    //                               (countVec[i] / 2. - 0.5 - j) * SiPMWidth,
-    //                               0);
-    //
-    //         new G4PVPlacement(nullptr, SiPMPos, SiPMFrameLV,
-    //                           "CrystalSiPMFramePVP", SiPMContLV, false, copyN, true);
-    //
-    //         auto* bodyPVP = new G4PVPlacement(nullptr,
-    //                                           SiPMPos + G4ThreeVector(0, 0, -SiPMWindowThick / 2.),
-    //                                           SiPMBodyLV,
-    //                                           "CrystalSiPMBodyPVP", SiPMContLV, false, copyN, true);
-    //
-    //         auto* windowPVP = new G4PVPlacement(nullptr,
-    //                                             SiPMPos + G4ThreeVector(0, 0, (SiPMHeight - SiPMWindowThick) / 2.),
-    //                                             SiPMWindowLV,
-    //                                             "CrystalSiPMWindowPVP", SiPMContLV, false, copyN, true);
-    //
-    //         new G4LogicalBorderSurface("CrystalSiPM_Photocathode_" + std::to_string(copyN),
-    //                                    windowPVP, bodyPVP, SiPMPhotocathodeSurf);
-    //
-    //         copyN++;
-    //     }
-    // }
-    G4ThreeVector SiPMPos(0, 0, 0);
-    G4VSolid* body = new G4Tubs("body", 0, coreTopSize.y() - holderThickWall - shellThickWall,
-                                (SiPMHeight - SiPMWindowThick) / 2., 0, 360 * deg);
-    G4VSolid* window = new G4Tubs("window", 0, coreTopSize.y() - holderThickWall - shellThickWall,
-                                  SiPMWindowThick / 2., 0, 360 * deg);
+    for (int i = 0; i < (int)countVec.size(); i++) {
+        for (int j = 0; j < countVec[i]; j++) {
+            G4ThreeVector SiPMPos((2 - i) * SiPMLength,
+                                  (countVec[i] / 2. - 0.5 - j) * SiPMWidth,
+                                  0);
 
-    G4LogicalVolume* bodyLV = new G4LogicalVolume(body, SiPMMat, "bodyLV");
-    bodyLV->SetVisAttributes(visSiPM);
-    crystalSiPMWindowLV = new G4LogicalVolume(window, SiPMEncapsulantMat, "windowLV");
-    crystalSiPMWindowLV->SetVisAttributes(visGlass);
+            new G4PVPlacement(nullptr, SiPMPos, SiPMFrameLV,
+                              "CrystalSiPMFramePVP", SiPMContLV, false, copyN, true);
 
-    auto* bodyPVP = new G4PVPlacement(nullptr,
-                                      SiPMPos + G4ThreeVector(0, 0, -SiPMWindowThick / 2.),
-                                      bodyLV,
-                                      "CrystalSiPMBodyPVP", SiPMContLV, false, copyN, true);
+            auto* bodyPVP = new G4PVPlacement(nullptr,
+                                              SiPMPos + G4ThreeVector(0, 0, -SiPMWindowThick / 2.),
+                                              SiPMBodyLV,
+                                              "CrystalSiPMBodyPVP", SiPMContLV, false, copyN, true);
 
-    auto* windowPVP = new G4PVPlacement(nullptr,
-                                        SiPMPos + G4ThreeVector(0, 0, (SiPMHeight - SiPMWindowThick) / 2.),
-                                        crystalSiPMWindowLV,
-                                        "CrystalSiPMWindowPVP", SiPMContLV, false, copyN, true);
+            auto* windowPVP = new G4PVPlacement(nullptr,
+                                                SiPMPos + G4ThreeVector(0, 0, (SiPMHeight - SiPMWindowThick) / 2.),
+                                                SiPMWindowLV,
+                                                "CrystalSiPMWindowPVP", SiPMContLV, false, copyN, true);
 
-    new G4LogicalBorderSurface("CrystalSiPM_Photocathode_" + std::to_string(copyN),
-                               windowPVP, bodyPVP, SiPMPhotocathodeSurf);
+            new G4LogicalBorderSurface("CrystalSiPM_Photocathode_" + std::to_string(copyN),
+                                       windowPVP, bodyPVP, SiPMPhotocathodeSurf);
+
+            copyN++;
+        }
+    }
 }
 
 void Detector::ConstructVetoSiPM() {

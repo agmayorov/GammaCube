@@ -63,8 +63,6 @@ G4bool SiPMOpticalSD::ProcessHits(G4Step* step, G4TouchableHistory*) {
     // Determine on which PV we are (prefer PRE, but keep fallback)
     auto* prePV = pre->GetPhysicalVolume();
     auto* postPV = post->GetPhysicalVolume();
-    auto* preLV = prePV ? prePV->GetLogicalVolume() : nullptr;
-    auto* postLV = postPV ? postPV->GetLogicalVolume() : nullptr;
 
     // Prefer pre-step touchable for copy number (normally it's the "window" volume)
     int ch = -1;
@@ -77,46 +75,38 @@ G4bool SiPMOpticalSD::ProcessHits(G4Step* step, G4TouchableHistory*) {
         if (t) ch = t->GetCopyNumber(0);
     }
 
-    // Helper: does this step touch a given LV on either side of the boundary?
-    auto touchesLV = [&](G4LogicalVolume* lv) -> bool {
-        return lv && (preLV == lv || postLV == lv);
-    };
-
-    // Classify primarily by LV pointers (stable), fall back to PV name only if needed.
     SiPMGroup grp = SiPMGroup::Unknown;
 
-    // If you have a dedicated LV for the big crystal SiPM window, treat it as Crystal.
-    if (touchesLV(crystalSiPMWindowLV)) {
-        grp = SiPMGroup::Crystal;
-    }
-    // If you use a single generic SiPMWindowLV for an array (and names distinguish groups),
-    // keep it as a fallback path.
-    else if (touchesLV(SiPMWindowLV)) {
-        grp = ClassifyByPVName(prePV);
-        if (grp == SiPMGroup::Unknown) grp = ClassifyByPVName(postPV);
+    if (SiPMWindowLV) {
+        auto* preLV = prePV ? prePV->GetLogicalVolume() : nullptr;
+        auto* postLV = postPV ? postPV->GetLogicalVolume() : nullptr;
+
+        if (preLV == SiPMWindowLV) {
+            grp = ClassifyByPVName(prePV);
+        } else if (postLV == SiPMWindowLV) {
+            grp = ClassifyByPVName(postPV);
+        } else {
+            // Not on a SiPM window at all (or LV pointers differ); fall back to name check
+            grp = ClassifyByPVName(prePV);
+            if (grp == SiPMGroup::Unknown) grp = ClassifyByPVName(postPV);
+        }
     } else {
-        // Not on expected window LVs; still try name fallback (useful during refactors)
         grp = ClassifyByPVName(prePV);
         if (grp == SiPMGroup::Unknown) grp = ClassifyByPVName(postPV);
     }
 
-    // Count detected photoelectrons
-    switch (grp) {
-    case SiPMGroup::Crystal:
+    if (grp == SiPMGroup::Crystal) {
         ++npeCrystal;
         if (ch >= 0) ++perChCrystal[ch];
-        break;
-    case SiPMGroup::Veto:
+    } else if (grp == SiPMGroup::Veto) {
         ++npeVeto;
         if (ch >= 0) ++perChVeto[ch];
-        break;
-    case SiPMGroup::Bottom:
+    } else if (grp == SiPMGroup::Bottom) {
         ++npeBottom;
         if (ch >= 0) ++perChBottom[ch];
-        break;
-    case SiPMGroup::Unknown:
-    default:
-        break;
+    } else {
+        // Unknown classification: still kill photon to avoid infinite bouncing after "Detection"
+        // but do not count it.
     }
 
     track->SetTrackStatus(fStopAndKill);

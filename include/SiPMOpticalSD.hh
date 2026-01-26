@@ -20,7 +20,6 @@ public:
     explicit SiPMOpticalSD(const G4String& name);
 
     void SetSiPMWindowLV(G4LogicalVolume* lv) { SiPMWindowLV = lv; }
-    void SetCrystalSiPMWindowLV(G4LogicalVolume* lv) { crystalSiPMWindowLV = lv; }
 
     void Initialize(G4HCofThisEvent*) override;
     G4bool ProcessHits(G4Step* step, G4TouchableHistory*) override;
@@ -39,7 +38,6 @@ private:
 
     G4OpBoundaryProcess* boundary{nullptr};
     G4LogicalVolume* SiPMWindowLV{nullptr};
-    G4LogicalVolume* crystalSiPMWindowLV{nullptr};
 
     int npeCrystal{0};
     int npeVeto{0};
