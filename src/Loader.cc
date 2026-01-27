@@ -421,6 +421,7 @@ void Loader::RunPostProcessing() const {
                 postProcessing.SaveEffArea();
         }
         postProcessing.SaveTrigEdepCsv();
+        postProcessing.SaveEdepCsv();
 
         std::cout << "Done!\n";
     }

@@ -442,3 +442,81 @@ void PostProcessing::SaveTrigEdepCsv() {
 
     out.close();
 }
+
+
+void PostProcessing::SaveEdepCsv() {
+    TTree* edep = nullptr;
+    rootFile->GetObject("edep", edep);
+    if (!edep) {
+        throw std::runtime_error("TTree not found: edep");
+    }
+
+    Int_t eventID_e = 0;
+    Char_t det_name[64] = {};
+    double edep_MeV = 0.0;
+
+    edep->SetBranchStatus("*", false);
+    edep->SetBranchStatus("eventID", true);
+    edep->SetBranchStatus("det_name", true);
+    edep->SetBranchStatus("edep_MeV", true);
+
+    edep->SetBranchAddress("eventID", &eventID_e);
+    edep->SetBranchAddress("det_name", det_name);
+    edep->SetBranchAddress("edep_MeV", &edep_MeV);
+
+    struct DetectorEdep {
+        double crystal = 0.0;
+        double veto = 0.0;
+        double bottomVeto = 0.0;
+    };
+
+    std::unordered_map<int, DetectorEdep> edepMap;
+    edepMap.reserve(std::max<Long64_t>(1, edep->GetEntries()));
+
+    const Long64_t nEntries = edep->GetEntries();
+    for (Long64_t i = 0; i < nEntries; ++i) {
+        edep->GetEntry(i);
+
+        auto& deps = edepMap[eventID_e];
+
+        if (std::strcmp(det_name, "Crystal") == 0) {
+            deps.crystal += edep_MeV;
+        } else if (std::strcmp(det_name, "Veto") == 0) {
+            deps.veto += edep_MeV;
+        } else if (std::strcmp(det_name, "BottomVeto") == 0) {
+            deps.bottomVeto += edep_MeV;
+        }
+    }
+
+    const std::string outPath = (fs::path(histogramsDir) / "edep.csv").string();
+    std::ofstream out(outPath);
+    if (!out.is_open()) {
+        throw std::runtime_error("Cannot open output CSV: " + outPath);
+    }
+
+    out << "eventID,Trigger,Crystal_edep_MeV,Veto_edep_MeV,BottomVeto_edep_MeV\n";
+    out << std::setprecision(17);
+
+    std::vector<int> eventIDs;
+    eventIDs.reserve(edepMap.size());
+    for (const auto& kv : edepMap) {
+        eventIDs.push_back(kv.first);
+    }
+    std::sort(eventIDs.begin(), eventIDs.end());
+
+    for (int evtID : eventIDs) {
+        const auto& deps = edepMap.at(evtID);
+
+        int trigger = deps.crystal > 0.0 &&
+                      deps.veto == 0.0 &&
+                      deps.bottomVeto == 0.0 ? 1 : 0;
+
+        out << evtID << ","
+            << trigger << ","
+            << deps.crystal << ","
+            << deps.veto << ","
+            << deps.bottomVeto << "\n";
+    }
+
+    out.close();
+}

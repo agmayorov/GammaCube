@@ -43,6 +43,7 @@ public:
     void SaveSensitivity();
 
     void SaveTrigEdepCsv();
+    void SaveEdepCsv();
 
 private:
     std::string rootFilePath;
