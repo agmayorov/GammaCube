@@ -16,6 +16,7 @@
 #include <sstream>
 
 #include "Sizes.hh"
+#include "Configuration.hh"
 #include "AnalysisManager.hh"
 
 struct ParticleCounts {
@@ -28,8 +29,7 @@ public:
     AnalysisManager *analysisManager;
 
     RunAction();
-    RunAction(int nbins, double Emin_MeV, double Emax_MeV, double cThreshold, double Agen_cm2,
-              const std::string& rootFileName = "GammaCube");
+    RunAction(double Agen_cm2, double Emin_MeV, double Emax_MeV);
     ~RunAction() override;
 
     void BeginOfRunAction(const G4Run *) override;
@@ -50,10 +50,8 @@ private:
     G4Accumulable<G4int> crystalAndVeto{0};   // Crystal && Veto
     ParticleCounts totals{};
 
-    int nBins{0};
     double EminMeV{0.0};
     double EmaxMeV{0.0};
-    double eCrystalThreshold{0.0};
     double area{0.0};
 
     double logEmin{0.0};

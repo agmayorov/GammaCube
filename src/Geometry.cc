@@ -1,10 +1,10 @@
 #include "Geometry.hh"
 
 using namespace Sizes;
+using namespace Configuration;
 
 
-Geometry::Geometry(G4String detType, const G4bool useOpt, const G4double vDeg, const G4int yScale) :
-    useOptics(useOpt), viewDeg(vDeg), yieldScale(yScale), detectorType(std::move(detType)) {
+Geometry::Geometry(const G4double vDeg) : viewDeg(vDeg) {
     std::vector<G4String> detectorList = {"NaI", "CsI"};
     if (std::find(detectorList.begin(), detectorList.end(), detectorType) == detectorList.end()) {
         G4Exception("Geometry::ConstructDetector", "DetectorType", FatalException,
@@ -82,13 +82,17 @@ void Geometry::ConstructTunaCan() {
     G4VSolid* bottomPartWall = new G4Tubs("BottomPartWall", bottomCapInnerRadius, plateInnerHoleRadius,
                                           bottomCapHeight / 2, 0, viewDeg);
     const G4ThreeVector bottomPartWallPos = G4ThreeVector(
-        0., 0., -(modelHeight + bottomCapHeight) / 2.0 - plateCenterThick - plateThick);
+                                                          0., 0.,
+                                                          -(modelHeight + bottomCapHeight) / 2.0 - plateCenterThick -
+                                                          plateThick);
     G4LogicalVolume* bottomPartWallLV = new G4LogicalVolume(bottomPartWall, plateMat, "BottomPartWallLV");
     new G4PVPlacement(zeroRot, bottomPartWallPos, bottomPartWallLV, "BottomPartWallPVPL", worldLV, false, 0, true);
 
     G4VSolid* bottomPartCap = new G4Tubs("BottomPartCap", 0, bottomCapInnerRadius, bottomCapThick / 2, 0, viewDeg);
     const G4ThreeVector bottomPartCapPos = G4ThreeVector(
-        0., 0., -(modelHeight - bottomCapThick) / 2.0 - bottomCapHeight - plateCenterThick - plateThick);
+                                                         0., 0.,
+                                                         -(modelHeight - bottomCapThick) / 2.0 - bottomCapHeight -
+                                                         plateCenterThick - plateThick);
     G4LogicalVolume* bottomPartCapLV = new G4LogicalVolume(bottomPartCap, plateMat, "BottomPartCapLV");
     new G4PVPlacement(zeroRot, bottomPartCapPos, bottomPartCapLV, "BottomPartCapPVPL", worldLV, false, 0, true);
 
@@ -117,9 +121,11 @@ void Geometry::ConstructDetector() {
                                              (bottomCapHeight - bottomCapThick) / 2., 0,
                                              360 * deg);
     G4ThreeVector detContMidPos = G4ThreeVector(
-        0, 0, -(modelHeight - tunaCanThickTop + plateCenterThick + plateThick) / 2);
+                                                0, 0, -(modelHeight - tunaCanThickTop + plateCenterThick + plateThick) /
+                                                2);
     G4ThreeVector detContBottomPos = G4ThreeVector(
-        0, 0, -(modelHeight - tunaCanThickTop + plateCenterThick + bottomCapHeight - bottomCapThick) / 2 - plateThick);
+                                                   0, 0, -(modelHeight - tunaCanThickTop + plateCenterThick +
+                                                       bottomCapHeight - bottomCapThick) / 2 - plateThick);
     G4VSolid* detContIncomplete = new G4UnionSolid("DetContIncomplete", detContTopTube, detContMidTube, zeroRot,
                                                    detContMidPos);
 

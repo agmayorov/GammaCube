@@ -16,6 +16,7 @@
 #include "Geometry.hh"
 #include "RunAction.hh"
 #include "Sizes.hh"
+#include "Configuration.hh"
 #include "AnalysisManager.hh"
 #include "SDHit.hh"
 #include "SiPMOpticalSD.hh"
@@ -54,7 +55,7 @@ public:
     std::vector<PrimaryRec> primBuf;
     std::vector<InteractionRec> interBuf;
 
-    EventAction(AnalysisManager *, RunAction *, G4double, G4double, G4bool, G4bool);
+    EventAction(AnalysisManager *, RunAction *);
     ~EventAction() override = default;
 
     void BeginOfEventAction(const G4Event *) override;
@@ -84,12 +85,6 @@ private:
     RunAction* run = nullptr;
     bool hasCrystal = false;
     bool hasVeto = false;
-
-    bool saveOptics = false;
-    bool saveSecondaries = false;
-
-    G4double eCrystalThreshold;
-    G4double eVetoThreshold;
 };
 
 #endif //EVENTACTION_HH

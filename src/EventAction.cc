@@ -1,12 +1,9 @@
 #include "EventAction.hh"
 
 using namespace Sizes;
+using namespace Configuration;
 
-EventAction::EventAction(AnalysisManager* an, RunAction* r, const G4double eCrystalThr, const G4double eVetoThr,
-                         const G4bool saveOpt, const G4bool saveSec) : analysisManager(an), run(r), saveOptics(saveOpt),
-                                                                       saveSecondaries(saveSec),
-                                                                       eCrystalThreshold(eCrystalThr),
-                                                                       eVetoThreshold(eVetoThr) {
+EventAction::EventAction(AnalysisManager* an, RunAction* r) : analysisManager(an), run(r) {
     detMap = {
         {"DetectorSD/EdepHits", 0, "Crystal"},
         {"VetoSD/EdepHits", 1, "Veto"},
@@ -63,7 +60,7 @@ void EventAction::EndOfEventAction(const G4Event* evt) {
         }
     }
 
-    if (saveOptics) {
+    if (useOptics) {
         if (primaryE_MeV > 0.0 && analysisManager) {
             if (hasCrystal && !hasVeto) {
                 // analysisManager->FillTrigOptEnergyHist(primaryE_MeV, 1.0);
@@ -147,28 +144,30 @@ void EventAction::WriteSiPMFromSD_(int eventID) {
     auto* sipmSD = dynamic_cast<SiPMOpticalSD*>(sdBase);
     if (!sipmSD) return;
 
-    const int npeC = sipmSD->GetNpeCrystal();
-    const int npeV = sipmSD->GetNpeVeto();
-    const int npeB = sipmSD->GetNpeBottomVeto();
-
-    analysisManager->FillSiPMEventRow(eventID, npeC, npeV, npeB);
-
+    int npeC = 0;
+    int npeV = 0;
+    int npeB = 0;
 
     for (const auto& kv : sipmSD->GetPerChannelCrystal()) {
         const int ch = kv.first;
-        const int npe = kv.second;
+        const int npe = kv.second < oCrystalThreshold ? 0 : kv.second;
+        npeC += npe;
         analysisManager->FillSiPMChannelRow(eventID, "Crystal", ch, npe);
     }
 
     for (const auto& kv : sipmSD->GetPerChannelVeto()) {
         const int ch = kv.first;
-        const int npe = kv.second;
+        const int npe = kv.second < oVetoThreshold ? 0 : kv.second;
+        npeV += npe;
         analysisManager->FillSiPMChannelRow(eventID, "Veto", ch, npe);
     }
 
     for (const auto& kv : sipmSD->GetPerChannelBottom()) {
         const int ch = kv.first;
-        const int npe = kv.second;
+        const int npe = kv.second < oVetoThreshold ? 0 : kv.second;
+        npeB += npe;
         analysisManager->FillSiPMChannelRow(eventID, "BottomVeto", ch, npe);
     }
+
+    analysisManager->FillSiPMEventRow(eventID, npeC, npeV, npeB);
 }

@@ -28,6 +28,7 @@
 
 #include "Geometry.hh"
 #include "Sizes.hh"
+#include "Configuration.hh"
 #include "ActionInitialization.hh"
 #include "CountRates.hh"
 #include "PostProcessing.hh"
@@ -41,19 +42,9 @@
 
 class Loader {
     G4String macroFile;
-    G4String outputFile;
     int numThreads;
     bool useUI;
-    G4String detectorType;
-    G4String fluxType;
-    G4String fluxDirection;
-    G4bool useOptics;
-    G4bool saveSecondaries;
     G4double viewDeg;
-    G4int yieldScale;
-    G4double eCrystalThreshold;
-    G4double eVetoThreshold;
-    G4int nBins;
 
     G4double area;
     std::vector<G4double> effArea;

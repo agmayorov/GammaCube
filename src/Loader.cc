@@ -1,20 +1,24 @@
 #include "Loader.hh"
 
+using namespace Configuration;
+
 Loader::Loader(int argc, char** argv) {
     numThreads = G4Threading::G4GetNumberOfCores();
     useUI = true;
     macroFile = "../run.mac";
+    viewDeg = 360 * deg;
+    geomConfigPath = "../geometry_txt";
     detectorType = "CsI";
     fluxType = "Uniform";
-    geomConfigPath = "../geometry_config.txt";
     fluxDirection = "isotropic";
-    useOptics = false;
-    viewDeg = 360 * deg;
-    yieldScale = 1;
-    nBins = 1000;
-    outputFile = "GammaCube.root";
     eCrystalThreshold = 0 * MeV;
     eVetoThreshold = 0 * MeV;
+    useOptics = false;
+    yieldScale = 1;
+    oCrystalThreshold = 0 * MeV;
+    oVetoThreshold = 0 * MeV;
+    outputFile = "GammaCube.root";
+    nBins = 1000;
     saveSecondaries = false;
 
     for (int i = 0; i < argc; i++) {
@@ -34,6 +38,10 @@ Loader::Loader(int argc, char** argv) {
             eCrystalThreshold = std::stod(argv[i + 1]) * MeV;
         } else if (input == "-vt" || input == "--veto-threshold") {
             eVetoThreshold = std::stod(argv[i + 1]) * MeV;
+        } else if (input == "-oct" || input == "--crystal-optic-threshold") {
+            oCrystalThreshold = std::stoi(argv[i + 1]);
+        } else if (input == "-ovt" || input == "--veto-optic-threshold") {
+            oVetoThreshold = std::stoi(argv[i + 1]);
         } else if (input == "-noUI") {
             useUI = false;
         } else if (input == "-d" || input == "--detector") {
@@ -66,7 +74,7 @@ Loader::Loader(int argc, char** argv) {
     runManager = new G4RunManager;
 #endif
 
-    auto* realWorld = new Geometry(detectorType, useOptics, viewDeg, yieldScale);
+    auto* realWorld = new Geometry(viewDeg);
     runManager->SetUserInitialization(realWorld);
     auto* physicsList = new FTFP_BERT;
     physicsList->ReplacePhysics(new G4EmStandardPhysics_option4());
@@ -112,9 +120,7 @@ Loader::Loader(int argc, char** argv) {
         dir = FluxDir::Horizontal;
     }
     area = Area_cm2(Sizes::modelRadius, Sizes::modelHeight, dir);
-    runManager->SetUserInitialization(new ActionInitialization(fluxDirection, fluxType, useOptics, saveSecondaries,
-                                                               eCrystalThreshold, eVetoThreshold, area, nBins, EminMeV,
-                                                               EmaxMeV, outputFile));
+    runManager->SetUserInitialization(new ActionInitialization(area, EminMeV, EmaxMeV));
     runManager->Initialize();
 
     visManager = new G4VisExecutive;
@@ -410,18 +416,20 @@ void Loader::RunPostProcessing() const {
             part = "proton";
         }
         outDir = sanitize(outDir);
-        PostProcessing postProcessing(outputFile, outDir, saveSecondaries, useOptics, Emin, Emax, eCrystalThreshold,
-                                      part);
+        PostProcessing postProcessing(outDir, Emin, Emax, part);
 
         postProcessing.ExtractNtData();
         if (Emin < Emax) {
-            if (fluxDirection == "isotropic" || fluxDirection == "isotropic_down" || fluxDirection == "isotropic_up")
+            if (fluxDirection.find("isotropic") != std::string::npos)
                 postProcessing.SaveSensitivity();
             else
                 postProcessing.SaveEffArea();
         }
         postProcessing.SaveTrigEdepCsv();
         postProcessing.SaveEdepCsv();
+        if (useOptics) {
+            postProcessing.SaveOpticsCsv();
+        }
 
         std::cout << "Done!\n";
     }

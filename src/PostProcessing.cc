@@ -1,23 +1,15 @@
 #include "PostProcessing.hh"
 
 namespace fs = std::filesystem;
+using namespace Configuration;
 
-PostProcessing::PostProcessing(std::string rootFilePath,
-                               std::string outputFolderName,
-                               bool processSecondaries,
-                               bool processOptics,
+PostProcessing::PostProcessing(std::string outputFolderName,
                                double eMinMeV,
                                double eMaxMeV,
-                               double eTrigMeV,
-                               std::string particle)
-    : rootFilePath(std::move(rootFilePath)),
-      outputFolderName(std::move(outputFolderName)),
-      processSecondaries(processSecondaries),
-      processOptics(processOptics),
-      eMinMeV(eMinMeV),
-      eMaxMeV(eMaxMeV),
-      eTrigMeV(eTrigMeV),
-      particleName(std::move(particle)) {
+                               std::string particle) : outputFolderName(std::move(outputFolderName)),
+                                                       eMinMeV(eMinMeV),
+                                                       eMaxMeV(eMaxMeV),
+                                                       particleName(std::move(particle)) {
     ROOT::EnableImplicitMT();
     gROOT->SetBatch(kTRUE);
 
@@ -30,14 +22,14 @@ PostProcessing::PostProcessing(std::string rootFilePath,
 PostProcessing::~PostProcessing() = default;
 
 void PostProcessing::OpenRootFile() {
-    rootFile.reset(TFile::Open(rootFilePath.c_str(), "READ"));
+    rootFile.reset(TFile::Open(outputFile.c_str(), "READ"));
     if (!rootFile || rootFile->IsZombie()) {
-        throw std::runtime_error("Failed to open ROOT file: " + rootFilePath);
+        throw std::runtime_error("Failed to open ROOT file: " + outputFile);
     }
 }
 
 void PostProcessing::PrepareOutputDirs() {
-    fs::path rootPath(rootFilePath);
+    fs::path rootPath(outputFile.data());
     fs::path rootDir = rootPath.parent_path();
 
     postProcessingDir = (rootDir / "post_processing").string();
@@ -110,8 +102,8 @@ void PostProcessing::SaveHistPng(const std::string& histName,
 
     if (eMinMeV > 0.0 && eMaxMeV > eMinMeV) {
         h->GetXaxis()->SetRangeUser(eMinMeV, eMaxMeV);
-        if (useTrig && eTrigMeV > 0.0)
-            h->GetXaxis()->SetRangeUser(eTrigMeV, eMaxMeV);
+        if (useTrig && eCrystalThreshold > 0.0)
+            h->GetXaxis()->SetRangeUser(eCrystalThreshold, eMaxMeV);
     }
 
     h->SetLineColor(color);
@@ -220,12 +212,12 @@ void PostProcessing::ExtractNtData() {
     ExportTreeToCsv("edep", (fs::path(csvDir) / "edep.csv").string());
     ExportTreeToCsv("primary", (fs::path(csvDir) / "primary.csv").string());
 
-    if (processSecondaries) {
+    if (saveSecondaries) {
         ExportTreeToCsv("event", (fs::path(csvDir) / "event.csv").string());
         ExportTreeToCsv("interactions", (fs::path(csvDir) / "interactions.csv").string());
     }
 
-    if (processOptics) {
+    if (useOptics) {
         ExportTreeToCsv("sipm_event", (fs::path(csvDir) / "sipm_event.csv").string());
         ExportTreeToCsv("sipm_ch", (fs::path(csvDir) / "sipm_ch.csv").string());
     }
@@ -238,7 +230,6 @@ void PostProcessing::SaveEffArea() {
     TH1* trig = GetHistOrThrow("trigEnergyHist");
     TH1* effArea = GetHistOrThrow("effAreaHist");
 
-    int nBins = gen->GetNbinsX();
     if (trig->GetNbinsX() != nBins || effArea->GetNbinsX() != nBins) {
         throw std::runtime_error("Histogram binning mismatch among genEnergyHist/trigEnergyHist/effAreaHist");
     }
@@ -296,7 +287,6 @@ void PostProcessing::SaveSensitivity() {
     TH1* trig = GetHistOrThrow("trigEnergyHist");
     TH1* sens = GetHistOrThrow("sensitivityHist");
 
-    int nBins = gen->GetNbinsX();
     if (trig->GetNbinsX() != nBins || sens->GetNbinsX() != nBins) {
         throw std::runtime_error("Histogram binning mismatch among genEnergyHist/trigEnergyHist/sensitivityHist");
     }
@@ -509,7 +499,9 @@ void PostProcessing::SaveEdepCsv() {
 
         int trigger = deps.crystal > 0.0 &&
                       deps.veto == 0.0 &&
-                      deps.bottomVeto == 0.0 ? 1 : 0;
+                      deps.bottomVeto == 0.0
+                          ? 1
+                          : 0;
 
         out << evtID << ","
             << trigger << ","
@@ -519,4 +511,222 @@ void PostProcessing::SaveEdepCsv() {
     }
 
     out.close();
+}
+
+void PostProcessing::SaveOpticsCsv() {
+    std::string opticDir = (fs::path(runDir) / "optic").string();
+    fs::create_directories(opticDir);
+
+    TTree* sipmEvent = nullptr;
+    rootFile->GetObject("sipm_event", sipmEvent);
+    if (!sipmEvent) {
+        throw std::runtime_error("TTree not found: sipm_event");
+    }
+
+    Int_t eventID = 0;
+    Int_t npe_crystal = 0;
+    Int_t npe_veto = 0;
+    Int_t npe_bottom_veto = 0;
+
+    sipmEvent->SetBranchStatus("*", false);
+    sipmEvent->SetBranchStatus("eventID", true);
+    sipmEvent->SetBranchStatus("npe_crystal", true);
+    sipmEvent->SetBranchStatus("npe_veto", true);
+    sipmEvent->SetBranchStatus("npe_bottom_veto", true);
+
+    sipmEvent->SetBranchAddress("eventID", &eventID);
+    sipmEvent->SetBranchAddress("npe_crystal", &npe_crystal);
+    sipmEvent->SetBranchAddress("npe_veto", &npe_veto);
+    sipmEvent->SetBranchAddress("npe_bottom_veto", &npe_bottom_veto);
+
+    struct EventInfo {
+        Int_t crystal_npe = 0;
+        Int_t veto_npe = 0;
+        Int_t bottom_veto_npe = 0;
+        Int_t trigger = 0;
+    };
+
+    std::unordered_map<Int_t, EventInfo> eventMap;
+    eventMap.reserve(std::max<Long64_t>(1, sipmEvent->GetEntries()));
+
+    const Long64_t nEvents = sipmEvent->GetEntries();
+    for (Long64_t i = 0; i < nEvents; ++i) {
+        sipmEvent->GetEntry(i);
+
+        EventInfo info;
+        info.crystal_npe = npe_crystal;
+        info.veto_npe = npe_veto;
+        info.bottom_veto_npe = npe_bottom_veto;
+        info.trigger = (npe_crystal > 0) && (npe_veto + npe_bottom_veto == 0) ? 1 : 0;
+
+        eventMap[eventID] = info;
+    }
+
+    TTree* sipmCh = nullptr;
+    rootFile->GetObject("sipm_ch", sipmCh);
+    if (!sipmCh) {
+        throw std::runtime_error("TTree not found: sipm_ch");
+    }
+
+    Int_t ch_eventID = 0;
+    char subdet[64] = {};
+    Int_t ch = 0;
+    Int_t npe = 0;
+
+    sipmCh->SetBranchStatus("*", false);
+    sipmCh->SetBranchStatus("eventID", true);
+    sipmCh->SetBranchStatus("subdet", true);
+    sipmCh->SetBranchStatus("ch", true);
+    sipmCh->SetBranchStatus("npe", true);
+
+    sipmCh->SetBranchAddress("eventID", &ch_eventID);
+    sipmCh->SetBranchAddress("subdet", subdet);
+    sipmCh->SetBranchAddress("ch", &ch);
+    sipmCh->SetBranchAddress("npe", &npe);
+
+    using ChannelMap = std::unordered_map<Int_t, std::unordered_map<Int_t, Int_t>>;
+    ChannelMap crystalChannels;
+    ChannelMap vetoChannels;
+    ChannelMap bottomVetoChannels;
+
+    std::set<Int_t> allCrystalChannels;
+    std::set<Int_t> allVetoChannels;
+    std::set<Int_t> allBottomVetoChannels;
+
+    const Long64_t nChEntries = sipmCh->GetEntries();
+    for (Long64_t i = 0; i < nChEntries; ++i) {
+        sipmCh->GetEntry(i);
+
+        std::string subdetStr(subdet);
+
+        if (subdetStr == "Crystal") {
+            crystalChannels[ch_eventID][ch] = npe;
+            allCrystalChannels.insert(ch);
+        } else if (subdetStr == "Veto") {
+            vetoChannels[ch_eventID][ch] = npe;
+            allVetoChannels.insert(ch);
+        } else if (subdetStr == "BottomVeto") {
+            bottomVetoChannels[ch_eventID][ch] = npe;
+            allBottomVetoChannels.insert(ch);
+        }
+    }
+
+    std::vector sortedCrystalChannels(allCrystalChannels.begin(), allCrystalChannels.end());
+    std::vector sortedVetoChannels(allVetoChannels.begin(), allVetoChannels.end());
+    std::vector sortedBottomVetoChannels(allBottomVetoChannels.begin(), allBottomVetoChannels.end());
+
+    std::sort(sortedCrystalChannels.begin(), sortedCrystalChannels.end());
+    std::sort(sortedVetoChannels.begin(), sortedVetoChannels.end());
+    std::sort(sortedBottomVetoChannels.begin(), sortedBottomVetoChannels.end());
+
+    std::ofstream trigOptFile(fs::path(opticDir) / "trig_opt.csv");
+    if (!trigOptFile.is_open()) {
+        throw std::runtime_error("Cannot open output CSV: trig_opt.csv");
+    }
+
+    trigOptFile << "eventID,trigger,Crystal_npe,Veto_npe,BottomVeto_npe\n";
+
+    std::vector<Int_t> allEventIDs;
+    allEventIDs.reserve(eventMap.size());
+    for (const auto& kv : eventMap) {
+        allEventIDs.push_back(kv.first);
+    }
+    std::sort(allEventIDs.begin(), allEventIDs.end());
+
+    for (Int_t evtID : allEventIDs) {
+        const auto& info = eventMap[evtID];
+        trigOptFile << evtID << ","
+            << info.trigger << ","
+            << info.crystal_npe << ","
+            << info.veto_npe << ","
+            << info.bottom_veto_npe << "\n";
+    }
+    trigOptFile.close();
+
+    if (!sortedCrystalChannels.empty()) {
+        std::ofstream crystalFile(fs::path(opticDir) / "Crystal_channel.csv");
+        if (!crystalFile.is_open()) {
+            throw std::runtime_error("Cannot open output CSV: Crystal_channel.csv");
+        }
+
+        crystalFile << "eventID";
+        for (Int_t ch : sortedCrystalChannels) {
+            crystalFile << ",ch" << ch;
+        }
+        crystalFile << "\n";
+
+        for (Int_t evtID : allEventIDs) {
+            crystalFile << evtID;
+
+            const auto& channels = crystalChannels[evtID];
+            for (Int_t ch : sortedCrystalChannels) {
+                auto it = channels.find(ch);
+                if (it != channels.end()) {
+                    crystalFile << "," << it->second;
+                } else {
+                    crystalFile << ",0";
+                }
+            }
+            crystalFile << "\n";
+        }
+        crystalFile.close();
+    }
+
+    if (!sortedVetoChannels.empty()) {
+        std::ofstream vetoFile(fs::path(opticDir) / "Veto_channel.csv");
+        if (!vetoFile.is_open()) {
+            throw std::runtime_error("Cannot open output CSV: Veto_channel.csv");
+        }
+
+        vetoFile << "eventID";
+        for (Int_t ch : sortedVetoChannels) {
+            vetoFile << ",ch" << ch;
+        }
+        vetoFile << "\n";
+
+        for (Int_t evtID : allEventIDs) {
+            vetoFile << evtID;
+
+            const auto& channels = vetoChannels[evtID];
+            for (Int_t ch : sortedVetoChannels) {
+                auto it = channels.find(ch);
+                if (it != channels.end()) {
+                    vetoFile << "," << it->second;
+                } else {
+                    vetoFile << ",0";
+                }
+            }
+            vetoFile << "\n";
+        }
+        vetoFile.close();
+    }
+
+    if (!sortedBottomVetoChannels.empty()) {
+        std::ofstream bottomFile(fs::path(opticDir) / "BottomVeto_channel.csv");
+        if (!bottomFile.is_open()) {
+            throw std::runtime_error("Cannot open output CSV: BottomVeto_channel.csv");
+        }
+
+        bottomFile << "eventID";
+        for (Int_t ch : sortedBottomVetoChannels) {
+            bottomFile << ",ch" << ch;
+        }
+        bottomFile << "\n";
+
+        for (Int_t evtID : allEventIDs) {
+            bottomFile << evtID;
+
+            const auto& channels = bottomVetoChannels[evtID];
+            for (Int_t ch : sortedBottomVetoChannels) {
+                auto it = channels.find(ch);
+                if (it != channels.end()) {
+                    bottomFile << "," << it->second;
+                } else {
+                    bottomFile << ",0";
+                }
+            }
+            bottomFile << "\n";
+        }
+        bottomFile.close();
+    }
 }

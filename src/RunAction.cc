@@ -1,5 +1,6 @@
 #include "RunAction.hh"
 
+using namespace Configuration;
 
 RunAction::RunAction() {
     const G4String fileName = "GammaCube.root";
@@ -10,13 +11,11 @@ RunAction::RunAction() {
     mgr->Register(crystalAndVeto);
 }
 
-RunAction::RunAction(const int bins, const double Emin_MeV, const double Emax_MeV, const double cThreshold,
-                     const double Agen_cm2, const std::string& rootFileName) : nBins(bins),
-                                                                               EminMeV(Emin_MeV),
-                                                                               EmaxMeV(Emax_MeV),
-                                                                               eCrystalThreshold(cThreshold),
-                                                                               area(Agen_cm2) {
-    analysisManager = new AnalysisManager(rootFileName, nBins, EminMeV, EmaxMeV);
+RunAction::RunAction(const double Agen_cm2, const double Emin_MeV,
+                     const double Emax_MeV) : EminMeV(Emin_MeV),
+                                              EmaxMeV(Emax_MeV),
+                                              area(Agen_cm2) {
+    analysisManager = new AnalysisManager(outputFile, nBins, EminMeV, EmaxMeV);
     if (nBins < 1) {
         throw std::runtime_error("RunAction: nbins must be >= 1");
     }

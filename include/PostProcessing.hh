@@ -9,6 +9,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include <set>
 #include <sstream>
 #include <filesystem>
 
@@ -22,18 +23,16 @@
 #include <TROOT.h>
 #include <TError.h>
 
+#include "Configuration.hh"
+
 class TFile;
 class TH1;
 
 class PostProcessing {
 public:
-    PostProcessing(std::string rootFilePath,
-                   std::string outputFolderName,
-                   bool processSecondaries,
-                   bool processOptics,
+    PostProcessing(std::string outputFolderName,
                    double eMinMeV,
                    double eMaxMeV,
-                   double eTrigMeV,
                    std::string particle);
 
     ~PostProcessing();
@@ -45,16 +44,12 @@ public:
     void SaveTrigEdepCsv();
     void SaveEdepCsv();
 
+    void SaveOpticsCsv();
+
 private:
-    std::string rootFilePath;
     std::string outputFolderName;
-
-    bool processSecondaries;
-    bool processOptics;
-
     double eMinMeV;
     double eMaxMeV;
-    double eTrigMeV;
     std::string particleName;
 
     std::unique_ptr<TFile> rootFile;

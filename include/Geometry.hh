@@ -24,66 +24,64 @@
 #include "SensitiveDetector.hh"
 #include "Detector.hh"
 #include "Sizes.hh"
+#include "Configuration.hh"
 
 
 class Geometry : public G4VUserDetectorConstruction {
 public:
-    Geometry(G4String, G4bool, G4double, G4int);
+    Geometry(G4double);
 
-    G4VPhysicalVolume *Construct() override;
+    G4VPhysicalVolume* Construct() override;
     void ConstructSDandField() override;
 
 private:
-    G4NistManager *nist;
-    G4Material *worldMat;
+    G4NistManager* nist;
+    G4Material* worldMat;
     G4double worldHalfSize;
-    G4Box *worldBox;
-    G4LogicalVolume *worldLV;
-    G4VPhysicalVolume *worldPVP;
+    G4Box* worldBox;
+    G4LogicalVolume* worldLV;
+    G4VPhysicalVolume* worldPVP;
 
     G4double viewDeg;
-    G4int yieldScale;
-    G4bool useOptics;
 
-    Detector *detector;
-    G4String detectorType;
+    Detector* detector;
     G4ThreeVector detContainerSize;
 
-    G4VSolid *detContainer;
-    G4LogicalVolume *detContainerLV;
-    G4VPhysicalVolume *detContainerPVPL;
+    G4VSolid* detContainer;
+    G4LogicalVolume* detContainerLV;
+    G4VPhysicalVolume* detContainerPVPL;
     G4ThreeVector detContainerPos;
 
-    G4LogicalVolume *crystalLV;
-    G4LogicalVolume *vetoLV;
-    G4LogicalVolume *bottomVetoLV;
-    G4LogicalVolume *tyvekOutLV;
-    G4LogicalVolume *tyvekMidLV;
-    G4LogicalVolume *tyvekInLV;
-    G4LogicalVolume *tyvekBottomLV;
-    G4LogicalVolume *tunaCanLV;
+    G4LogicalVolume* crystalLV;
+    G4LogicalVolume* vetoLV;
+    G4LogicalVolume* bottomVetoLV;
+    G4LogicalVolume* tyvekOutLV;
+    G4LogicalVolume* tyvekMidLV;
+    G4LogicalVolume* tyvekInLV;
+    G4LogicalVolume* tyvekBottomLV;
+    G4LogicalVolume* tunaCanLV;
 
-    G4LogicalVolume *crystalSensSurfLV;
-    G4LogicalVolume *vetoSensSurfLV;
-    G4LogicalVolume *vetoBottomSensSurfLV;
+    G4LogicalVolume* crystalSensSurfLV;
+    G4LogicalVolume* vetoSensSurfLV;
+    G4LogicalVolume* vetoBottomSensSurfLV;
 
-    G4Region *vetoTopRegion;
-    G4Region *vetoBottomRegion;
-    G4Region *vetoLeftRegion;
-    G4Region *vetoRightRegion;
-    G4Region *vetoFrontRegion;
-    G4Region *vetoBackRegion;
+    G4Region* vetoTopRegion;
+    G4Region* vetoBottomRegion;
+    G4Region* vetoLeftRegion;
+    G4Region* vetoRightRegion;
+    G4Region* vetoFrontRegion;
+    G4Region* vetoBackRegion;
 
-    G4RotationMatrix *zeroRot;
+    G4RotationMatrix* zeroRot;
 
-    G4VSolid *tunaCan;
+    G4VSolid* tunaCan;
 
-    G4UserLimits *vetoStepLimit;
-    G4Region *vetoRegion;
-    G4ProductionCuts *vetoCuts;
+    G4UserLimits* vetoStepLimit;
+    G4Region* vetoRegion;
+    G4ProductionCuts* vetoCuts;
 
-    G4VisAttributes *tunaCanVisAttr;
-    G4VisAttributes *detContVisAttr;
+    G4VisAttributes* tunaCanVisAttr;
+    G4VisAttributes* detContVisAttr;
 
     void ConstructDetector();
     void ConstructTunaCan();
