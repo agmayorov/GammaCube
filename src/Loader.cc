@@ -22,11 +22,11 @@ Loader::Loader(int argc, char** argv) {
     saveSecondaries = false;
 
     for (int i = 0; i < argc; i++) {
-        if (std::string input(argv[i]); input == "-i" || input == "-input") {
+        if (std::string input(argv[i]); input == "-i" || input == "--input") {
             macroFile = argv[i + 1];
             useUI = false;
             viewDeg = 360 * deg;
-        } else if (input == "-t" || input == "-threads") {
+        } else if (input == "-t" || input == "--threads") {
             numThreads = std::stoi(argv[i + 1]);
         } else if (input == "-ys" || input == "--yield-scale") {
             yieldScale = std::stoi(argv[i + 1]);
