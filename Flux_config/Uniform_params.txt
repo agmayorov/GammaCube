@@ -1,5 +1,5 @@
 particles: gamma
 fractions: 1.
 
-E_min: 2
-E_max: 2
+E_min: 0.01
+E_max: 10000

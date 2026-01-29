@@ -124,10 +124,10 @@ int EventAction::WriteEdepFromSD_(const G4Event* evt, int eventID) {
             if (det_name == "Crystal" and edep_MeV <= eCrystalThreshold) {
                 edep_MeV = 0;
             }
-            analysisManager->FillEdepRow(eventID, det_name, edep_MeV);
             if (edep_MeV > 0.0) {
                 if (det_name == "Crystal") MarkCrystal();
                 else if (det_name == "Veto" or det_name == "BottomVeto") MarkVeto();
+                analysisManager->FillEdepRow(eventID, det_name, edep_MeV);
             }
         }
         nHitsTotal += static_cast<int>(N);
@@ -144,30 +144,31 @@ void EventAction::WriteSiPMFromSD_(int eventID) {
     auto* sipmSD = dynamic_cast<SiPMOpticalSD*>(sdBase);
     if (!sipmSD) return;
 
-    int npeC = 0;
-    int npeV = 0;
-    int npeB = 0;
+    int npeC = sipmSD->GetNpeCrystal();
+    int npeV = sipmSD->GetNpeVeto();
+    int npeB = sipmSD->GetNpeBottomVeto();
+
+    npeC = npeC > oCrystalThreshold ? npeC : 0;
+    npeV = npeV > oVetoThreshold ? npeV : 0;
+    npeB = npeB > oBottomVetoThreshold ? npeB : 0;
+
+    analysisManager->FillSiPMEventRow(eventID, npeC, npeV, npeB);
 
     for (const auto& kv : sipmSD->GetPerChannelCrystal()) {
         const int ch = kv.first;
-        const int npe = kv.second < oCrystalThreshold ? 0 : kv.second;
-        npeC += npe;
+        const int npe = kv.second;
         analysisManager->FillSiPMChannelRow(eventID, "Crystal", ch, npe);
     }
 
     for (const auto& kv : sipmSD->GetPerChannelVeto()) {
         const int ch = kv.first;
-        const int npe = kv.second < oVetoThreshold ? 0 : kv.second;
-        npeV += npe;
+        const int npe = kv.second;
         analysisManager->FillSiPMChannelRow(eventID, "Veto", ch, npe);
     }
 
     for (const auto& kv : sipmSD->GetPerChannelBottom()) {
         const int ch = kv.first;
-        const int npe = kv.second < oVetoThreshold ? 0 : kv.second;
-        npeB += npe;
+        const int npe = kv.second;
         analysisManager->FillSiPMChannelRow(eventID, "BottomVeto", ch, npe);
     }
-
-    analysisManager->FillSiPMEventRow(eventID, npeC, npeV, npeB);
 }

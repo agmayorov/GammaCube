@@ -42,6 +42,8 @@ Loader::Loader(int argc, char** argv) {
             oCrystalThreshold = std::stoi(argv[i + 1]);
         } else if (input == "-ovt" || input == "--veto-optic-threshold") {
             oVetoThreshold = std::stoi(argv[i + 1]);
+        } else if (input == "-obvt" || input == "--bottom-veto-optic-threshold") {
+            oBottomVetoThreshold = std::stoi(argv[i + 1]);
         } else if (input == "-noUI") {
             useUI = false;
         } else if (input == "-d" || input == "--detector") {

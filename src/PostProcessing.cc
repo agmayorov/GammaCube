@@ -517,6 +517,51 @@ void PostProcessing::SaveOpticsCsv() {
     std::string opticDir = (fs::path(runDir) / "optic").string();
     fs::create_directories(opticDir);
 
+    std::unordered_map<int, int> edepTriggerMap;
+
+    TTree* edep = nullptr;
+    rootFile->GetObject("edep", edep);
+    if (edep) {
+        Int_t eventID_e = 0;
+        Char_t det_name[64] = {};
+        double edep_MeV = 0.0;
+
+        edep->SetBranchStatus("*", false);
+        edep->SetBranchStatus("eventID", true);
+        edep->SetBranchStatus("det_name", true);
+        edep->SetBranchStatus("edep_MeV", true);
+
+        edep->SetBranchAddress("eventID", &eventID_e);
+        edep->SetBranchAddress("det_name", det_name);
+        edep->SetBranchAddress("edep_MeV", &edep_MeV);
+
+        struct DetectorEdep {
+            double crystal = 0.0;
+            double veto = 0.0;
+            double bottomVeto = 0.0;
+        };
+
+        std::unordered_map<int, DetectorEdep> edepMap;
+        const Long64_t nEntries = edep->GetEntries();
+        for (Long64_t i = 0; i < nEntries; ++i) {
+            edep->GetEntry(i);
+
+            auto& deps = edepMap[eventID_e];
+
+            if (std::strcmp(det_name, "Crystal") == 0) {
+                deps.crystal += edep_MeV;
+            } else if (std::strcmp(det_name, "Veto") == 0) {
+                deps.veto += edep_MeV;
+            } else if (std::strcmp(det_name, "BottomVeto") == 0) {
+                deps.bottomVeto += edep_MeV;
+            }
+        }
+
+        for (const auto& [evtID, deps] : edepMap) {
+            edepTriggerMap[evtID] = deps.crystal > 0.0 && deps.veto == 0.0 && deps.bottomVeto == 0.0 ? 1 : 0;
+        }
+    }
+
     TTree* sipmEvent = nullptr;
     rootFile->GetObject("sipm_event", sipmEvent);
     if (!sipmEvent) {
@@ -576,9 +621,6 @@ void PostProcessing::SaveOpticsCsv() {
     sipmCh->SetBranchStatus("*", false);
     sipmCh->SetBranchStatus("eventID", true);
     sipmCh->SetBranchStatus("subdet", true);
-    sipmCh->SetBranchStatus("ch", true);
-    sipmCh->SetBranchStatus("npe", true);
-
     sipmCh->SetBranchAddress("eventID", &ch_eventID);
     sipmCh->SetBranchAddress("subdet", subdet);
     sipmCh->SetBranchAddress("ch", &ch);
@@ -624,7 +666,7 @@ void PostProcessing::SaveOpticsCsv() {
         throw std::runtime_error("Cannot open output CSV: trig_opt.csv");
     }
 
-    trigOptFile << "eventID,trigger,Crystal_npe,Veto_npe,BottomVeto_npe\n";
+    trigOptFile << "eventID,trigger_opt,trigger_edep,Crystal_npe,Veto_npe,BottomVeto_npe\n";
 
     std::vector<Int_t> allEventIDs;
     allEventIDs.reserve(eventMap.size());
@@ -635,8 +677,16 @@ void PostProcessing::SaveOpticsCsv() {
 
     for (Int_t evtID : allEventIDs) {
         const auto& info = eventMap[evtID];
+
+        int trigger_edep = 0;
+        auto it = edepTriggerMap.find(evtID);
+        if (it != edepTriggerMap.end()) {
+            trigger_edep = it->second;
+        }
+
         trigOptFile << evtID << ","
             << info.trigger << ","
+            << trigger_edep << ","
             << info.crystal_npe << ","
             << info.veto_npe << ","
             << info.bottom_veto_npe << "\n";

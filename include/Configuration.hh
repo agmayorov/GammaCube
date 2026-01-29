@@ -20,6 +20,7 @@ namespace Configuration
     inline G4int yieldScale{1};
     inline G4int oCrystalThreshold{0};
     inline G4int oVetoThreshold{0};
+    inline G4int oBottomVetoThreshold{0};
 
     inline G4int nBins{1000};
     inline G4String outputFile{"GammaCube.root"};
