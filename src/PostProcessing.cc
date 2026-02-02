@@ -526,10 +526,7 @@ void PostProcessing::SaveOpticsCsv() {
         Char_t det_name[64] = {};
         double edep_MeV = 0.0;
 
-        edep->SetBranchStatus("*", false);
-        edep->SetBranchStatus("eventID", true);
-        edep->SetBranchStatus("det_name", true);
-        edep->SetBranchStatus("edep_MeV", true);
+        edep->SetBranchStatus("*", true);
 
         edep->SetBranchAddress("eventID", &eventID_e);
         edep->SetBranchAddress("det_name", det_name);
@@ -573,11 +570,7 @@ void PostProcessing::SaveOpticsCsv() {
     Int_t npe_veto = 0;
     Int_t npe_bottom_veto = 0;
 
-    sipmEvent->SetBranchStatus("*", false);
-    sipmEvent->SetBranchStatus("eventID", true);
-    sipmEvent->SetBranchStatus("npe_crystal", true);
-    sipmEvent->SetBranchStatus("npe_veto", true);
-    sipmEvent->SetBranchStatus("npe_bottom_veto", true);
+    sipmEvent->SetBranchStatus("*", true);
 
     sipmEvent->SetBranchAddress("eventID", &eventID);
     sipmEvent->SetBranchAddress("npe_crystal", &npe_crystal);
@@ -602,7 +595,7 @@ void PostProcessing::SaveOpticsCsv() {
         info.crystal_npe = npe_crystal;
         info.veto_npe = npe_veto;
         info.bottom_veto_npe = npe_bottom_veto;
-        info.trigger = (npe_crystal > 0) && (npe_veto + npe_bottom_veto == 0) ? 1 : 0;
+        info.trigger = npe_crystal > 0 && npe_veto + npe_bottom_veto == 0 ? 1 : 0;
 
         eventMap[eventID] = info;
     }
@@ -618,9 +611,7 @@ void PostProcessing::SaveOpticsCsv() {
     Int_t ch = 0;
     Int_t npe = 0;
 
-    sipmCh->SetBranchStatus("*", false);
-    sipmCh->SetBranchStatus("eventID", true);
-    sipmCh->SetBranchStatus("subdet", true);
+    sipmCh->SetBranchStatus("*", true);
     sipmCh->SetBranchAddress("eventID", &ch_eventID);
     sipmCh->SetBranchAddress("subdet", subdet);
     sipmCh->SetBranchAddress("ch", &ch);
