@@ -35,6 +35,8 @@ namespace  Sizes {
     inline G4double vetoThickWall{7 * mm};
     inline G4double vetoThickTop{7 * mm};
 
+    inline G4double vetoChamferHeight{0 * mm};
+
     inline G4double vetoOpticLayerHeight{1 * mm};
 
     inline G4double bottomVetoRadius{18.5 * mm};

@@ -44,6 +44,8 @@ Loader::Loader(int argc, char** argv) {
             oVetoThreshold = std::stoi(argv[i + 1]);
         } else if (input == "-obvt" || input == "--bottom-veto-optic-threshold") {
             oBottomVetoThreshold = std::stoi(argv[i + 1]);
+        } else if (input == "-vch" || input == "--veto-chamfer-height") {
+            Sizes::vetoChamferHeight = std::stod(argv[i + 1]) * mm;
         } else if (input == "-noUI") {
             useUI = false;
         } else if (input == "-d" || input == "--detector") {
