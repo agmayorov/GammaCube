@@ -307,15 +307,15 @@ void Detector::ConstructVeto() {
     // Tyvek Out
     tyvekOutSize = G4ThreeVector(vetoRadius, vetoRadius + tyvekOutThickWall, vetoHeight / 2);
     G4ThreeVector tyvekOutPos = G4ThreeVector(0, 0, (detContainerTopSize.z() - vetoHeight -
-                                                  vetoChamferHeight - vetoTopRoundingRadius) / 2 - tyvekOutThickTop);
+                                                  vetoChamferHeight - vetoTopRoundedRadius) / 2 - tyvekOutThickTop);
 
     G4VSolid* tyvekOutWall = new G4Tubs("TyvekOutWall", tyvekOutSize.x(), tyvekOutSize.y(),
-                                        tyvekOutSize.z() - (vetoChamferHeight + vetoTopRoundingRadius) / 2, 0, viewDeg);
+                                        tyvekOutSize.z() - (vetoChamferHeight + vetoTopRoundedRadius) / 2, 0, viewDeg);
     G4ThreeVector tyvekOutTopPos = G4ThreeVector(0, 0, tyvekOutSize.z() + tyvekOutThickTop / 2.0);
     G4VSolid* tyvekOutTop;
-    if (vetoTopRoundingRadius > 0) {
-        G4double tyvekOutTopRoundingRadius = vetoTopRoundingRadius + tyvekOutThickWall;
-        G4VSolid* tyvekOutTopRoundingBase = new G4Torus("TyvekOutTopRoundingBase", vetoTopRoundingRadius,
+    if (vetoTopRoundedRadius > 0) {
+        G4double tyvekOutTopRoundingRadius = vetoTopRoundedRadius + tyvekOutThickWall;
+        G4VSolid* tyvekOutTopRoundingBase = new G4Torus("TyvekOutTopRoundingBase", vetoTopRoundedRadius,
                                                         tyvekOutTopRoundingRadius,
                                                         tyvekOutSize.y() - tyvekOutTopRoundingRadius, 0, viewDeg);
         G4VSolid* cutCube = new G4Box("CutCube", tyvekOutSize.y(), tyvekOutSize.y(), tyvekOutSize.y());
@@ -328,8 +328,8 @@ void Detector::ConstructVeto() {
         G4VSolid* tyvekOutTopTube = new G4Tubs("TyvekOutTopTube", 0, tyvekOutSize.y() - tyvekOutTopRoundingRadius,
                                                tyvekOutThickTop / 2, 0, viewDeg);
         tyvekOutTop = new G4UnionSolid("TyvekOutTop", tyvekOutTopRounding, tyvekOutTopTube, nullptr,
-                                       G4ThreeVector(0, 0, vetoTopRoundingRadius + tyvekOutThickTop / 2.));
-        tyvekOutTopPos = G4ThreeVector(0, 0, tyvekOutSize.z() - (vetoChamferHeight + vetoTopRoundingRadius) / 2);
+                                       G4ThreeVector(0, 0, vetoTopRoundedRadius + tyvekOutThickTop / 2.));
+        tyvekOutTopPos = G4ThreeVector(0, 0, tyvekOutSize.z() - (vetoChamferHeight + vetoTopRoundedRadius) / 2);
     } else if (vetoChamferHeight != 0) {
         G4VSolid* tyvekOutTopConsOut = new G4Cons("TyvekOutTopConsOut", tyvekOutSize.x(), tyvekOutSize.y(),
                                                   tyvekOutSize.y() - 2 * tyvekOutThickWall - vetoChamferHeight,
@@ -355,31 +355,31 @@ void Detector::ConstructVeto() {
     // Veto
     vetoSize = tyvekOutSize - G4ThreeVector(vetoThickWall, tyvekOutThickWall, vetoThickTop / 2.);
     G4ThreeVector vetoPos = tyvekOutPos;
-    vetoPos[2] -= (vetoThickTop - vetoChamferHeight - vetoTopRoundingRadius) / 2;
+    vetoPos[2] -= (vetoThickTop - vetoChamferHeight - vetoTopRoundedRadius) / 2;
 
     G4VSolid* vetoWall = new G4Tubs("VetoWall", vetoSize.x(), vetoSize.y(), vetoSize.z(), 0, viewDeg);
     G4ThreeVector vetoTopPos =
-        G4ThreeVector(0, 0, vetoSize.z() + (vetoThickTop - vetoChamferHeight - vetoTopRoundingRadius) / 2.0);
+        G4ThreeVector(0, 0, vetoSize.z() + (vetoThickTop - vetoChamferHeight - vetoTopRoundedRadius) / 2.0);
     G4VSolid* vetoTop;
-    if (vetoTopRoundingRadius > 0) {
-        G4VSolid* vetoTopRoundingBase = new G4Torus("VetoTopRoundingBase", 0, vetoTopRoundingRadius,
-                                                    vetoSize.y() - vetoTopRoundingRadius, 0, viewDeg);
+    if (vetoTopRoundedRadius > 0) {
+        G4VSolid* vetoTopRoundingBase = new G4Torus("VetoTopRoundingBase", 0, vetoTopRoundedRadius,
+                                                    vetoSize.y() - vetoTopRoundedRadius, 0, viewDeg);
         G4VSolid* cutCube = new G4Box("CutCube", vetoSize.y(), vetoSize.y(), vetoSize.y());
         G4VSolid* vetoTopRounding = new G4SubtractionSolid("VetoTopRounding", vetoTopRoundingBase, cutCube,
                                                            nullptr, G4ThreeVector(0, 0, -vetoSize.y()));
-        G4VSolid* vetoTopTube = new G4Tubs("VetoTopTube", 0, vetoSize.y() - vetoTopRoundingRadius,
-                                           vetoTopRoundingRadius / 2, 0, viewDeg);
-        if (vetoTopRoundingRadius == vetoThickTop) {
+        G4VSolid* vetoTopTube = new G4Tubs("VetoTopTube", 0, vetoSize.y() - vetoTopRoundedRadius,
+                                           vetoTopRoundedRadius / 2, 0, viewDeg);
+        if (vetoTopRoundedRadius == vetoThickTop) {
             vetoTop = new G4UnionSolid("VetoTop", vetoTopRounding, vetoTopTube, nullptr,
-                                       G4ThreeVector(0, 0, vetoTopRoundingRadius / 2.));
+                                       G4ThreeVector(0, 0, vetoTopRoundedRadius / 2.));
         } else {
             G4VSolid* vetoTopInc = new G4UnionSolid("VetoTop", vetoTopRounding, vetoTopTube, nullptr,
-                                                    G4ThreeVector(0, 0, vetoTopRoundingRadius / 2.));
+                                                    G4ThreeVector(0, 0, vetoTopRoundedRadius / 2.));
             G4VSolid* vetoTopBaseTube = new G4Tubs("VetoTopBaseTube", 0, vetoSize.y(),
-                                                   (vetoThickTop - vetoTopRoundingRadius) / 2., 0, viewDeg);
+                                                   (vetoThickTop - vetoTopRoundedRadius) / 2., 0, viewDeg);
             vetoTop = new G4UnionSolid("VetoTop", vetoTopInc, vetoTopBaseTube, nullptr,
-                                       G4ThreeVector(0, 0, -(vetoThickTop - vetoTopRoundingRadius) / 2));
-            vetoTopPos[2] += (vetoThickTop - vetoTopRoundingRadius) / 2;
+                                       G4ThreeVector(0, 0, -(vetoThickTop - vetoTopRoundedRadius) / 2));
+            vetoTopPos[2] += (vetoThickTop - vetoTopRoundedRadius) / 2;
         }
     } else if (vetoChamferHeight == vetoThickTop) {
         vetoTop = new G4Cons("VetoTop", 0, vetoSize.y(), 0, vetoSize.y() - vetoChamferHeight, vetoChamferHeight / 2, 0,
@@ -420,7 +420,7 @@ void Detector::ConstructVeto() {
                                           vetoOpticLayerHeight / 2., 0, viewDeg);
     vetoOpticLayerLV = new G4LogicalVolume(vetoOpticLayer, opticLayerMat, "VetoOpticLayerLV");
     G4ThreeVector vetoOpticLayerPos = tyvekOutPos + G4ThreeVector(0, 0, -tyvekOutSize.z() - (vetoOpticLayerHeight -
-                                                                      vetoChamferHeight - vetoTopRoundingRadius) / 2.0);
+                                                                      vetoChamferHeight - vetoTopRoundedRadius) / 2.0);
     vetoOpticLayerPVP = new G4PVPlacement(nullptr, vetoOpticLayerPos, vetoOpticLayerLV, "VetoOpticLayerPVP",
                                           detContainerLV, false, 0,
                                           true);
@@ -950,8 +950,8 @@ void Detector::ConstructOpticalSurfaces() {
     auto* tyvekSurf = new G4OpticalSurface("TyvekSurface");
     tyvekSurf->SetModel(unified);
     tyvekSurf->SetType(dielectric_metal);
-    tyvekSurf->SetFinish(groundfrontpainted);
-    tyvekSurf->SetSigmaAlpha(0.2);
+    tyvekSurf->SetFinish(polished);
+    tyvekSurf->SetSigmaAlpha(0.0);
 
     const auto refl = Utils::ReadCSV("../OpticalParameters/Tyvek_reflectivity.csv", 1.0, true);
     auto* mpt = new G4MaterialPropertiesTable();
