@@ -22,6 +22,7 @@
 #include <G4Element.hh>
 #include <G4Box.hh>
 #include <G4Cons.hh>
+#include <G4Torus.hh>
 #include <G4VSolid.hh>
 #include <G4Trd.hh>
 #include <G4Tubs.hh>

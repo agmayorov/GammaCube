@@ -44,8 +44,11 @@ Loader::Loader(int argc, char** argv) {
             oVetoThreshold = std::stoi(argv[i + 1]);
         } else if (input == "-obvt" || input == "--bottom-veto-optic-threshold") {
             oBottomVetoThreshold = std::stoi(argv[i + 1]);
-        } else if (input == "-vch" || input == "--veto-chamfer-height") {
+        } else if ((input == "-vch" || input == "--veto-chamfer-height") and Sizes::vetoTopRoundingRadius == 0) {
             Sizes::vetoChamferHeight = std::stod(argv[i + 1]) * mm;
+        } else if (input == "-vtr" || input == "--veto-top-rounding") {
+            Sizes::vetoTopRoundingRadius = std::stod(argv[i + 1]) * mm;
+            Sizes::vetoChamferHeight = 0 * mm;
         } else if (input == "-noUI") {
             useUI = false;
         } else if (input == "-d" || input == "--detector") {
