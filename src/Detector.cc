@@ -379,6 +379,7 @@ void Detector::ConstructVeto() {
                                                    (vetoThickTop - vetoTopRoundingRadius) / 2., 0, viewDeg);
             vetoTop = new G4UnionSolid("VetoTop", vetoTopInc, vetoTopBaseTube, nullptr,
                                        G4ThreeVector(0, 0, -(vetoThickTop - vetoTopRoundingRadius) / 2));
+            vetoTopPos[2] += (vetoThickTop - vetoTopRoundingRadius) / 2;
         }
     } else if (vetoChamferHeight == vetoThickTop) {
         vetoTop = new G4Cons("VetoTop", 0, vetoSize.y(), 0, vetoSize.y() - vetoChamferHeight, vetoChamferHeight / 2, 0,

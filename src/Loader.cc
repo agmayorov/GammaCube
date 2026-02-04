@@ -48,7 +48,8 @@ Loader::Loader(int argc, char** argv) {
             Sizes::vetoChamferHeight = std::stod(argv[i + 1]) * mm;
         } else if (input == "-vtr" || input == "--veto-top-rounding") {
             Sizes::vetoTopRoundingRadius = std::stod(argv[i + 1]) * mm;
-            Sizes::vetoChamferHeight = 0 * mm;
+            if (Sizes::vetoTopRoundingRadius > 0)
+                Sizes::vetoChamferHeight = 0 * mm;
         } else if (input == "-noUI") {
             useUI = false;
         } else if (input == "-d" || input == "--detector") {
