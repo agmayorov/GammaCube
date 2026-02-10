@@ -100,10 +100,10 @@ void PostProcessing::SaveHistPng(const std::string& histName,
     // h->GetXaxis()->SetMoreLogLabels(true);
     // h->GetXaxis()->SetNoExponent(true);
 
-    if (eMinMeV > 0.0 && eMaxMeV > eMinMeV) {
+    if (eMinMeV > eCrystalThreshold && eMaxMeV > eMinMeV) {
         h->GetXaxis()->SetRangeUser(eMinMeV, eMaxMeV);
-        if (useTrig && eCrystalThreshold > 0.0)
-            h->GetXaxis()->SetRangeUser(eCrystalThreshold, eMaxMeV);
+    } else {
+        h->GetXaxis()->SetRangeUser(eCrystalThreshold, eMaxMeV);
     }
 
     h->SetLineColor(color);
@@ -217,6 +217,10 @@ void PostProcessing::ExtractNtData() {
         ExportTreeToCsv("interactions", (fs::path(csvDir) / "interactions.csv").string());
     }
 
+    if (savePhotons) {
+        ExportTreeToCsv("photons", (fs::path(csvDir) / "photons.csv").string());
+    }
+
     if (useOptics) {
         ExportTreeToCsv("sipm_event", (fs::path(csvDir) / "sipm_event.csv").string());
         ExportTreeToCsv("sipm_ch", (fs::path(csvDir) / "sipm_ch.csv").string());
@@ -292,7 +296,7 @@ void PostProcessing::SaveSensitivity() {
     }
 
     SaveHistPng("sensitivityHist", (fs::path(sensitivityDir) / "sensitivity.png").string(),
-                "Sensitivity vs Energy", "Sensitivity [cm^{2} #cdot sr]", false, true);
+                "Sensitivity vs Energy", "Sensitivity [cm^{2} \\cdot sr]", false, true);
 
     std::ofstream out((fs::path(sensitivityDir) / "sensitivity_by_energy.csv").string());
     if (!out.is_open()) {

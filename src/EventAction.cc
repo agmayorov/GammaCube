@@ -43,6 +43,9 @@ void EventAction::EndOfEventAction(const G4Event* evt) {
     nInteractions = WriteInteractions_(eventID);
     interBuf.clear();
 
+    WritePhotons_(eventID);
+    photonBuf = {0, 0, 0};
+
     nEdepHits = WriteEdepFromSD_(evt, eventID);
 
     if (saveSecondaries) {
@@ -87,6 +90,13 @@ int EventAction::WriteInteractions_(int eventID) {
         }
     }
     return static_cast<int>(interBuf.size());
+}
+
+int EventAction::WritePhotons_(int eventID) {
+    if (savePhotons) {
+        analysisManager->FillPhotonCountRow(eventID, photonBuf[0], photonBuf[1], photonBuf[2]);
+    }
+    return static_cast<int>(photonBuf.size());
 }
 
 int EventAction::WriteEdepFromSD_(const G4Event* evt, int eventID) {

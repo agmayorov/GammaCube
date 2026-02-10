@@ -105,8 +105,8 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* evt) {
     } else if (fluxDirection == "horizontal") {
         v = G4ThreeVector(-1., 0., 0.);
         const G4double x_ = radius;
-        const G4double y_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.y();
-        const G4double z_ = (G4UniformRand() - 0.5) * detectorHalfSize.z();
+        const G4double y_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.y(); // 1 * mm;
+        const G4double z_ = (G4UniformRand() - 0.5) * detectorHalfSize.z();     // 1 * mm;
         x = G4ThreeVector(x_, y_, z_);
     } else {
         GenerateOnSphere(x, v);

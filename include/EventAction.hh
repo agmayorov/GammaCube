@@ -54,6 +54,7 @@ class EventAction : public G4UserEventAction {
 public:
     std::vector<PrimaryRec> primBuf;
     std::vector<InteractionRec> interBuf;
+    std::vector<G4int> photonBuf{0, 0, 0};
 
     EventAction(AnalysisManager *, RunAction *);
     ~EventAction() override = default;
@@ -64,6 +65,7 @@ public:
 private:
     void WritePrimaries_(int eventID);
     int WriteInteractions_(int eventID);
+    int WritePhotons_(int eventID);
     int WriteEdepFromSD_(const G4Event *evt, int eventID);
 
     void WriteSiPMFromSD_(int eventID);

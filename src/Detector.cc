@@ -154,8 +154,8 @@ void Detector::DefineMaterials() {
     {
         galacticMat = nist->FindOrBuildMaterial("G4_Galactic");
 
-        auto tN = Utils::MakeConstantTable(2.0, 3.4, 1.0);
-        auto tA = Utils::MakeConstantTable(2.0, 3.4, 1e6 * m);
+        auto tN = Utils::MakeConstantTable(1.0, 4.0, 1.0);
+        auto tA = Utils::MakeConstantTable(1.0, 4.0, 1e6 * m);
         Utils::ApplyMaterialTable(galacticMat, tN, &tA);
     }
 

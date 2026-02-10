@@ -1,14 +1,14 @@
 #include "SteppingAction.hh"
 
 
-void SteppingAction::UserSteppingAction(const G4Step *step) {
-    const auto *post = step->GetPostStepPoint();
-    const auto *postProc = post->GetProcessDefinedStep();
+void SteppingAction::UserSteppingAction(const G4Step* step) {
+    const auto* post = step->GetPostStepPoint();
+    const auto* postProc = post->GetProcessDefinedStep();
 
     const G4ThreeVector x = post->GetPosition() / mm;
     const G4double t = post->GetGlobalTime() / ns;
 
-    const auto *touch = post->GetTouchable();
+    const auto* touch = post->GetTouchable();
     G4String volName = "World";
     int copyNo = -1;
     if (touch && touch->GetVolume()) {
@@ -16,20 +16,26 @@ void SteppingAction::UserSteppingAction(const G4Step *step) {
         copyNo = touch->GetVolume()->GetCopyNo();
     }
 
-    const auto *track = step->GetTrack();
+    const auto* track = step->GetTrack();
     const G4int trackID = track->GetTrackID();
     const G4int parentID = track->GetParentID();
 
     auto secs = step->GetSecondaryInCurrentStep();
-    auto *ea = static_cast<EventAction *>(G4EventManager::GetEventManager()->GetUserEventAction());
+    auto* ea = static_cast<EventAction*>(G4EventManager::GetEventManager()->GetUserEventAction());
     if (ea) {
         if (secs && !secs->empty()) {
             for (size_t i = 0; i < secs->size(); ++i) {
-                const auto *sc = (*secs)[i];
-                const auto *cp = sc->GetCreatorProcess();
+                const auto* sc = (*secs)[i];
+                const auto* cp = sc->GetCreatorProcess();
 
-                if (sc->GetDefinition()->GetParticleName() == "opticalphoton") continue;
-
+                if (sc->GetDefinition()->GetParticleName() == "opticalphoton" and Configuration::savePhotons) {
+                    if (volName == "CrystalPVP")
+                        ea->photonBuf[0] += 1;
+                    if (volName == "VetoPVP")
+                        ea->photonBuf[1] += 1;
+                    if (volName == "BottomVetoPVP")
+                        ea->photonBuf[2] += 1;
+                }
                 InteractionRec rec;
                 rec.trackID = trackID;
                 rec.parentID = parentID;
@@ -49,7 +55,7 @@ void SteppingAction::UserSteppingAction(const G4Step *step) {
         }
 
         if (postProc) {
-            const auto &pname = postProc->GetProcessName();
+            const auto& pname = postProc->GetProcessName();
             if (pname != "Transportation") {
                 InteractionRec rec;
                 rec.trackID = trackID;

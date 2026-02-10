@@ -20,6 +20,7 @@ Loader::Loader(int argc, char** argv) {
     outputFile = "GammaCube.root";
     nBins = 1000;
     saveSecondaries = false;
+    savePhotons = false;
 
     for (int i = 0; i < argc; i++) {
         if (std::string input(argv[i]); input == "-i" || input == "--input") {
@@ -62,6 +63,8 @@ Loader::Loader(int argc, char** argv) {
             useOptics = true;
         } else if (input == "--save-secondaries") {
             saveSecondaries = true;
+        } else if (input == "--save-photon-count") {
+            savePhotons = true;
         } else if (input == "-g" || input == "--geom-config") {
             geomConfigPath = argv[i + 1];
         } else if (input == "-o" || input == "--output-file") {
@@ -69,6 +72,8 @@ Loader::Loader(int argc, char** argv) {
             outputFile += ".root";
         }
     }
+
+    savePhotons = savePhotons and !useOptics;
 
     configPath = "../Flux_config/" + fluxType + "_params.txt";
 
@@ -92,11 +97,11 @@ Loader::Loader(int argc, char** argv) {
         auto* opticalPhysics = new G4OpticalPhysics();
 
         auto* op = G4OpticalParameters::Instance();
-        op->SetProcessActivation("Cerenkov", false);
+        op->SetProcessActivation("Cerenkov", true);
         op->SetProcessActivation("Scintillation", true);
         op->SetProcessActivation("OpAbsorption", true);
         op->SetProcessActivation("OpRayleigh", true);
-        op->SetProcessActivation("OpMieHG", false);
+        op->SetProcessActivation("OpMieHG", true);
         op->SetProcessActivation("OpBoundary", true);
 
         op->SetScintTrackSecondariesFirst(true);
