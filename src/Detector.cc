@@ -154,8 +154,8 @@ void Detector::DefineMaterials() {
     {
         galacticMat = nist->FindOrBuildMaterial("G4_Galactic");
 
-        auto tN = Utils::MakeConstantTable(1.0, 4.0, 1.0);
-        auto tA = Utils::MakeConstantTable(1.0, 4.0, 1e6 * m);
+        auto tN = Utils::MakeConstantTable(1.0 * eV, 4.0 * eV, 1.0);
+        auto tA = Utils::MakeConstantTable(1.0 * eV, 4.0 * eV, 1e6 * m);
         Utils::ApplyMaterialTable(galacticMat, tN, &tA);
     }
 
@@ -949,13 +949,25 @@ void Detector::AddBidirectionalBorder(const G4String& nameAToB,
 void Detector::ConstructOpticalSurfaces() {
     auto* tyvekSurf = new G4OpticalSurface("TyvekSurface");
     tyvekSurf->SetModel(unified);
-    tyvekSurf->SetType(dielectric_metal);
-    tyvekSurf->SetFinish(polished);
-    tyvekSurf->SetSigmaAlpha(0.0);
+    // tyvekSurf->SetType(dielectric_metal);
+    // tyvekSurf->SetFinish(polished);
+    // tyvekSurf->SetSigmaAlpha(0.0);
+    tyvekSurf->SetType(dielectric_dielectric);
+    tyvekSurf->SetFinish(groundfrontpainted);
+    tyvekSurf->SetSigmaAlpha(0.2);
 
     const auto refl = Utils::ReadCSV("../OpticalParameters/Tyvek_reflectivity.csv", 1.0, true);
     auto* mpt = new G4MaterialPropertiesTable();
     mpt->AddProperty("REFLECTIVITY", refl.E, refl.V, refl.E.size());
+
+    std::vector E = {1.0 * eV, 4.0 * eV};
+    std::vector spike = {0.0, 0.0};
+    std::vector lobe = {0.02, 0.02};
+    std::vector back = {0.0, 0.0};
+
+    mpt->AddProperty("SPECULARSPIKECONSTANT", E.data(), spike.data(), static_cast<G4int>(E.size()), true);
+    mpt->AddProperty("SPECULARLOBECONSTANT", E.data(), lobe.data(), static_cast<G4int>(E.size()), true);
+    mpt->AddProperty("BACKSCATTERCONSTANT", E.data(), back.data(), static_cast<G4int>(E.size()), true);
 
     tyvekSurf->SetMaterialPropertiesTable(mpt);
 
