@@ -1,5 +1,3 @@
-#include <utility>
-
 #include "PrimaryGeneratorAction.hh"
 
 
@@ -88,7 +86,7 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* evt) {
     G4ThreeVector x, v;
     if (fluxDirection == "vertical_up") {
         v = G4ThreeVector(0., 0., 1.);
-        const G4double r = std::sqrt(G4UniformRand()) * detectorHalfSize.y(); // 1 * mm;
+        const G4double r = std::sqrt(G4UniformRand()) * 1 * mm;
         const G4double phi = G4UniformRand() * 2 * pi;
         const G4double x_ = r * std::cos(phi);
         const G4double y_ = r * std::sin(phi);
@@ -96,7 +94,7 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* evt) {
         x = G4ThreeVector(x_, y_, z_);
     } else if (fluxDirection == "vertical_down") {
         v = G4ThreeVector(0., 0., -1.);
-        const G4double r = std::sqrt(G4UniformRand()) * detectorHalfSize.y(); // 1 * mm;
+        const G4double r = std::sqrt(G4UniformRand()) * 1 * mm;
         const G4double phi = G4UniformRand() * 2 * pi;
         const G4double x_ = r * std::cos(phi);
         const G4double y_ = r * std::sin(phi);
@@ -105,8 +103,8 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* evt) {
     } else if (fluxDirection == "horizontal") {
         v = G4ThreeVector(-1., 0., 0.);
         const G4double x_ = radius;
-        const G4double y_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.y(); // 1 * mm;
-        const G4double z_ = (G4UniformRand() - 0.5) * detectorHalfSize.z();     // 1 * mm;
+        const G4double y_ = 2 * (G4UniformRand() - 0.5) * 1 * mm;
+        const G4double z_ = (G4UniformRand() - 0.5) * 1 * mm;
         x = G4ThreeVector(x_, y_, z_);
     } else {
         GenerateOnSphere(x, v);

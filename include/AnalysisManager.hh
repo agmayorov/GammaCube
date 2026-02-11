@@ -34,14 +34,17 @@ public:
                             G4int secIndex, const G4String& secName,
                             G4double secE_MeV, const G4ThreeVector& secDir);
 
-    void FillPhotonCountRow(G4int eventID,
-                            G4int npeCrystal, G4int npeVeto,
-                            G4int npeBottomVeto);
-
     void FillEdepRow(G4int eventID, const G4String& det_name, G4double edep_MeV);
 
     void FillSiPMEventRow(int eventID, int npeC, int npeV, int npeB);
     void FillSiPMChannelRow(int eventID, const G4String& subdet, int ch, int npe);
+
+    void FillPhotonCountRow(G4int eventID,
+                            G4int npeCrystal, G4int npeVeto,
+                            G4int npeBottomVeto);
+
+    void FillPhotonRow(G4int eventID, G4int photonID, const G4String& det_name, G4int det_ch,
+                       G4double energy_eV, G4double x_mm, G4double y_mm, G4double z_mm);
 
     void FillGenEnergyHist(G4double E_MeV, G4double weight = 1.0);
     void FillTrigEnergyHist(G4double E_MeV, G4double weight = 1.0);
@@ -59,6 +62,7 @@ private:
     G4int eventNT{-1};
     G4int primaryNT{-1};
     G4int interactionsNT{-1};
+    G4int photonsCountNT{-1};
     G4int photonsNT{-1};
     G4int edepNT{-1};
 

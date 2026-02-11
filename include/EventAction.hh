@@ -50,11 +50,20 @@ struct InteractionRec {
     G4ThreeVector secDir;
 };
 
+struct PhotonRec {
+    G4int photonID = -1;
+    G4String detName;
+    G4int detCh;
+    G4double energy;
+    G4ThreeVector pos_mm;  // mm
+};
+
 class EventAction : public G4UserEventAction {
 public:
     std::vector<PrimaryRec> primBuf;
     std::vector<InteractionRec> interBuf;
-    std::vector<G4int> photonBuf{0, 0, 0};
+    std::vector<G4int> photonCountBuf{0, 0, 0};
+    std::vector<PhotonRec> photonBuf;
 
     EventAction(AnalysisManager *, RunAction *);
     ~EventAction() override = default;
@@ -65,6 +74,7 @@ public:
 private:
     void WritePrimaries_(int eventID);
     int WriteInteractions_(int eventID);
+    int WritePhotonsCount_(int eventID);
     int WritePhotons_(int eventID);
     int WriteEdepFromSD_(const G4Event *evt, int eventID);
 
@@ -82,6 +92,7 @@ private:
 
     int nPrimaries = 0;
     int nInteractions = 0;
+    int nPhotons = 0;
     int nEdepHits = 0;
 
     RunAction* run = nullptr;

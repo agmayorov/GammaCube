@@ -94,19 +94,32 @@ G4bool SiPMOpticalSD::ProcessHits(G4Step* step, G4TouchableHistory*) {
         grp = ClassifyByPVName(prePV);
         if (grp == SiPMGroup::Unknown) grp = ClassifyByPVName(postPV);
     }
-
+    G4String detName = "";
     if (grp == SiPMGroup::Crystal) {
+        detName = "Crystal";
         ++npeCrystal;
         if (ch >= 0) ++perChCrystal[ch];
     } else if (grp == SiPMGroup::Veto) {
+        detName = "Veto";
         ++npeVeto;
         if (ch >= 0) ++perChVeto[ch];
     } else if (grp == SiPMGroup::Bottom) {
+        detName = "BottomVeto";
         ++npeBottom;
         if (ch >= 0) ++perChBottom[ch];
     } else {
         // Unknown classification: still kill photon to avoid infinite bouncing after "Detection"
         // but do not count it.
+    }
+
+    if (auto* ea = dynamic_cast<EventAction*>(G4EventManager::GetEventManager()->GetUserEventAction())) {
+        PhotonRec rec;
+        rec.photonID = track->GetTrackID();
+        rec.detName = detName;
+        rec.detCh = ch;
+        rec.energy = track->GetTotalEnergy() / eV;
+        rec.pos_mm = post->GetPosition();
+        ea->photonBuf.emplace_back(std::move(rec));
     }
 
     track->SetTrackStatus(fStopAndKill);

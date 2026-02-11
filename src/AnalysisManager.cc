@@ -81,11 +81,22 @@ void AnalysisManager::Book() {
     analysisManager->CreateNtupleIColumn("npe");
     analysisManager->FinishNtuple(SiPMChannelNT);
 
-    photonsNT = analysisManager->CreateNtuple("photons", "generated photon count in volumes");
+    photonsCountNT = analysisManager->CreateNtuple("photons_count", "generated photon count in volumes");
     analysisManager->CreateNtupleIColumn("eventID");
     analysisManager->CreateNtupleIColumn("npe_crystal");
     analysisManager->CreateNtupleIColumn("npe_veto");
     analysisManager->CreateNtupleIColumn("npe_bottom_veto");
+    analysisManager->FinishNtuple(photonsCountNT);
+
+    photonsNT = analysisManager->CreateNtuple("photons", "photon register information");
+    analysisManager->CreateNtupleIColumn("eventID");
+    analysisManager->CreateNtupleIColumn("photonID");
+    analysisManager->CreateNtupleSColumn("det_name");
+    analysisManager->CreateNtupleIColumn("det_ch");
+    analysisManager->CreateNtupleDColumn("energy");
+    analysisManager->CreateNtupleDColumn("pos_x");
+    analysisManager->CreateNtupleDColumn("pos_y");
+    analysisManager->CreateNtupleDColumn("pos_z");
     analysisManager->FinishNtuple(photonsNT);
 
     if (xMin < xMax) {
@@ -186,17 +197,6 @@ void AnalysisManager::FillInteractionRow(G4int eventID,
     analysisManager->AddNtupleRow(interactionsNT);
 }
 
-void AnalysisManager::FillPhotonCountRow(G4int eventID,
-                                         G4int npeCrystal, G4int npeVeto,
-                                         G4int npeBottomVeto) {
-    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
-    analysisManager->FillNtupleIColumn(photonsNT, 0, eventID);
-    analysisManager->FillNtupleIColumn(photonsNT, 1, npeCrystal);
-    analysisManager->FillNtupleIColumn(photonsNT, 2, npeVeto);
-    analysisManager->FillNtupleIColumn(photonsNT, 3, npeBottomVeto);
-    analysisManager->AddNtupleRow(photonsNT);
-}
-
 void AnalysisManager::FillEdepRow(G4int eventID, const G4String& det_name, G4double edep_MeV) {
     G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
     analysisManager->FillNtupleIColumn(edepNT, 0, eventID);
@@ -222,6 +222,32 @@ void AnalysisManager::FillSiPMChannelRow(int eventID, const G4String& subdet, in
     analysisManager->FillNtupleIColumn(SiPMChannelNT, 3, npe);
     analysisManager->AddNtupleRow(SiPMChannelNT);
 }
+
+void AnalysisManager::FillPhotonCountRow(G4int eventID,
+                                         G4int npeCrystal, G4int npeVeto,
+                                         G4int npeBottomVeto) {
+    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
+    analysisManager->FillNtupleIColumn(photonsCountNT, 0, eventID);
+    analysisManager->FillNtupleIColumn(photonsCountNT, 1, npeCrystal);
+    analysisManager->FillNtupleIColumn(photonsCountNT, 2, npeVeto);
+    analysisManager->FillNtupleIColumn(photonsCountNT, 3, npeBottomVeto);
+    analysisManager->AddNtupleRow(photonsCountNT);
+}
+
+void AnalysisManager::FillPhotonRow(G4int eventID, G4int photonID, const G4String& det_name, G4int det_ch,
+                                    G4double energy_eV, G4double x_mm, G4double y_mm, G4double z_mm) {
+    auto* analysisManager = G4AnalysisManager::Instance();
+    analysisManager->FillNtupleIColumn(photonsNT, 0, eventID);
+    analysisManager->FillNtupleIColumn(photonsNT, 1, photonID);
+    analysisManager->FillNtupleSColumn(photonsNT, 2, det_name);
+    analysisManager->FillNtupleIColumn(photonsNT, 3, det_ch);
+    analysisManager->FillNtupleDColumn(photonsNT, 4, energy_eV);
+    analysisManager->FillNtupleDColumn(photonsNT, 5, x_mm);
+    analysisManager->FillNtupleDColumn(photonsNT, 6, y_mm);
+    analysisManager->FillNtupleDColumn(photonsNT, 7, z_mm);
+    analysisManager->AddNtupleRow(photonsNT);
+}
+
 
 void AnalysisManager::FillGenEnergyHist(G4double E_MeV, G4double weight) {
     auto* analysisManager = G4AnalysisManager::Instance();

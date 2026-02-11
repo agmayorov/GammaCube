@@ -63,7 +63,7 @@ Loader::Loader(int argc, char** argv) {
             useOptics = true;
         } else if (input == "--save-secondaries") {
             saveSecondaries = true;
-        } else if (input == "--save-photon-count") {
+        } else if (input == "--save-photons") {
             savePhotons = true;
         } else if (input == "-g" || input == "--geom-config") {
             geomConfigPath = argv[i + 1];
@@ -73,7 +73,7 @@ Loader::Loader(int argc, char** argv) {
         }
     }
 
-    savePhotons = savePhotons and !useOptics;
+    savePhotons = savePhotons and useOptics;
 
     configPath = "../Flux_config/" + fluxType + "_params.txt";
 

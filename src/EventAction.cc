@@ -37,14 +37,18 @@ void EventAction::EndOfEventAction(const G4Event* evt) {
             run->AddGenerated(primaryE_MeV);
         }
     }
-
     primBuf.clear();
 
     nInteractions = WriteInteractions_(eventID);
     interBuf.clear();
 
+    if (savePhotons) {
+        nPhotons = WritePhotons_(eventID);
+        photonBuf.clear();
+    }
+
     WritePhotons_(eventID);
-    photonBuf = {0, 0, 0};
+    photonCountBuf = {0, 0, 0};
 
     nEdepHits = WriteEdepFromSD_(evt, eventID);
 
@@ -92,9 +96,17 @@ int EventAction::WriteInteractions_(int eventID) {
     return static_cast<int>(interBuf.size());
 }
 
-int EventAction::WritePhotons_(int eventID) {
+int EventAction::WritePhotonsCount_(int eventID) {
     if (savePhotons) {
-        analysisManager->FillPhotonCountRow(eventID, photonBuf[0], photonBuf[1], photonBuf[2]);
+        analysisManager->FillPhotonCountRow(eventID, photonCountBuf[0], photonCountBuf[1], photonCountBuf[2]);
+    }
+    return static_cast<int>(photonCountBuf.size());
+}
+
+int EventAction::WritePhotons_(int eventID) {
+    for (const auto& photon : photonBuf) {
+        analysisManager->FillPhotonRow(eventID, photon.photonID, photon.detName, photon.detCh, photon.energy,
+                                       photon.pos_mm.x(), photon.pos_mm.y(), photon.pos_mm.z());
     }
     return static_cast<int>(photonBuf.size());
 }

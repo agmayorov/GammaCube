@@ -217,13 +217,14 @@ void PostProcessing::ExtractNtData() {
         ExportTreeToCsv("interactions", (fs::path(csvDir) / "interactions.csv").string());
     }
 
-    if (savePhotons) {
-        ExportTreeToCsv("photons", (fs::path(csvDir) / "photons.csv").string());
-    }
-
     if (useOptics) {
         ExportTreeToCsv("sipm_event", (fs::path(csvDir) / "sipm_event.csv").string());
         ExportTreeToCsv("sipm_ch", (fs::path(csvDir) / "sipm_ch.csv").string());
+    }
+
+    if (savePhotons) {
+        ExportTreeToCsv("photons_count", (fs::path(csvDir) / "photons_count.csv").string());
+        ExportTreeToCsv("photons", (fs::path(csvDir) / "photons.csv").string());
     }
 }
 

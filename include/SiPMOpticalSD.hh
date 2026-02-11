@@ -13,6 +13,9 @@
 #include <G4ProcessManager.hh>
 #include <G4VPhysicalVolume.hh>
 
+#include "EventAction.hh"
+#include "AnalysisManager.hh"
+
 enum class SiPMGroup { Unknown, Crystal, Veto, Bottom };
 
 class SiPMOpticalSD : public G4VSensitiveDetector {
@@ -47,7 +50,7 @@ private:
     std::unordered_map<int,int> perChVeto;
     std::unordered_map<int,int> perChBottom;
 
-    static SiPMGroup ClassifyByPVName(const G4VPhysicalVolume* pv);
+    SiPMGroup ClassifyByPVName(const G4VPhysicalVolume* pv);
 };
 
 #endif // SIPMOPTICALSD_HH

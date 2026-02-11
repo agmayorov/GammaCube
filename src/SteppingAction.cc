@@ -30,11 +30,11 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
 
                 if (sc->GetDefinition()->GetParticleName() == "opticalphoton" and Configuration::savePhotons) {
                     if (volName == "CrystalPVP")
-                        ea->photonBuf[0] += 1;
+                        ea->photonCountBuf[0] += 1;
                     if (volName == "VetoPVP")
-                        ea->photonBuf[1] += 1;
+                        ea->photonCountBuf[1] += 1;
                     if (volName == "BottomVetoPVP")
-                        ea->photonBuf[2] += 1;
+                        ea->photonCountBuf[2] += 1;
                 }
                 InteractionRec rec;
                 rec.trackID = trackID;
