@@ -85,7 +85,7 @@ void Geometry::ConstructTunaCan() {
                                                           0., 0.,
                                                           -(modelHeight + bottomCapHeight) / 2.0 - plateCenterThick -
                                                           plateThick);
-    G4LogicalVolume* bottomPartWallLV = new G4LogicalVolume(bottomPartWall, plateMat, "BottomPartWallLV");
+    G4LogicalVolume* bottomPartWallLV = new G4LogicalVolume(bottomPartWall, tunaCanMat, "BottomPartWallLV");
     new G4PVPlacement(zeroRot, bottomPartWallPos, bottomPartWallLV, "BottomPartWallPVPL", worldLV, false, 0, true);
 
     G4VSolid* bottomPartCap = new G4Tubs("BottomPartCap", 0, bottomCapInnerRadius, bottomCapThick / 2, 0, viewDeg);
@@ -93,7 +93,7 @@ void Geometry::ConstructTunaCan() {
                                                          0., 0.,
                                                          -(modelHeight - bottomCapThick) / 2.0 - bottomCapHeight -
                                                          plateCenterThick - plateThick);
-    G4LogicalVolume* bottomPartCapLV = new G4LogicalVolume(bottomPartCap, plateMat, "BottomPartCapLV");
+    G4LogicalVolume* bottomPartCapLV = new G4LogicalVolume(bottomPartCap, tunaCanMat, "BottomPartCapLV");
     new G4PVPlacement(zeroRot, bottomPartCapPos, bottomPartCapLV, "BottomPartCapPVPL", worldLV, false, 0, true);
 
     tunaCanWallLV->SetVisAttributes(tunaCanVisAttr);
