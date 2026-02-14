@@ -282,11 +282,11 @@ void Detector::DefineVisual() {
     visBottomVetoShell->SetForceSolid(true);
     visGasket = new G4VisAttributes(G4Color(0.73, 0.746, 0.7578));
     visGasket->SetForceSolid(true);
-    visBoard = new G4VisAttributes(G4Color(1.0, 1.0, 0.));
+    visBoard = new G4VisAttributes(G4Color(1.0, 1.0, 0.0));
     visBoard->SetForceSolid(true);
     visPayload = new G4VisAttributes(G4Color(0.5, 0.5, 0.0));
     visPayload->SetForceSolid(true);
-    visRubber = new G4VisAttributes(G4Color(0., 0., 0.));
+    visRubber = new G4VisAttributes(G4Color(0.0, 0.0, 0.0));
     visRubber->SetForceSolid(true);
 }
 
@@ -504,8 +504,8 @@ void Detector::ConstructBottomVeto() {
     G4ThreeVector bottomVetoShellSize = G4ThreeVector(bottomVetoRadius + tyvekBottomThickWall,
                                                       plateBottomHoleRadius - shellThickWall,
                                                       bottomVetoShellHeight / 2.);
-    G4ThreeVector bottomVetoShellPos = G4ThreeVector(
-                                                     0, 0, -((coreTopSize.z() - bottomVetoShellHeight) / 2 +
+    G4ThreeVector bottomVetoShellPos = G4ThreeVector(0, 0,
+                                                     -((coreTopSize.z() - bottomVetoShellHeight) / 2 +
                                                          bottomCapHeight - bottomCapThick - holderHeight));
 
     G4VSolid* bottomVetoShell = new G4Tubs("BottomVetoShell", bottomVetoShellSize.x(), bottomVetoShellSize.y(),
@@ -530,8 +530,7 @@ void Detector::ConstructBottomVeto() {
     // Bottom Tyvek
     tyvekBottomSize = G4ThreeVector(bottomVetoRadius, bottomVetoRadius + tyvekBottomThickWall,
                                     (bottomVetoHeight + tyvekBottomThickTop) / 2.);
-    G4ThreeVector tyvekBottomPos = bottomVetoShellTabPos + G4ThreeVector(
-                                                                         0, 0, tyvekBottomSize.z() +
+    G4ThreeVector tyvekBottomPos = bottomVetoShellTabPos + G4ThreeVector(0, 0, tyvekBottomSize.z() +
                                                                          bottomVetoShellTabHeight / 2.);
 
     G4VSolid* tyvekBottomWall = new G4Tubs("TyvekBottomWall", tyvekBottomSize.x(), tyvekBottomSize.y(),
@@ -745,8 +744,8 @@ void Detector::ConstructHolder(G4ThreeVector& refPos, const G4String& prefix) {
 
 void Detector::ConstructCrystalSiPM() {
     // Holder
-    G4ThreeVector SiPMHolderPos = G4ThreeVector(
-                                                0, 0, coreTopSize.z() / 2. - (shellThickTop + crystalHeight +
+    G4ThreeVector SiPMHolderPos = G4ThreeVector(0, 0,
+                                                coreTopSize.z() / 2. - (shellThickTop + crystalHeight +
                                                     tyvekInThickTop + crystalShellThickTop +
                                                     crystalGlassHeight + crystalOpticLayerHeight + SiPMHeight +
                                                     boardHeight + springLength +
@@ -764,13 +763,13 @@ void Detector::ConstructCrystalSiPM() {
     SiPMContLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
     // Crystal SiPM
-    std::vector countVec = {2, 4, 4, 4, 2};
+    std::vector countVec = {2, 2};
     G4int copyN = 0;
 
     for (int i = 0; i < (int)countVec.size(); i++) {
         for (int j = 0; j < countVec[i]; j++) {
-            G4ThreeVector SiPMPos((2 - i) * SiPMLength,
-                                  (countVec[i] / 2. - 0.5 - j) * SiPMWidth,
+            G4ThreeVector SiPMPos((0.5 - i) * (SiPMLength + crystalSiPMDist * mm),
+                                  (countVec[i] / 2. - 1) * SiPMWidth - (j - 0.5) * (SiPMWidth + crystalSiPMDist * mm),
                                   0);
 
             new G4PVPlacement(nullptr, SiPMPos, SiPMFrameLV,
@@ -791,6 +790,28 @@ void Detector::ConstructCrystalSiPM() {
 
             copyN++;
         }
+    }
+
+    G4int crystalEdgeSiPMCount = crystalSiPMCount - copyN;
+    G4double crystalSiPMRadius = crystalRadius -
+        std::ceil(0.5 * std::sqrt(SiPMWidth * SiPMWidth + SiPMLength * SiPMLength)) * mm;
+    for (size_t i = 0; i < crystalEdgeSiPMCount; i++) {
+        auto* rotMat = new G4RotationMatrix(i * 360 * deg / crystalEdgeSiPMCount, 0, 0);
+        G4ThreeVector SiPMPos(crystalSiPMRadius * std::cos(i * 360 * deg / crystalEdgeSiPMCount),
+                              crystalSiPMRadius * std::sin(i * 360 * deg / crystalEdgeSiPMCount),
+                              0);
+        new G4PVPlacement(rotMat, SiPMPos, SiPMFrameLV, "CrystalSiPMFramePVP", SiPMContLV, false, copyN + i, true);
+
+        auto* bodyPVP = new G4PVPlacement(rotMat,
+                                          SiPMPos + G4ThreeVector(0, 0, -SiPMWindowThick / 2.),
+                                          SiPMBodyLV, "CrystalSiPMBodyPVP", SiPMContLV, false, copyN + i, true);
+
+        auto* windowPVP = new G4PVPlacement(rotMat,
+                                            SiPMPos + G4ThreeVector(0, 0, (SiPMHeight - SiPMWindowThick) / 2.),
+                                            SiPMWindowLV, "CrystalSiPMWindowPVP", SiPMContLV, false, copyN + i, true);
+
+        new G4LogicalBorderSurface("CrystalSiPM_Photocathode_" + std::to_string(i),
+                                   windowPVP, bodyPVP, SiPMPhotocathodeSurf);
     }
 }
 

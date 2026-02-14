@@ -82,6 +82,8 @@ namespace  Sizes {
     inline G4double crystalGlassHeight{1 * mm};
     inline G4double crystalOpticLayerHeight{1 * mm};
 
+    inline G4double crystalSiPMDist{0.5 * mm};
+
     inline G4double holderThickWall{1.5 * mm};
     inline G4double holderThickBottom{2 * mm};
     inline G4double holderHeight{9 * mm};
@@ -113,7 +115,7 @@ namespace  Sizes {
     inline G4double SiPMWidth{7 * mm};
     inline G4double SiPMFrameSize{0.5 * mm};
 
-    inline G4int crystalSiPMCount{16};
+    inline G4int crystalSiPMCount{12};
     inline G4int vetoSiPMCount{8};
     inline G4int bottomVetoSiPMCount{4};
 
