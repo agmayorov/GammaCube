@@ -156,6 +156,10 @@ Loader::Loader(int argc, char** argv) {
         crystalOnly = cOnly;
         crystalAndVeto = cAndV;
         effArea = runAction->GetEffArea();
+        const auto& [cOnlyOpt, cAndVOpt] = runAction->GetOptCounts();
+        crystalOnlyOpt = cOnlyOpt;
+        crystalAndVetoOpt = cAndVOpt;
+        effAreaOpt = runAction->GetEffAreaOpt();
     }
     SaveConfig();
     RunPostProcessing();
@@ -256,6 +260,7 @@ void Loader::SaveConfig() const {
     }
 
     RateCounts counts{crystalOnly, crystalAndVeto};
+    RateCounts countsOpt{crystalOnlyOpt, crystalAndVetoOpt};
 
     RateResult rr{};
     bool rate_ok = true;
@@ -264,7 +269,7 @@ void Loader::SaveConfig() const {
     }
     catch (const std::exception& ex) {
         rate_ok = false;
-        G4cerr << "[SaveConfig] WARNING: rate computation failed: " << ex.what() << G4endl;
+        // G4cerr << "[SaveConfig] WARNING: Rate computation failed: " << ex.what() << G4endl;
     }
 
     RateResult rrReal{};
@@ -274,13 +279,34 @@ void Loader::SaveConfig() const {
     }
     catch (const std::exception& ex) {
         rate_real_ok = false;
-        G4cerr << "[SaveConfig] WARNING: Real rate computation failed: " << ex.what() << G4endl;
+        // G4cerr << "[SaveConfig] WARNING: Real rate computation failed: " << ex.what() << G4endl;
+    }
+
+    RateResult rr_opt{};
+    bool rate_opt_ok = useOptics;
+    try {
+        rr_opt = computeRate(fType, fp, er, area, N, countsOpt);
+    }
+    catch (const std::exception& ex) {
+        rate_opt_ok = false;
+        // G4cerr << "[SaveConfig] WARNING: rate computation failed: " << ex.what() << G4endl;
+    }
+
+    RateResult rrReal_opt{};
+    bool rate_real_opt_ok = useOptics;
+    try {
+        rrReal_opt = computeRateReal(fType, fp, er, effAreaOpt, nBins);
+    }
+    catch (const std::exception& ex) {
+        rate_real_opt_ok = false;
+        // G4cerr << "[SaveConfig] WARNING: Real rate computation failed: " << ex.what() << G4endl;
     }
 
     std::ostringstream buf;
 
     buf << "N: " << N << "\n\n";
     buf << "Detector_type: " << detectorType << "\n\n";
+    buf << "Use_optics: " << useOptics << "\n\n";
     buf << "Flux_type: " << fluxType << "\n";
     buf << "Flux_dir: " << fluxDirection << "\n";
 
@@ -344,11 +370,24 @@ void Loader::SaveConfig() const {
     buf << "Crystal_only: " << crystalOnly << "\n\t";
     buf << "Veto_then_Crystal: " << crystalAndVeto << "\n}\n\n";
 
+    buf << "Optical_Counts:\n{\n\t";
+    buf << "Crystal_only: " << crystalOnlyOpt << "\n\t";
+    buf << "Veto_then_Crystal: " << crystalAndVetoOpt << "\n}\n\n";
+
     buf << "Thresholds:\n{\n\t";
     buf << std::fixed << std::setprecision(6);
     if (rate_ok) {
         buf << "Crystal: " << eCrystalThreshold << "\n\t";
         buf << "Veto: " << eVetoThreshold << "\n";
+    }
+    buf << "}\n\n";
+
+    buf << "Optical_thresholds:\n{\n\t";
+    buf << std::fixed << std::setprecision(6);
+    if (rate_ok) {
+        buf << "Crystal: " << oCrystalThreshold << "\n\t";
+        buf << "Veto: " << oVetoThreshold << "\n\t";
+        buf << "BottomVeto: " << oBottomVetoThreshold << "\n";
     }
     buf << "}\n\n";
 
@@ -365,10 +404,32 @@ void Loader::SaveConfig() const {
         buf << "Integral: NaN\n\t";
         buf << "Ndot: NaN\n\t";
         buf << "Rate_Crystal_only: NaN\n\t";
-        buf << "Rate_Both: NaN\n";
+        buf << "Rate_Both: NaN\n\t";
     }
     if (rate_real_ok) {
         buf << "Rate_Real: " << rrReal.rateRealCrystal << "\n";
+    } else {
+        buf << "Rate_Real: NaN\n";
+    }
+    buf << "}\n\n";
+
+    buf << "Optical_rates:\n{\n\t";
+    buf << std::fixed << std::setprecision(6);
+    if (rate_opt_ok) {
+        buf << "Area: " << area << "\n\t";
+        buf << "Integral: " << rr_opt.integral << "\n\t";
+        buf << "Ndot: " << rr_opt.Ndot << "\n\t";
+        buf << "Rate_Crystal_only: " << rr_opt.rateCrystal << "\n\t";
+        buf << "Rate_Both: " << rr_opt.rateBoth << "\n\t";
+    } else {
+        buf << "Area: NaN\n\t";
+        buf << "Integral: NaN\n\t";
+        buf << "Ndot: NaN\n\t";
+        buf << "Rate_Crystal_only: NaN\n\t";
+        buf << "Rate_Both: NaN\n\t";
+    }
+    if (rate_real_opt_ok) {
+        buf << "Rate_Real: " << rrReal_opt.rateRealCrystal << "\n";
     } else {
         buf << "Rate_Real: NaN\n";
     }

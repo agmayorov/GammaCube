@@ -8,6 +8,7 @@
 #include <CLHEP/Units/SystemOfUnits.h>
 #include <globals.hh>
 #include <Sizes.hh>
+#include <Configuration.hh>
 
 class AnalysisManager {
 public:
@@ -54,9 +55,7 @@ public:
     void FillEffAreaOptHist(G4double E_MeV, G4double value);
 
     void FillSensitivityHist(G4double E_MeV, G4double value);
-
-    void FillLightYieldHist(G4double E_MeV, G4double value);
-    void FillLightYieldOptHist(G4double E_MeV, G4double value);
+    void FillSensitivityOptHist(G4double E_MeV, G4double value);
 
 private:
     G4int eventNT{-1};
@@ -77,9 +76,7 @@ private:
     G4int effAreaOptHist{-1};
 
     G4int sensitivityHist{-1};
-
-    G4int lightYieldHist{-1};
-    G4int lightYieldOptHist{-1};
+    G4int sensitivityOptHist{-1};
 
     G4int nBins{1000};
     G4double xMin{0};

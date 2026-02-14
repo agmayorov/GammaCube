@@ -1,6 +1,7 @@
 #include "AnalysisManager.hh"
 
 using namespace Sizes;
+using namespace Configuration;
 
 AnalysisManager::AnalysisManager(const std::string& fName) : fileName(fName) {
     Book();
@@ -115,25 +116,23 @@ void AnalysisManager::Book() {
                                                       "N_{trig,opt} vs E",
                                                       nBins, xMin, xMax, unit, "none", logScheme);
 
-        effAreaHist = analysisManager->CreateH1("effAreaHist",
-                                                "A_{eff} vs E",
-                                                nBins, xMin, xMax, unit, "none", logScheme);
+        if (fluxDirection.find("isotropic") != std::string::npos) {
+            sensitivityHist = analysisManager->CreateH1("sensitivityHist",
+                                                        "Sensitivity vs E",
+                                                        nBins, xMin, xMax, unit, "none", logScheme);
 
-        effAreaOptHist = analysisManager->CreateH1("effAreaOptHist",
-                                                   "A_{eff,opt} vs E",
-                                                   nBins, xMin, xMax, unit, "none", logScheme);
-
-        sensitivityHist = analysisManager->CreateH1("sensitivityHist",
-                                                    "Sensitivity vs E",
+            sensitivityOptHist = analysisManager->CreateH1("sensitivityOptHist",
+                                                           "Sensitivity_{opt} vs E",
+                                                           nBins, xMin, xMax, unit, "none", logScheme);
+        } else {
+            effAreaHist = analysisManager->CreateH1("effAreaHist",
+                                                    "A_{eff} vs E",
                                                     nBins, xMin, xMax, unit, "none", logScheme);
 
-        lightYieldHist = analysisManager->CreateH1("lightYieldHist",
-                                                   "Light yield vs E",
-                                                   nBins, xMin, xMax, unit, "none", logScheme);
-
-        lightYieldOptHist = analysisManager->CreateH1("lightYieldOptHist",
-                                                      "Light yield (opt) vs E",
-                                                      nBins, xMin, xMax, unit, "none", logScheme);
+            effAreaOptHist = analysisManager->CreateH1("effAreaOptHist",
+                                                       "A_{eff,opt} vs E",
+                                                       nBins, xMin, xMax, unit, "none", logScheme);
+        }
     }
 }
 
@@ -279,12 +278,7 @@ void AnalysisManager::FillSensitivityHist(G4double E_MeV, G4double value) {
     analysisManager->FillH1(sensitivityHist, E_MeV, value);
 }
 
-void AnalysisManager::FillLightYieldHist(G4double E_MeV, G4double value) {
+void AnalysisManager::FillSensitivityOptHist(G4double E_MeV, G4double value) {
     auto* analysisManager = G4AnalysisManager::Instance();
-    analysisManager->FillH1(lightYieldHist, E_MeV, value);
-}
-
-void AnalysisManager::FillLightYieldOptHist(G4double E_MeV, G4double value) {
-    auto* analysisManager = G4AnalysisManager::Instance();
-    analysisManager->FillH1(lightYieldOptHist, E_MeV, value);
+    analysisManager->FillH1(sensitivityOptHist, E_MeV, value);
 }

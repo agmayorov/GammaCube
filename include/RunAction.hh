@@ -38,17 +38,26 @@ public:
     void AddCrystalOnly(const G4int v) { crystalOnly += v; }
     void AddCrystalAndVeto(const G4int v) { crystalAndVeto += v; }
 
+    void AddCrystalOnlyOpt(const G4int v) { crystalOnlyOpt += v; }
+    void AddCrystalAndVetoOpt(const G4int v) { crystalAndVetoOpt += v; }
+
     void AddGenerated(double E_MeV);
     void AddTriggeredCrystalOnly(double E_MeV);
+    void AddTriggeredCrystalOnlyOpt(double E_MeV);
 
     [[nodiscard]] const ParticleCounts& GetCounts() const { return totals; }
+    [[nodiscard]] const ParticleCounts& GetOptCounts() const { return totalsOpt; }
 
     [[nodiscard]] const std::vector<double>& GetEffArea() const { return effArea; }
+    [[nodiscard]] const std::vector<double>& GetEffAreaOpt() const { return effAreaOpt; }
 
 private:
     G4Accumulable<G4int> crystalOnly{0};   // Crystal && !Veto
     G4Accumulable<G4int> crystalAndVeto{0};   // Crystal && Veto
+    G4Accumulable<G4int> crystalOnlyOpt{0};
+    G4Accumulable<G4int> crystalAndVetoOpt{0};
     ParticleCounts totals{};
+    ParticleCounts totalsOpt{};
 
     double EminMeV{0.0};
     double EmaxMeV{0.0};
@@ -60,7 +69,9 @@ private:
 
     std::vector<G4Accumulable<G4double>> genCounts;
     std::vector<G4Accumulable<G4double>> trigCounts;
+    std::vector<G4Accumulable<G4double>> trigOptCounts;
     std::vector<G4double> effArea;
+    std::vector<G4double> effAreaOpt;
 
     [[nodiscard]] int FindBinLog(double E_MeV) const;
     [[nodiscard]] double BinCenterMeV(int i) const;

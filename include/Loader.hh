@@ -48,6 +48,7 @@ class Loader {
 
     G4double area;
     std::vector<G4double> effArea;
+    std::vector<G4double> effAreaOpt;
 
 #ifdef G4MULTITHREADED
     G4MTRunManager *runManager;
@@ -65,7 +66,8 @@ private:
     std::string configPath;
     G4int crystalOnly{};
     G4int crystalAndVeto{};
-    std::array<G4long, 16> optPhotons{};
+    G4int crystalOnlyOpt{};
+    G4int crystalAndVetoOpt{};
 
     std::string geomConfigPath;
 

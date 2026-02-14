@@ -28,6 +28,7 @@ RunAction::RunAction(const double Agen_cm2, const double Emin_MeV,
     invDlogE = static_cast<double>(nBins) / (logEmax - logEmin);
 
     effArea.assign(nBins, 0.0);
+    effAreaOpt.assign(nBins, 0.0);
 
     BookAccumulables();
 }
@@ -38,14 +39,21 @@ void RunAction::BookAccumulables() {
     mgr->Register(crystalOnly);
     mgr->Register(crystalAndVeto);
 
+    mgr->Register(crystalOnlyOpt);
+    mgr->Register(crystalAndVetoOpt);
+
     genCounts.clear();
     trigCounts.clear();
+    trigOptCounts.clear();
     genCounts.reserve(EminMeV < EmaxMeV ? nBins : 1);
     trigCounts.reserve(nBins);
+    trigOptCounts.reserve(nBins);
 
     for (int i = 0; i < nBins; ++i) {
         trigCounts.emplace_back(0.0);
         mgr->Register(trigCounts.back());
+        trigOptCounts.emplace_back(0.0);
+        mgr->Register(trigOptCounts.back());
     }
     for (int i = 0; i < (EminMeV < EmaxMeV ? nBins : 1); ++i) {
         genCounts.emplace_back(0.0);
@@ -63,7 +71,9 @@ void RunAction::BeginOfRunAction(const G4Run*) {
     mgr->Reset();
 
     totals = {};
+    totalsOpt = {};
     std::fill(effArea.begin(), effArea.end(), 0.0);
+    std::fill(effAreaOpt.begin(), effAreaOpt.end(), 0.0);
 }
 
 void RunAction::EndOfRunAction(const G4Run*) {
@@ -72,6 +82,8 @@ void RunAction::EndOfRunAction(const G4Run*) {
     if (G4Threading::IsMasterThread()) {
         totals.crystalAndVeto = crystalAndVeto.GetValue();
         totals.crystalOnly = crystalOnly.GetValue();
+        totalsOpt.crystalAndVeto = crystalAndVetoOpt.GetValue();
+        totalsOpt.crystalOnly = crystalOnlyOpt.GetValue();
         if (EminMeV < EmaxMeV) {
             FillDerivedHists();
         }
@@ -137,20 +149,41 @@ void RunAction::AddTriggeredCrystalOnly(double E_MeV) {
     }
 }
 
+void RunAction::AddTriggeredCrystalOnlyOpt(double E_MeV) {
+    const int i = FindBinLog(E_MeV);
+    if (i < 0) return;
+
+    trigOptCounts[i] += 1.0;
+
+    if (analysisManager and EminMeV < EmaxMeV) {
+        analysisManager->FillTrigOptEnergyHist(E_MeV, 1.0);
+    }
+}
+
 void RunAction::FillDerivedHists() {
     for (int i = 0; i < nBins; ++i) {
         const double nGen = genCounts[i].GetValue();
         const double nTrig = trigCounts[i].GetValue();
+        const double nTrigOpt = trigOptCounts[i].GetValue();
 
         const double centerE = BinCenterMeV(i);
         double aEff = 0.0;
+        double aEffOpt = 0.0;
         double sens = 0.0;
+        double sensOpt = 0.0;
         if (nGen > 0.0) {
             aEff = area * (nTrig / nGen);
+            aEffOpt = area * (nTrigOpt / nGen);
             sens = aEff;
+            sensOpt = aEffOpt;
         }
         effArea[i] = aEff;
+        effAreaOpt[i] = aEffOpt;
+        if (fluxDirection.find("isotropic") != std::string::npos) {
+            analysisManager->FillSensitivityHist(centerE, sens);
+            analysisManager->FillSensitivityOptHist(centerE, sensOpt);
+        }
         analysisManager->FillEffAreaHist(centerE, aEff);
-        analysisManager->FillSensitivityHist(centerE, sens);
+        analysisManager->FillEffAreaOptHist(centerE, aEffOpt);
     }
 }

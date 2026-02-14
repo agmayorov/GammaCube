@@ -56,8 +56,8 @@ void EventAction::EndOfEventAction(const G4Event* evt) {
         analysisManager->FillEventRow(eventID, nPrimaries, nInteractions, nEdepHits);
     }
 
-    if (hasCrystal && !hasVeto) run->AddCrystalOnly(1);
-    if (hasCrystal && hasVeto) run->AddCrystalAndVeto(1);
+    if (run and hasCrystal && !hasVeto) run->AddCrystalOnly(1);
+    if (run and hasCrystal && hasVeto) run->AddCrystalAndVeto(1);
 
     if (primaryE_MeV > 0.0) {
         if (hasCrystal && !hasVeto) {
@@ -74,6 +74,12 @@ void EventAction::EndOfEventAction(const G4Event* evt) {
             }
         }
         WriteSiPMFromSD_(eventID);
+        if (run and hasCrystalOpt && !hasVetoOpt) run->AddCrystalOnlyOpt(1);
+        if (run and hasCrystalOpt && hasVetoOpt) run->AddCrystalAndVetoOpt(1);
+
+        if (primaryE_MeV > 0.0) {
+            if (run and hasCrystalOpt && !hasVetoOpt) run->AddTriggeredCrystalOnlyOpt(primaryE_MeV);
+        }
     }
 }
 
@@ -173,6 +179,9 @@ void EventAction::WriteSiPMFromSD_(int eventID) {
     npeC = npeC > oCrystalThreshold ? npeC : 0;
     npeV = npeV > oVetoThreshold ? npeV : 0;
     npeB = npeB > oBottomVetoThreshold ? npeB : 0;
+
+    if (npeC > 0) MarkCrystalOpt();
+    if (npeV > 0 or npeB > 0) MarkVetoOpt();
 
     analysisManager->FillSiPMEventRow(eventID, npeC, npeV, npeB);
 

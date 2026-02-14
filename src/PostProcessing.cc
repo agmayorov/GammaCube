@@ -233,7 +233,13 @@ void PostProcessing::SaveEffArea() {
 
     TH1* gen = GetHistOrThrow("genEnergyHist");
     TH1* trig = GetHistOrThrow("trigEnergyHist");
+    TH1* trigOpt = trig;
     TH1* effArea = GetHistOrThrow("effAreaHist");
+    TH1* effAreaOpt = effArea;
+    if (useOptics) {
+        trigOpt = GetHistOrThrow("trigOptEnergyHist");
+        effAreaOpt = GetHistOrThrow("effAreaOptHist");
+    }
 
     if (trig->GetNbinsX() != nBins || effArea->GetNbinsX() != nBins) {
         throw std::runtime_error("Histogram binning mismatch among genEnergyHist/trigEnergyHist/effAreaHist");
@@ -249,13 +255,20 @@ void PostProcessing::SaveEffArea() {
     SaveHistPng("trigEnergyHist", (fs::path(histogramsDir) / "trigEnergyHist.png").string(),
                 "N_{trig} vs Energy", "Counts", true, false);
 
+    if (useOptics) {
+        SaveHistPng("effAreaOptHist", (fs::path(effectiveAreaDir) / "effective_area_opt.png").string(),
+                    "Effective Area vs Energy", "Effective Area [cm^{2}]", false, true);
+        SaveHistPng("trigOptEnergyHist", (fs::path(histogramsDir) / "trigOptEnergyHist.png").string(),
+                    "N_{trig, opt} vs Energy", "Counts", true, false);
+    }
 
     std::ofstream out((fs::path(effectiveAreaDir) / "effective_area_by_energy.csv").string());
     if (!out.is_open()) {
         throw std::runtime_error("Cannot open output CSV: effective_area_by_energy.csv");
     }
 
-    out << "E_low,E_high,E_width,E_center_geom,N0_i,N_i,effective_area,effective_area_err\n";
+    out <<
+        "E_low,E_high,E_width,E_center_geom,N0_i,N_i,N_i_opt,effective_area,effective_area_opt,effective_area_err,effective_area_opt_err\n";
     out << std::setprecision(17);
 
     auto* ax = gen->GetXaxis();
@@ -268,9 +281,16 @@ void PostProcessing::SaveEffArea() {
 
         double n0 = gen->GetBinContent(i);
         double n = trig->GetBinContent(i);
+        double nOpt = trigOpt->GetBinContent(i);
 
         double aeff = effArea->GetBinContent(i);
+        double aeffOpt = effAreaOpt->GetBinContent(i);
         double aeffErr = EffAreaErrFromCounts(n0, n, aeff);
+        double aeffErrOpt = EffAreaErrFromCounts(n0, nOpt, aeffOpt);
+
+        if (!useOptics) {
+            nOpt = aeffOpt = aeffErrOpt = 0;
+        }
 
         out << eLow << ","
             << eHigh << ","
@@ -278,8 +298,11 @@ void PostProcessing::SaveEffArea() {
             << eCenterGeom << ","
             << n0 << ","
             << n << ","
+            << nOpt << ","
             << aeff << ","
-            << aeffErr << "\n";
+            << aeffOpt << ","
+            << aeffErr << ","
+            << aeffErrOpt << "\n";
     }
 
     out.close();
@@ -291,6 +314,12 @@ void PostProcessing::SaveSensitivity() {
     TH1* gen = GetHistOrThrow("genEnergyHist");
     TH1* trig = GetHistOrThrow("trigEnergyHist");
     TH1* sens = GetHistOrThrow("sensitivityHist");
+    TH1* trigOpt = trig;
+    TH1* sensOpt = sens;
+    if (useOptics) {
+        trigOpt = GetHistOrThrow("trigOptEnergyHist");
+        sensOpt = GetHistOrThrow("sensitivityOptHist");
+    }
 
     if (trig->GetNbinsX() != nBins || sens->GetNbinsX() != nBins) {
         throw std::runtime_error("Histogram binning mismatch among genEnergyHist/trigEnergyHist/sensitivityHist");
@@ -299,12 +328,25 @@ void PostProcessing::SaveSensitivity() {
     SaveHistPng("sensitivityHist", (fs::path(sensitivityDir) / "sensitivity.png").string(),
                 "Sensitivity vs Energy", "Sensitivity [cm^{2} \\cdot sr]", false, true);
 
+    SaveHistPng("genEnergyHist", (fs::path(histogramsDir) / "genEnergyHist.png").string(),
+                "Initial Energy", "Counts", true, false);
+
+    SaveHistPng("trigEnergyHist", (fs::path(histogramsDir) / "trigEnergyHist.png").string(),
+                "N_{trig} vs Energy", "Counts", true, false);
+
+    if (useOptics) {
+        SaveHistPng("sensitivityOptHist", (fs::path(sensitivityDir) / "sensitivity_opt.png").string(),
+                    "Sensitivity vs Energy", "Sensitivity [cm^{2} \\cdot sr]", false, true);
+        SaveHistPng("trigOptEnergyHist", (fs::path(histogramsDir) / "trigOptEnergyHist.png").string(),
+                    "N_{trig, opt} vs Energy", "Counts", true, false);
+    }
+
     std::ofstream out((fs::path(sensitivityDir) / "sensitivity_by_energy.csv").string());
     if (!out.is_open()) {
         throw std::runtime_error("Cannot open output CSV: sensitivity_by_energy.csv");
     }
 
-    out << "E_low,E_high,E_width,E_center_geom,N0_i,N_i,sensitivity\n";
+    out << "E_low,E_high,E_width,E_center_geom,N0_i,N_i,N_i_opt,sensitivity,sensitivity_opt\n";
     out << std::setprecision(17);
 
     auto* ax = gen->GetXaxis();
@@ -317,8 +359,13 @@ void PostProcessing::SaveSensitivity() {
 
         double n0 = gen->GetBinContent(i);
         double n = trig->GetBinContent(i);
+        double nOpt = trigOpt->GetBinContent(i);
 
-        double s = sens->GetBinContent(i);
+        double s_ = sens->GetBinContent(i);
+        double sOpt = sensOpt->GetBinContent(i);
+        if (!useOptics) {
+            nOpt = sOpt = 0;
+        }
 
         out << eLow << ","
             << eHigh << ","
@@ -326,7 +373,9 @@ void PostProcessing::SaveSensitivity() {
             << eCenterGeom << ","
             << n0 << ","
             << n << ","
-            << s << "\n";
+            << nOpt << ","
+            << s_ << ","
+            << sOpt << "\n";
     }
 
     out.close();

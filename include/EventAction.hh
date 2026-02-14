@@ -83,6 +83,9 @@ private:
     void MarkCrystal() { hasCrystal = true; }
     void MarkVeto() { hasVeto = true; }
 
+    void MarkCrystalOpt() { hasCrystalOpt = true; }
+    void MarkVetoOpt() { hasVetoOpt = true; }
+
     AnalysisManager *analysisManager = nullptr;
 
     std::vector<std::tuple<G4String, int, G4String>> detMap;
@@ -98,6 +101,8 @@ private:
     RunAction* run = nullptr;
     bool hasCrystal = false;
     bool hasVeto = false;
+    bool hasCrystalOpt = false;
+    bool hasVetoOpt = false;
 };
 
 #endif //EVENTACTION_HH
