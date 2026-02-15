@@ -763,13 +763,13 @@ void Detector::ConstructCrystalSiPM() {
     SiPMContLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
     // Crystal SiPM
-    std::vector countVec = {2, 2};
+    std::vector countVec = {2, 4, 4, 2}; // {2, 2};
     G4int copyN = 0;
 
-    for (int i = 0; i < (int)countVec.size(); i++) {
+    for (int i = 0; i < countVec.size(); i++) {
         for (int j = 0; j < countVec[i]; j++) {
-            G4ThreeVector SiPMPos((0.5 - i) * (SiPMLength + crystalSiPMDist * mm),
-                                  (countVec[i] / 2. - 1) * SiPMWidth - (j - 0.5) * (SiPMWidth + crystalSiPMDist * mm),
+            G4ThreeVector SiPMPos((countVec.size() / 2 - 0.5 - i) * /*(*/SiPMLength,               // + crystalSiPMDist)
+                                  (countVec[i] / 2. - 1) * SiPMWidth - (j - 0.5) * /*(*/SiPMWidth, // + crystalSiPMDist)
                                   0);
 
             new G4PVPlacement(nullptr, SiPMPos, SiPMFrameLV,
@@ -792,27 +792,27 @@ void Detector::ConstructCrystalSiPM() {
         }
     }
 
-    G4int crystalEdgeSiPMCount = crystalSiPMCount - copyN;
-    G4double crystalSiPMRadius = crystalRadius -
-        std::ceil(0.5 * std::sqrt(SiPMWidth * SiPMWidth + SiPMLength * SiPMLength)) * mm;
-    for (size_t i = 0; i < crystalEdgeSiPMCount; i++) {
-        auto* rotMat = new G4RotationMatrix(i * 360 * deg / crystalEdgeSiPMCount, 0, 0);
-        G4ThreeVector SiPMPos(crystalSiPMRadius * std::cos(i * 360 * deg / crystalEdgeSiPMCount),
-                              crystalSiPMRadius * std::sin(i * 360 * deg / crystalEdgeSiPMCount),
-                              0);
-        new G4PVPlacement(rotMat, SiPMPos, SiPMFrameLV, "CrystalSiPMFramePVP", SiPMContLV, false, copyN + i, true);
-
-        auto* bodyPVP = new G4PVPlacement(rotMat,
-                                          SiPMPos + G4ThreeVector(0, 0, -SiPMWindowThick / 2.),
-                                          SiPMBodyLV, "CrystalSiPMBodyPVP", SiPMContLV, false, copyN + i, true);
-
-        auto* windowPVP = new G4PVPlacement(rotMat,
-                                            SiPMPos + G4ThreeVector(0, 0, (SiPMHeight - SiPMWindowThick) / 2.),
-                                            SiPMWindowLV, "CrystalSiPMWindowPVP", SiPMContLV, false, copyN + i, true);
-
-        new G4LogicalBorderSurface("CrystalSiPM_Photocathode_" + std::to_string(i),
-                                   windowPVP, bodyPVP, SiPMPhotocathodeSurf);
-    }
+    // G4int crystalEdgeSiPMCount = crystalSiPMCount - copyN;
+    // G4double crystalSiPMRadius = crystalRadius -
+    //     std::ceil(0.5 * std::sqrt(SiPMWidth * SiPMWidth + SiPMLength * SiPMLength)) * mm;
+    // for (size_t i = 0; i < crystalEdgeSiPMCount; i++) {
+    //     auto* rotMat = new G4RotationMatrix(i * 360 * deg / crystalEdgeSiPMCount, 0, 0);
+    //     G4ThreeVector SiPMPos(crystalSiPMRadius * std::cos(i * 360 * deg / crystalEdgeSiPMCount),
+    //                           crystalSiPMRadius * std::sin(i * 360 * deg / crystalEdgeSiPMCount),
+    //                           0);
+    //     new G4PVPlacement(rotMat, SiPMPos, SiPMFrameLV, "CrystalSiPMFramePVP", SiPMContLV, false, copyN + i, true);
+    //
+    //     auto* bodyPVP = new G4PVPlacement(rotMat,
+    //                                       SiPMPos + G4ThreeVector(0, 0, -SiPMWindowThick / 2.),
+    //                                       SiPMBodyLV, "CrystalSiPMBodyPVP", SiPMContLV, false, copyN + i, true);
+    //
+    //     auto* windowPVP = new G4PVPlacement(rotMat,
+    //                                         SiPMPos + G4ThreeVector(0, 0, (SiPMHeight - SiPMWindowThick) / 2.),
+    //                                         SiPMWindowLV, "CrystalSiPMWindowPVP", SiPMContLV, false, copyN + i, true);
+    //
+    //     new G4LogicalBorderSurface("CrystalSiPM_Photocathode_" + std::to_string(i),
+    //                                windowPVP, bodyPVP, SiPMPhotocathodeSurf);
+    // }
 }
 
 void Detector::ConstructVetoSiPM() {
