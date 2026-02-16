@@ -44,7 +44,6 @@ class Loader {
     G4String macroFile;
     int numThreads;
     bool useUI;
-    G4double viewDeg;
 
     G4double area;
     std::vector<G4double> effArea;

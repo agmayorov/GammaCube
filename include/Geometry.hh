@@ -29,7 +29,7 @@
 
 class Geometry : public G4VUserDetectorConstruction {
 public:
-    Geometry(G4double);
+    Geometry();
 
     G4VPhysicalVolume* Construct() override;
     void ConstructSDandField() override;
@@ -41,8 +41,6 @@ private:
     G4Box* worldBox;
     G4LogicalVolume* worldLV;
     G4VPhysicalVolume* worldPVP;
-
-    G4double viewDeg;
 
     Detector* detector;
     G4ThreeVector detContainerSize;

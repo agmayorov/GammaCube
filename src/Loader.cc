@@ -6,7 +6,6 @@ Loader::Loader(int argc, char** argv) {
     numThreads = G4Threading::G4GetNumberOfCores();
     useUI = true;
     macroFile = "../run.mac";
-    viewDeg = 360 * deg;
     geomConfigPath = "../geometry_txt";
     detectorType = "CsI";
     fluxType = "Uniform";
@@ -55,6 +54,8 @@ Loader::Loader(int argc, char** argv) {
             useUI = false;
         } else if (input == "-d" || input == "--detector") {
             detectorType = argv[i + 1];
+        } else if (input == "-csc" || input == "--crystal-sipm-config" || input == "-sipm") {
+            crystalSiPMConfig = argv[i + 1];
         } else if (input == "-f" || input == "--flux-type") {
             fluxType = argv[i + 1];
         } else if (input == "--flux-dir" || input == "--f-dir" || input == "-fd") {
@@ -87,7 +88,7 @@ Loader::Loader(int argc, char** argv) {
     runManager = new G4RunManager;
 #endif
 
-    auto* realWorld = new Geometry(viewDeg);
+    auto* realWorld = new Geometry();
     runManager->SetUserInitialization(realWorld);
     auto* physicsList = new FTFP_BERT;
     physicsList->ReplacePhysics(new G4EmStandardPhysics_option4());

@@ -30,13 +30,13 @@
 #include <G4LogicalSkinSurface.hh>
 
 #include "Sizes.hh"
+#include "Configuration.hh"
 #include "Utils.hh"
 
 
 class Detector {
 public:
     G4NistManager* nist;
-    G4String detectorType;
 
     G4ThreeVector detContainerTopSize;
 
@@ -64,7 +64,7 @@ public:
     G4VisAttributes* visPayload{};
     G4VisAttributes* visRubber{};
 
-    Detector(G4LogicalVolume*, G4NistManager*, G4double, G4int, const G4String&);
+    Detector(G4LogicalVolume*, G4NistManager*);
     ~Detector() = default;
 
     void DefineMaterials();
@@ -78,9 +78,6 @@ public:
     G4LogicalVolume* GetSiPMWindowLV() const { return SiPMWindowLV; }
 
 private:
-    G4double viewDeg;
-    G4int yieldScale;
-
     G4ThreeVector crystalSize;
     G4ThreeVector vetoSize;
     G4ThreeVector tyvekInSize;
@@ -136,6 +133,12 @@ private:
     G4VPhysicalVolume* crystalOpticLayerPVP{};
     G4VPhysicalVolume* vetoOpticLayerPVP{};
     G4VPhysicalVolume* bottomVetoOpticLayerPVP{};
+    G4VPhysicalVolume* crystalSiPMContPVP{};
+    G4VPhysicalVolume* crystalSiPMBoardPVP{};
+    G4VPhysicalVolume* vetoSiPMContPVP{};
+    G4VPhysicalVolume* vetoSiPMBoardPVP{};
+    G4VPhysicalVolume* bottomVetoSiPMContPVP{};
+    G4VPhysicalVolume* bottomVetoSiPMBoardPVP{};
 
     void ConstructCrystal();
     void ConstructShell();

@@ -4,11 +4,18 @@ using namespace Sizes;
 using namespace Configuration;
 
 
-Geometry::Geometry(const G4double vDeg) : viewDeg(vDeg) {
+Geometry::Geometry() {
     std::vector<G4String> detectorList = {"NaI", "CsI"};
     if (std::find(detectorList.begin(), detectorList.end(), detectorType) == detectorList.end()) {
         G4Exception("Geometry::ConstructDetector", "DetectorType", FatalException,
                     ("Detector not found: " + detectorType + ".\nAvailable detectors: NaI, CsI").c_str());
+    }
+    std::vector<G4String> crystalSiPMConfigList = {"2x2", "16-cross", "12-cross", "12-circle"};
+    if (std::find(crystalSiPMConfigList.begin(), crystalSiPMConfigList.end(), crystalSiPMConfig) ==
+        crystalSiPMConfigList.end()) {
+        G4Exception("Geometry::ConstructDetector", "CrystalSiPMConfiguration", FatalException,
+                    ("SiPM configuration not found: " + crystalSiPMConfig +
+                        ".\nAvailable configurations: 2x2, 16-cross, 12-cross, 12-circle").c_str());
     }
 
     nist = G4NistManager::Instance();
@@ -136,7 +143,7 @@ void Geometry::ConstructDetector() {
                                          false, 0, true);
     detContainerLV->SetVisAttributes(detContVisAttr);
 
-    detector = new Detector(detContainerLV, nist, viewDeg, yieldScale, detectorType);
+    detector = new Detector(detContainerLV, nist);
     detector->Construct();
     std::vector<G4LogicalVolume*> sensitiveLV = detector->GetSensitiveLV();
     crystalLV = sensitiveLV.at(0);
