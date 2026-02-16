@@ -306,7 +306,8 @@ void Loader::SaveConfig() const {
     std::ostringstream buf;
 
     buf << "N: " << N << "\n\n";
-    buf << "Detector_type: " << detectorType << "\n\n";
+    buf << "Detector_type: " << detectorType << "\n";
+    buf << "Crystal_SiPM_configuration: " << crystalSiPMConfig << "\n\n";
     buf << "Use_optics: " << useOptics << "\n\n";
     buf << "Flux_type: " << fluxType << "\n";
     buf << "Flux_dir: " << fluxDirection << "\n";
