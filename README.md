@@ -68,7 +68,7 @@
 - `-sipm, --crystal-sipm-config, -csc`  
   Конфигурация SiPM для кристалла.  
   По умолчанию: `12-cross`.  
-  Доступные варианты: `12-cross`, `12-circle`, `16-cross`, `2x2`.
+  Доступные варианты: `2x2`, `8-circle`, `12-cross`, `12-circle`, `16-cross`.
 
 - `-f, --flux-type`  
   Тип потока частиц.  
