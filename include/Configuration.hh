@@ -23,6 +23,7 @@ namespace Configuration
     inline G4int oBottomVetoThreshold{0};
 
     inline G4String crystalSiPMConfig{"12-cross"};
+    inline G4bool polishedTyvek{false};
     inline G4double viewDeg{360 * deg};
 
     inline G4int nBins{1000};

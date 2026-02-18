@@ -45,10 +45,10 @@ void EventAction::EndOfEventAction(const G4Event* evt) {
     if (savePhotons) {
         nPhotons = WritePhotons_(eventID);
         photonBuf.clear();
+        WritePhotonsCount_(eventID);
+        photonCountBuf = {0, 0, 0};
     }
 
-    WritePhotons_(eventID);
-    photonCountBuf = {0, 0, 0};
 
     nEdepHits = WriteEdepFromSD_(evt, eventID);
 
@@ -183,7 +183,7 @@ void EventAction::WriteSiPMFromSD_(int eventID) {
     if (npeC > 0) MarkCrystalOpt();
     if (npeV > 0 or npeB > 0) MarkVetoOpt();
 
-    analysisManager->FillSiPMEventRow(eventID, npeC, npeV, npeB);
+    if (savePhotons) analysisManager->FillSiPMEventRow(eventID, npeC, npeV, npeB);
 
     for (const auto& kv : sipmSD->GetPerChannelCrystal()) {
         const int ch = kv.first;

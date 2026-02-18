@@ -112,16 +112,17 @@ G4bool SiPMOpticalSD::ProcessHits(G4Step* step, G4TouchableHistory*) {
         // but do not count it.
     }
 
-    if (auto* ea = dynamic_cast<EventAction*>(G4EventManager::GetEventManager()->GetUserEventAction())) {
-        PhotonRec rec;
-        rec.photonID = track->GetTrackID();
-        rec.detName = detName;
-        rec.detCh = ch;
-        rec.energy = track->GetTotalEnergy() / eV;
-        rec.pos_mm = post->GetPosition();
-        ea->photonBuf.emplace_back(std::move(rec));
+    if (Configuration::savePhotons) {
+        if (auto* ea = dynamic_cast<EventAction*>(G4EventManager::GetEventManager()->GetUserEventAction())) {
+            PhotonRec rec;
+            rec.photonID = track->GetTrackID();
+            rec.detName = detName;
+            rec.detCh = ch;
+            rec.energy = track->GetTotalEnergy() / eV;
+            rec.pos_mm = post->GetPosition();
+            ea->photonBuf.emplace_back(std::move(rec));
+        }
     }
-
     track->SetTrackStatus(fStopAndKill);
     return true;
 }

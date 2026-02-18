@@ -23,13 +23,11 @@ void AnalysisManager::Book() {
 #ifdef G4MULTITHREADED
     analysisManager->SetNtupleMerging(true);
 #endif
-
-    eventNT = analysisManager->CreateNtuple("event", "per-event summary");
+    edepNT = analysisManager->CreateNtuple("edep", "energy deposition per sensitive channel");
     analysisManager->CreateNtupleIColumn("eventID");
-    analysisManager->CreateNtupleIColumn("n_primaries");
-    analysisManager->CreateNtupleIColumn("n_interactions");
-    analysisManager->CreateNtupleIColumn("n_edep_hits");
-    analysisManager->FinishNtuple(eventNT);
+    analysisManager->CreateNtupleSColumn("det_name");
+    analysisManager->CreateNtupleDColumn("edep_MeV");
+    analysisManager->FinishNtuple(edepNT);
 
     primaryNT = analysisManager->CreateNtuple("primary", "per-primary particles");
     analysisManager->CreateNtupleIColumn("eventID");
@@ -43,63 +41,68 @@ void AnalysisManager::Book() {
     analysisManager->CreateNtupleDColumn("pos_z_mm");
     analysisManager->FinishNtuple(primaryNT);
 
-    interactionsNT = analysisManager->CreateNtuple("interactions",
-                                                   "inelastic/compton/photo/conv vertices and secondaries");
-    analysisManager->CreateNtupleIColumn("eventID");
-    analysisManager->CreateNtupleIColumn("trackID");
-    analysisManager->CreateNtupleIColumn("parentID");
-    analysisManager->CreateNtupleSColumn("process");
-    analysisManager->CreateNtupleSColumn("volume_name");
-    analysisManager->CreateNtupleDColumn("x_mm");
-    analysisManager->CreateNtupleDColumn("y_mm");
-    analysisManager->CreateNtupleDColumn("z_mm");
-    analysisManager->CreateNtupleDColumn("t_ns");
-    analysisManager->CreateNtupleIColumn("sec_index");
-    analysisManager->CreateNtupleSColumn("sec_name");
-    analysisManager->CreateNtupleDColumn("sec_E_MeV");
-    analysisManager->CreateNtupleDColumn("sec_dir_x");
-    analysisManager->CreateNtupleDColumn("sec_dir_y");
-    analysisManager->CreateNtupleDColumn("sec_dir_z");
-    analysisManager->FinishNtuple(interactionsNT);
+    if (saveSecondaries) {
+        interactionsNT = analysisManager->CreateNtuple("interactions",
+                                                       "inelastic/compton/photo/conv vertices and secondaries");
+        analysisManager->CreateNtupleIColumn("eventID");
+        analysisManager->CreateNtupleIColumn("trackID");
+        analysisManager->CreateNtupleIColumn("parentID");
+        analysisManager->CreateNtupleSColumn("process");
+        analysisManager->CreateNtupleSColumn("volume_name");
+        analysisManager->CreateNtupleDColumn("x_mm");
+        analysisManager->CreateNtupleDColumn("y_mm");
+        analysisManager->CreateNtupleDColumn("z_mm");
+        analysisManager->CreateNtupleDColumn("t_ns");
+        analysisManager->CreateNtupleIColumn("sec_index");
+        analysisManager->CreateNtupleSColumn("sec_name");
+        analysisManager->CreateNtupleDColumn("sec_E_MeV");
+        analysisManager->CreateNtupleDColumn("sec_dir_x");
+        analysisManager->CreateNtupleDColumn("sec_dir_y");
+        analysisManager->CreateNtupleDColumn("sec_dir_z");
+        analysisManager->FinishNtuple(interactionsNT);
 
-    edepNT = analysisManager->CreateNtuple("edep", "energy deposition per sensitive channel");
-    analysisManager->CreateNtupleIColumn("eventID");
-    analysisManager->CreateNtupleSColumn("det_name");
-    analysisManager->CreateNtupleDColumn("edep_MeV");
-    analysisManager->FinishNtuple(edepNT);
+        eventNT = analysisManager->CreateNtuple("event", "per-event summary");
+        analysisManager->CreateNtupleIColumn("eventID");
+        analysisManager->CreateNtupleIColumn("n_primaries");
+        analysisManager->CreateNtupleIColumn("n_interactions");
+        analysisManager->CreateNtupleIColumn("n_edep_hits");
+        analysisManager->FinishNtuple(eventNT);
+    }
 
-    SiPMEventNT = analysisManager->CreateNtuple("sipm_event", "SiPM p.e. per event");
-    analysisManager->CreateNtupleIColumn("eventID");
-    analysisManager->CreateNtupleIColumn("npe_crystal");
-    analysisManager->CreateNtupleIColumn("npe_veto");
-    analysisManager->CreateNtupleIColumn("npe_bottom_veto");
-    analysisManager->FinishNtuple(SiPMEventNT);
+    if (useOptics) {
+        SiPMEventNT = analysisManager->CreateNtuple("sipm_event", "SiPM p.e. per event");
+        analysisManager->CreateNtupleIColumn("eventID");
+        analysisManager->CreateNtupleIColumn("npe_crystal");
+        analysisManager->CreateNtupleIColumn("npe_veto");
+        analysisManager->CreateNtupleIColumn("npe_bottom_veto");
+        analysisManager->FinishNtuple(SiPMEventNT);
 
-    SiPMChannelNT = analysisManager->CreateNtuple("sipm_ch", "SiPM p.e. per channel");
-    analysisManager->CreateNtupleIColumn("eventID");
-    analysisManager->CreateNtupleSColumn("subdet");
-    analysisManager->CreateNtupleIColumn("ch");
-    analysisManager->CreateNtupleIColumn("npe");
-    analysisManager->FinishNtuple(SiPMChannelNT);
+        SiPMChannelNT = analysisManager->CreateNtuple("sipm_ch", "SiPM p.e. per channel");
+        analysisManager->CreateNtupleIColumn("eventID");
+        analysisManager->CreateNtupleSColumn("subdet");
+        analysisManager->CreateNtupleIColumn("ch");
+        analysisManager->CreateNtupleIColumn("npe");
+        analysisManager->FinishNtuple(SiPMChannelNT);
+        if (savePhotons) {
+            photonsCountNT = analysisManager->CreateNtuple("photons_count", "generated photon count in volumes");
+            analysisManager->CreateNtupleIColumn("eventID");
+            analysisManager->CreateNtupleIColumn("npe_crystal");
+            analysisManager->CreateNtupleIColumn("npe_veto");
+            analysisManager->CreateNtupleIColumn("npe_bottom_veto");
+            analysisManager->FinishNtuple(photonsCountNT);
 
-    photonsCountNT = analysisManager->CreateNtuple("photons_count", "generated photon count in volumes");
-    analysisManager->CreateNtupleIColumn("eventID");
-    analysisManager->CreateNtupleIColumn("npe_crystal");
-    analysisManager->CreateNtupleIColumn("npe_veto");
-    analysisManager->CreateNtupleIColumn("npe_bottom_veto");
-    analysisManager->FinishNtuple(photonsCountNT);
-
-    photonsNT = analysisManager->CreateNtuple("photons", "photon register information");
-    analysisManager->CreateNtupleIColumn("eventID");
-    analysisManager->CreateNtupleIColumn("photonID");
-    analysisManager->CreateNtupleSColumn("det_name");
-    analysisManager->CreateNtupleIColumn("det_ch");
-    analysisManager->CreateNtupleDColumn("energy");
-    analysisManager->CreateNtupleDColumn("pos_x");
-    analysisManager->CreateNtupleDColumn("pos_y");
-    analysisManager->CreateNtupleDColumn("pos_z");
-    analysisManager->FinishNtuple(photonsNT);
-
+            photonsNT = analysisManager->CreateNtuple("photons", "photon register information");
+            analysisManager->CreateNtupleIColumn("eventID");
+            analysisManager->CreateNtupleIColumn("photonID");
+            analysisManager->CreateNtupleSColumn("det_name");
+            analysisManager->CreateNtupleIColumn("det_ch");
+            analysisManager->CreateNtupleDColumn("energy");
+            analysisManager->CreateNtupleDColumn("pos_x");
+            analysisManager->CreateNtupleDColumn("pos_y");
+            analysisManager->CreateNtupleDColumn("pos_z");
+            analysisManager->FinishNtuple(photonsNT);
+        }
+    }
     if (xMin < xMax) {
         const G4String unit = "MeV";
         const G4String logScheme = "log";
@@ -121,17 +124,19 @@ void AnalysisManager::Book() {
                                                         "Sensitivity vs E",
                                                         nBins, xMin, xMax, unit, "none", logScheme);
 
-            sensitivityOptHist = analysisManager->CreateH1("sensitivityOptHist",
-                                                           "Sensitivity_{opt} vs E",
-                                                           nBins, xMin, xMax, unit, "none", logScheme);
+            if (useOptics)
+                sensitivityOptHist = analysisManager->CreateH1("sensitivityOptHist",
+                                                               "Sensitivity_{opt} vs E",
+                                                               nBins, xMin, xMax, unit, "none", logScheme);
         } else {
             effAreaHist = analysisManager->CreateH1("effAreaHist",
                                                     "A_{eff} vs E",
                                                     nBins, xMin, xMax, unit, "none", logScheme);
 
-            effAreaOptHist = analysisManager->CreateH1("effAreaOptHist",
-                                                       "A_{eff,opt} vs E",
-                                                       nBins, xMin, xMax, unit, "none", logScheme);
+            if (useOptics)
+                effAreaOptHist = analysisManager->CreateH1("effAreaOptHist",
+                                                           "A_{eff,opt} vs E",
+                                                           nBins, xMin, xMax, unit, "none", logScheme);
         }
     }
 }

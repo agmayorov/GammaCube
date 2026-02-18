@@ -555,7 +555,7 @@ void Detector::ConstructBottomVeto() {
                                                 bottomVetoOpticLayerHeight / 2., 0, viewDeg);
     bottomVetoOpticLayerLV = new G4LogicalVolume(bottomVetoOpticLayer, opticLayerMat, "BottomVetoOpticLayerLV");
     G4ThreeVector bottomVetoOpticLayerPos = bottomVetoShellTabPos + G4ThreeVector(
-     0, 0, (bottomVetoShellTabHeight - bottomVetoOpticLayerHeight) / 2.0);
+         0, 0, (bottomVetoShellTabHeight - bottomVetoOpticLayerHeight) / 2.0);
     bottomVetoOpticLayerPVP = new G4PVPlacement(nullptr, bottomVetoOpticLayerPos, bottomVetoOpticLayerLV,
                                                 "BottomVetoOpticLayerPVP", coreLV, false, 0, true);
     bottomVetoOpticLayerLV->SetVisAttributes(visOpticLayer);
@@ -702,8 +702,8 @@ void Detector::ConstructHolder(G4ThreeVector& refPos, const G4String& prefix) {
     G4VSolid* springHole = new G4Tubs("SpringHole", 0, springRadius, springHolderHeight / 2. + 5 * mm, 0, 360 * deg);
     G4VSolid* tempSolid;
     G4double diff = -((springHolderGapX + springHolderGapY) / 4. + springRadius) + 0.5 * std::sqrt(
-     2 * springHoleCenterRadius * springHoleCenterRadius - (springHolderGapX - springHolderGapY) * (springHolderGapX
-         - springHolderGapY) / 4.);
+         2 * springHoleCenterRadius * springHoleCenterRadius - (springHolderGapX - springHolderGapY) * (springHolderGapX
+             - springHolderGapY) / 4.);
     std::vector<std::pair<G4int, G4int>> signs = {
         {1, 1}, {-1, 1}, {-1, -1}, {1, -1}
     };
@@ -998,22 +998,22 @@ void Detector::ConstructOpticalSurfaces() {
     auto* tyvekSurf = new G4OpticalSurface("TyvekSurface");
     tyvekSurf->SetModel(unified);
 
-    // Polished mirror parameters
-    // tyvekSurf->SetType(dielectric_metal);
-    // tyvekSurf->SetFinish(polished);
-    // tyvekSurf->SetSigmaAlpha(0.0);
-
-    // Diffusion mirror
-    tyvekSurf->SetType(dielectric_dielectric);
-    tyvekSurf->SetFinish(groundfrontpainted);
-    tyvekSurf->SetSigmaAlpha(0.2);
-    std::vector E = {1.0 * eV, 4.0 * eV};
-    std::vector spike = {0.0, 0.0};
-    std::vector lobe = {0.02, 0.02};
-    std::vector back = {0.0, 0.0};
-    mpt->AddProperty("SPECULARSPIKECONSTANT", E.data(), spike.data(), static_cast<G4int>(E.size()), true);
-    mpt->AddProperty("SPECULARLOBECONSTANT", E.data(), lobe.data(), static_cast<G4int>(E.size()), true);
-    mpt->AddProperty("BACKSCATTERCONSTANT", E.data(), back.data(), static_cast<G4int>(E.size()), true);
+    if (polishedTyvek) {
+        tyvekSurf->SetType(dielectric_metal);
+        tyvekSurf->SetFinish(polished);
+        tyvekSurf->SetSigmaAlpha(0.0);
+    } else {
+        tyvekSurf->SetType(dielectric_dielectric);
+        tyvekSurf->SetFinish(groundfrontpainted);
+        tyvekSurf->SetSigmaAlpha(0.2);
+        std::vector E = {1.0 * eV, 4.0 * eV};
+        std::vector spike = {0.0, 0.0};
+        std::vector lobe = {0.02, 0.02};
+        std::vector back = {0.0, 0.0};
+        mpt->AddProperty("SPECULARSPIKECONSTANT", E.data(), spike.data(), static_cast<G4int>(E.size()), true);
+        mpt->AddProperty("SPECULARLOBECONSTANT", E.data(), lobe.data(), static_cast<G4int>(E.size()), true);
+        mpt->AddProperty("BACKSCATTERCONSTANT", E.data(), back.data(), static_cast<G4int>(E.size()), true);
+    }
 
     mpt->AddProperty("REFLECTIVITY", refl.E, refl.V, refl.E.size());
 

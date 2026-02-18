@@ -52,6 +52,8 @@ Loader::Loader(int argc, char** argv) {
                 Sizes::vetoChamferHeight = 0 * mm;
         } else if (input == "-noUI") {
             useUI = false;
+        } else if (input == "--polished") {
+            polishedTyvek = true;
         } else if (input == "-d" || input == "--detector") {
             detectorType = argv[i + 1];
         } else if (input == "-csc" || input == "--crystal-sipm-config" || input == "-sipm") {
@@ -307,7 +309,8 @@ void Loader::SaveConfig() const {
 
     buf << "N: " << N << "\n\n";
     buf << "Detector_type: " << detectorType << "\n";
-    buf << "Crystal_SiPM_configuration: " << crystalSiPMConfig << "\n\n";
+    buf << "Crystal_SiPM_configuration: " << crystalSiPMConfig << "\n";
+    buf << "Tyvek_surface: " << (polishedTyvek ? "polished" : "diffuse") << "\n\n";
     buf << "Use_optics: " << useOptics << "\n\n";
     buf << "Flux_type: " << fluxType << "\n";
     buf << "Flux_dir: " << fluxDirection << "\n";
