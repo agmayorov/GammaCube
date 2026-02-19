@@ -183,7 +183,7 @@ void EventAction::WriteSiPMFromSD_(int eventID) {
     if (npeC > 0) MarkCrystalOpt();
     if (npeV > 0 or npeB > 0) MarkVetoOpt();
 
-    if (savePhotons) analysisManager->FillSiPMEventRow(eventID, npeC, npeV, npeB);
+    analysisManager->FillSiPMEventRow(eventID, npeC, npeV, npeB);
 
     for (const auto& kv : sipmSD->GetPerChannelCrystal()) {
         const int ch = kv.first;
