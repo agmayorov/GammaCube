@@ -10,7 +10,7 @@ Geometry::Geometry() {
         G4Exception("Geometry::ConstructDetector", "DetectorType", FatalException,
                     ("Detector not found: " + detectorType + ".\nAvailable detectors: NaI, CsI").c_str());
     }
-    std::vector<G4String> crystalSiPMConfigList = {"2x2", "16-cross", "12-cross", "12-circle", "8-circle"};
+    std::vector<G4String> crystalSiPMConfigList = {"2x2", "16-cross", "13-circle", "12-cross", "12-circle", "8-circle"};
     if (std::find(crystalSiPMConfigList.begin(), crystalSiPMConfigList.end(), crystalSiPMConfig) ==
         crystalSiPMConfigList.end()) {
         G4Exception("Geometry::ConstructDetector", "CrystalSiPMConfiguration", FatalException,

@@ -784,6 +784,10 @@ void Detector::ConstructCrystalSiPM() {
     } else if (crystalSiPMConfig == "8-circle") {
         crystalSiPMCount = 8;
         crystalSiPMDist = 0 * mm;
+    } else if (crystalSiPMConfig == "13-circle") {
+        countVec = {1, 3, 1};
+        crystalSiPMCount = 13;
+        crystalSiPMDist = 0 * mm;
     }
     G4int copyN = 0;
 
@@ -812,7 +816,7 @@ void Detector::ConstructCrystalSiPM() {
         }
     }
 
-    if (crystalSiPMConfig == "12-circle" or crystalSiPMConfig == "8-circle") {
+    if (crystalSiPMConfig == "12-circle" or crystalSiPMConfig == "8-circle" or crystalSiPMConfig == "13-circle") {
         G4int crystalEdgeSiPMCount = crystalSiPMCount - copyN;
         G4double crystalSiPMRadius = crystalRadius -
             std::ceil(0.5 * std::sqrt(SiPMWidth * SiPMWidth + SiPMLength * SiPMLength)) * mm;
