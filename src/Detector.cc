@@ -555,7 +555,7 @@ void Detector::ConstructBottomVeto() {
                                                 bottomVetoOpticLayerHeight / 2., 0, viewDeg);
     bottomVetoOpticLayerLV = new G4LogicalVolume(bottomVetoOpticLayer, opticLayerMat, "BottomVetoOpticLayerLV");
     G4ThreeVector bottomVetoOpticLayerPos = bottomVetoShellTabPos + G4ThreeVector(
-         0, 0, (bottomVetoShellTabHeight - bottomVetoOpticLayerHeight) / 2.0);
+     0, 0, (bottomVetoShellTabHeight - bottomVetoOpticLayerHeight) / 2.0);
     bottomVetoOpticLayerPVP = new G4PVPlacement(nullptr, bottomVetoOpticLayerPos, bottomVetoOpticLayerLV,
                                                 "BottomVetoOpticLayerPVP", coreLV, false, 0, true);
     bottomVetoOpticLayerLV->SetVisAttributes(visOpticLayer);
@@ -702,8 +702,8 @@ void Detector::ConstructHolder(G4ThreeVector& refPos, const G4String& prefix) {
     G4VSolid* springHole = new G4Tubs("SpringHole", 0, springRadius, springHolderHeight / 2. + 5 * mm, 0, 360 * deg);
     G4VSolid* tempSolid;
     G4double diff = -((springHolderGapX + springHolderGapY) / 4. + springRadius) + 0.5 * std::sqrt(
-         2 * springHoleCenterRadius * springHoleCenterRadius - (springHolderGapX - springHolderGapY) * (springHolderGapX
-             - springHolderGapY) / 4.);
+     2 * springHoleCenterRadius * springHoleCenterRadius - (springHolderGapX - springHolderGapY) * (springHolderGapX
+         - springHolderGapY) / 4.);
     std::vector<std::pair<G4int, G4int>> signs = {
         {1, 1}, {-1, 1}, {-1, -1}, {1, -1}
     };
@@ -788,6 +788,9 @@ void Detector::ConstructCrystalSiPM() {
         countVec = {1, 3, 1};
         crystalSiPMCount = 13;
         crystalSiPMDist = 0 * mm;
+    } else if (crystalSiPMConfig == "12-rhombus") {
+        crystalSiPMCount = 12;
+        crystalSiPMDist = 0 * mm;
     }
     G4int copyN = 0;
 
@@ -816,10 +819,7 @@ void Detector::ConstructCrystalSiPM() {
         }
     }
 
-    if (crystalSiPMConfig == "12-circle" or crystalSiPMConfig == "8-circle" or crystalSiPMConfig == "13-circle") {
-        G4int crystalEdgeSiPMCount = crystalSiPMCount - copyN;
-        G4double crystalSiPMRadius = crystalRadius -
-            std::ceil(0.5 * std::sqrt(SiPMWidth * SiPMWidth + SiPMLength * SiPMLength)) * mm;
+    auto addCircleSiPM = [&](G4int crystalEdgeSiPMCount, G4double crystalSiPMRadius) -> void {
         for (size_t i = 0; i < crystalEdgeSiPMCount; i++) {
             auto* rotMat = new G4RotationMatrix(i * 360 * deg / crystalEdgeSiPMCount, 0, 0);
             G4ThreeVector SiPMPos(crystalSiPMRadius * std::cos(i * 360 * deg / crystalEdgeSiPMCount),
@@ -839,6 +839,22 @@ void Detector::ConstructCrystalSiPM() {
             new G4LogicalBorderSurface("CrystalSiPM_Photocathode_" + std::to_string(i), windowPVP, bodyPVP,
                                        SiPMPhotocathodeSurf);
         }
+        copyN += crystalEdgeSiPMCount;
+    };
+
+
+    if (crystalSiPMConfig == "12-rhombus") {
+        G4int crystalEdgeSiPMCount = 4;
+        G4double crystalSiPMRadius = SiPMWidth;
+        addCircleSiPM(crystalEdgeSiPMCount, crystalSiPMRadius);
+    }
+
+    if (crystalSiPMConfig == "12-circle" or crystalSiPMConfig == "8-circle" or crystalSiPMConfig == "13-circle" or
+        crystalSiPMConfig == "12-rhombus") {
+        G4int crystalEdgeSiPMCount = crystalSiPMCount - copyN;
+        G4double crystalSiPMRadius = crystalRadius -
+            std::ceil(0.5 * std::sqrt(SiPMWidth * SiPMWidth + SiPMLength * SiPMLength));
+        addCircleSiPM(crystalEdgeSiPMCount, crystalSiPMRadius);
     }
 }
 

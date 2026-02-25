@@ -80,7 +80,7 @@
 - `-sipm, --crystal-sipm-config, -csc`  
   Конфигурация SiPM для кристалла.  
   По умолчанию: `12-cross`.  
-  Доступные варианты: `2x2`, `8-circle`, `12-cross`, `12-circle`, `13-circle`, `16-cross`.
+  Доступные варианты: `2x2`, `8-circle`, `12-cross`, `12-circle`, `12-rhombus`, `13-circle`, `16-cross`.
 
 - `--polished`  
   Делает отражающие поверхности полностью зеркальными.  
@@ -107,3 +107,37 @@
 
 - `--save-optics`  
   Сохраняет энергию и координаты зарегистрированных фотонов.
+
+
+### Доступные конфигурации
+
+<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
+  <div style="text-align: center;">
+    <img src="SiPM_Config_img/Crystal%20SiPM%202x2.png" width="351">
+    <br><em>2x2</em>
+  </div>
+  <div style="text-align: center;">
+    <img src="SiPM_Config_img/Crystal%20SiPM%208-circle.png" width="351">
+    <br><em>8-circle</em>
+  </div>
+  <div style="text-align: center;">
+    <img src="SiPM_Config_img/Crystal%20SiPM%2012-circle.png" width="351">
+    <br><em>12-circle</em>
+  </div>
+  <div style="text-align: center;">
+    <img src="SiPM_Config_img/Crystal%20SiPM%2012-cross.png" width="351">
+    <br><em>12-cross</em>
+  </div>
+  <div style="text-align: center;">
+    <img src="SiPM_Config_img/Crystal%20SiPM%2012-rhombus.png" width="351">
+    <br><em>12-rhombus</em>
+  </div>
+  <div style="text-align: center;">
+    <img src="SiPM_Config_img/Crystal%20SiPM%2013-circle.png" width="351">
+    <br><em>13-circle</em>
+  </div>
+  <div style="text-align: center;">
+    <img src="SiPM_Config_img/Crystal%20SiPM%2016-cross.png" width="351">
+    <br><em>16-cross</em>
+  </div>
+</div>
