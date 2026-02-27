@@ -8,10 +8,6 @@ EventAction::EventAction(AnalysisManager* an, RunAction* r) : analysisManager(an
         {"DetectorSD/EdepHits", 0, "Crystal"},
         {"VetoSD/EdepHits", 1, "Veto"},
         {"BottomVetoSD/EdepHits", 2, "BottomVeto"},
-        // {"TyvekOutSD/EdepHits",     3, "TyvekOut"},
-        // {"TyvekMidSD/EdepHits",     4, "TyvekMid"},
-        // {"TyvekInSD/EdepHits",      5, "TyvekIn"},
-        // {"TyvekBottomSD/EdepHits",  6, "TyvekBottom"},
     };
     HCIDs.assign(detMap.size(), -1);
 }
@@ -68,11 +64,6 @@ void EventAction::EndOfEventAction(const G4Event* evt) {
     }
 
     if (useOptics) {
-        if (primaryE_MeV > 0.0 && analysisManager) {
-            if (hasCrystal && !hasVeto) {
-                // analysisManager->FillTrigOptEnergyHist(primaryE_MeV, 1.0);
-            }
-        }
         WriteSiPMFromSD_(eventID);
         if (run and hasCrystalOpt && !hasVetoOpt) run->AddCrystalOnlyOpt(1);
         if (run and hasCrystalOpt && hasVetoOpt) run->AddCrystalAndVetoOpt(1);

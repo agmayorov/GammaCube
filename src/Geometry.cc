@@ -214,22 +214,6 @@ void Geometry::ConstructSDandField() {
     sdManager->AddNewDetector(bottomVetoSD);
     bottomVetoLV->SetSensitiveDetector(bottomVetoSD);
 
-    auto* tyvekOutSD = new SensitiveDetector("TyvekOutSD", 3, "TyvekOut");
-    sdManager->AddNewDetector(tyvekOutSD);
-    tyvekOutLV->SetSensitiveDetector(tyvekOutSD);
-
-    auto* tyvekMidSD = new SensitiveDetector("TyvekMidSD", 4, "TyvekMid");
-    sdManager->AddNewDetector(tyvekMidSD);
-    tyvekMidLV->SetSensitiveDetector(tyvekMidSD);
-
-    auto* tyvekInSD = new SensitiveDetector("TyvekInSD", 5, "TyvekIn");
-    sdManager->AddNewDetector(tyvekInSD);
-    tyvekInLV->SetSensitiveDetector(tyvekInSD);
-
-    auto* tyvekBottomSD = new SensitiveDetector("TyvekBottomSD", 6, "TyvekBottom");
-    sdManager->AddNewDetector(tyvekBottomSD);
-    tyvekBottomLV->SetSensitiveDetector(tyvekBottomSD);
-
     if (useOptics) {
         auto* sipmSD = new SiPMOpticalSD("SiPMOpticalSD");
         auto* sipmWindowLV = detector->GetSiPMWindowLV();

@@ -489,6 +489,31 @@ void PostProcessing::SaveTrigEdepCsv() {
 
 
 void PostProcessing::SaveEdepCsv() {
+    TTree* primary = nullptr;
+    rootFile->GetObject("primary", primary);
+    if (!primary) {
+        throw std::runtime_error("TTree not found: primary");
+    }
+
+    Int_t eventID_p = 0;
+    double E0 = 0.0;
+
+    primary->SetBranchStatus("*", false);
+    primary->SetBranchStatus("eventID", true);
+    primary->SetBranchStatus("E_MeV", true);
+
+    primary->SetBranchAddress("eventID", &eventID_p);
+    primary->SetBranchAddress("E_MeV", &E0);
+
+    std::unordered_map<int, double> e0ByEvent;
+    e0ByEvent.reserve(std::max<Long64_t>(1, primary->GetEntries()));
+
+    const Long64_t nP = primary->GetEntries();
+    for (Long64_t i = 0; i < nP; ++i) {
+        primary->GetEntry(i);
+        e0ByEvent[eventID_p] = E0;
+    }
+
     TTree* edep = nullptr;
     rootFile->GetObject("edep", edep);
     if (!edep) {
@@ -538,7 +563,7 @@ void PostProcessing::SaveEdepCsv() {
         throw std::runtime_error("Cannot open output CSV: " + outPath);
     }
 
-    out << "eventID,Trigger,Crystal_edep_MeV,Veto_edep_MeV,BottomVeto_edep_MeV\n";
+    out << "eventID,E0_MeV,Trigger,Crystal_edep_MeV,Veto_edep_MeV,BottomVeto_edep_MeV\n";
     out << std::setprecision(17);
 
     std::vector<int> eventIDs;
@@ -558,6 +583,7 @@ void PostProcessing::SaveEdepCsv() {
                           : 0;
 
         out << evtID << ","
+            << e0ByEvent[evtID] << ","
             << trigger << ","
             << deps.crystal << ","
             << deps.veto << ","
@@ -568,6 +594,31 @@ void PostProcessing::SaveEdepCsv() {
 }
 
 void PostProcessing::SaveOpticsCsv() {
+    TTree* primary = nullptr;
+    rootFile->GetObject("primary", primary);
+    if (!primary) {
+        throw std::runtime_error("TTree not found: primary");
+    }
+
+    Int_t eventID_p = 0;
+    double E0 = 0.0;
+
+    primary->SetBranchStatus("*", false);
+    primary->SetBranchStatus("eventID", true);
+    primary->SetBranchStatus("E_MeV", true);
+
+    primary->SetBranchAddress("eventID", &eventID_p);
+    primary->SetBranchAddress("E_MeV", &E0);
+
+    std::unordered_map<int, double> e0ByEvent;
+    e0ByEvent.reserve(std::max<Long64_t>(1, primary->GetEntries()));
+
+    const Long64_t nP = primary->GetEntries();
+    for (Long64_t i = 0; i < nP; ++i) {
+        primary->GetEntry(i);
+        e0ByEvent[eventID_p] = E0;
+    }
+
     std::string opticDir = (fs::path(runDir) / "optic").string();
     fs::create_directories(opticDir);
 
@@ -711,7 +762,7 @@ void PostProcessing::SaveOpticsCsv() {
         throw std::runtime_error("Cannot open output CSV: trig_opt.csv");
     }
 
-    trigOptFile << "eventID,trigger_opt,trigger_edep,Crystal_npe,Veto_npe,BottomVeto_npe\n";
+    trigOptFile << "eventID,E0_MeV,trigger_opt,trigger_edep,Crystal_npe,Veto_npe,BottomVeto_npe\n";
 
     std::vector<Int_t> allEventIDs;
     allEventIDs.reserve(eventMap.size());
@@ -730,6 +781,7 @@ void PostProcessing::SaveOpticsCsv() {
         }
 
         trigOptFile << evtID << ","
+            << e0ByEvent[evtID] << ","
             << info.trigger << ","
             << trigger_edep << ","
             << info.crystal_npe << ","
