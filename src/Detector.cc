@@ -707,7 +707,7 @@ void Detector::ConstructHolder(G4ThreeVector& refPos, const G4String& prefix) {
     std::vector<std::pair<G4int, G4int>> signs = {
         {1, 1}, {-1, 1}, {-1, -1}, {1, -1}
     };
-    for (size_t i = 0; i < static_cast<size_t>(360 * deg / viewDeg); i++) {
+    for (size_t i = 0; i < 5 - static_cast<size_t>(360 * deg / viewDeg); i++) {
         G4ThreeVector pos = G4ThreeVector(springHolderGapX / 2. + springRadius + diff,
                                           springHolderGapY / 2. + springRadius + diff, 0);
         pos[0] *= signs[i].first;
