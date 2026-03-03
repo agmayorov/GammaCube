@@ -70,6 +70,8 @@ Loader::Loader(int argc, char** argv) {
             savePhotons = true;
         } else if (input == "-g" || input == "--geom-config") {
             geomConfigPath = argv[i + 1];
+        } else if (input == "-w" || input == "--weight") {
+            weight = std::stod(argv[i + 1]);
         } else if (input == "-o" || input == "--output-file") {
             outputFile = argv[i + 1];
             outputFile += ".root";
@@ -395,6 +397,10 @@ void Loader::SaveConfig() const {
         buf << "BottomVeto: " << oBottomVetoThreshold << "\n";
     }
     buf << "}\n\n";
+
+    if (crystalSiPMConfig == "12-rhombus") {
+        buf << "Weight: " << weight <<"\n\n";
+    }
 
     buf << "Rates:\n{\n\t";
     buf << std::fixed << std::setprecision(6);

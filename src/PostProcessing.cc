@@ -800,19 +800,31 @@ void PostProcessing::SaveOpticsCsv() {
         for (Int_t ch : sortedCrystalChannels) {
             crystalFile << ",ch" << ch;
         }
+        if (crystalSiPMConfig == "12-rhombus") {
+            crystalFile << ",sum_0-3,sum_4-11,weighted_sum";
+        }
         crystalFile << "\n";
 
         for (Int_t evtID : allEventIDs) {
             crystalFile << evtID;
 
             const auto& channels = crystalChannels[evtID];
+            int sum4 = 0;
+            int sum8 = 0;
+            G4double sumWeighted = 0;
             for (Int_t ch : sortedCrystalChannels) {
                 auto it = channels.find(ch);
                 if (it != channels.end()) {
+                    if (ch < 4) sum4 += it->second;
+                    else sum8 += it->second;
                     crystalFile << "," << it->second;
                 } else {
                     crystalFile << ",0";
                 }
+            }
+            if (crystalSiPMConfig == "12-rhombus") {
+                sumWeighted = sum4 * weight + sum8;
+                crystalFile << "," << sum4 << "," << sum8 << "," << sumWeighted;
             }
             crystalFile << "\n";
         }

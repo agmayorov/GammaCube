@@ -30,6 +30,8 @@ namespace Configuration
     inline G4String outputFile{"GammaCube.root"};
     inline G4bool saveSecondaries{false};
     inline G4bool savePhotons{false};
+
+    inline G4double weight{1.};
 }
 
 
