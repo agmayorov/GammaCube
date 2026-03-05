@@ -114,10 +114,10 @@ void AnalysisManager::Book() {
         trigEnergyHist = analysisManager->CreateH1("trigEnergyHist",
                                                    "N_{trig} vs E",
                                                    nBins, xMin, xMax, unit, "none", logScheme);
-
-        trigOptEnergyHist = analysisManager->CreateH1("trigOptEnergyHist",
-                                                      "N_{trig,opt} vs E",
-                                                      nBins, xMin, xMax, unit, "none", logScheme);
+        if (useOptics)
+            trigOptEnergyHist = analysisManager->CreateH1("trigOptEnergyHist",
+                                                          "N_{trig,opt} vs E",
+                                                          nBins, xMin, xMax, unit, "none", logScheme);
 
         if (fluxDirection.find("isotropic") != std::string::npos) {
             sensitivityHist = analysisManager->CreateH1("sensitivityHist",

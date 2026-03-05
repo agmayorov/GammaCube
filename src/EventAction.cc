@@ -18,6 +18,8 @@ void EventAction::BeginOfEventAction(const G4Event*) {
     nEdepHits = 0;
     hasCrystal = false;
     hasVeto = false;
+    hasCrystalOpt = false;
+    hasVetoOpt = false;
 }
 
 void EventAction::EndOfEventAction(const G4Event* evt) {
