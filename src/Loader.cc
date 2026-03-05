@@ -70,8 +70,10 @@ Loader::Loader(int argc, char** argv) {
             savePhotons = true;
         } else if (input == "-g" || input == "--geom-config") {
             geomConfigPath = argv[i + 1];
-        } else if (input == "-w" || input == "--weight") {
-            weight = std::stod(argv[i + 1]);
+        } else if (input == "-w4" || input == "--weight4") {
+            weight4 = std::stod(argv[i + 1]);
+        } else if (input == "-w8" || input == "--weight8") {
+            weight8 = std::stod(argv[i + 1]);
         } else if (input == "-o" || input == "--output-file") {
             outputFile = argv[i + 1];
             outputFile += ".root";
@@ -399,7 +401,8 @@ void Loader::SaveConfig() const {
     buf << "}\n\n";
 
     if (crystalSiPMConfig == "12-rhombus") {
-        buf << "Weight: " << weight <<"\n\n";
+        buf << "Weight_for_4: " << weight4 <<"\n";
+        buf << "Weight_for_8: " << weight8 <<"\n\n";
     }
 
     buf << "Rates:\n{\n\t";

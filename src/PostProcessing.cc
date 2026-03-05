@@ -801,7 +801,7 @@ void PostProcessing::SaveOpticsCsv() {
             crystalFile << ",ch" << ch;
         }
         if (crystalSiPMConfig == "12-rhombus") {
-            crystalFile << ",sum_0-3,sum_4-11,weighted_sum,trigger_edep,trigger_opt";
+            crystalFile << ",sum_0-3,sum_4-11,weighted_4_sum,weighted_8_sum,trigger_edep,trigger_opt";
         }
         crystalFile << "\n";
 
@@ -811,7 +811,6 @@ void PostProcessing::SaveOpticsCsv() {
             const auto& channels = crystalChannels[evtID];
             int sum4 = 0;
             int sum8 = 0;
-            G4double sumWeighted = 0;
             for (Int_t ch : sortedCrystalChannels) {
                 auto it = channels.find(ch);
                 if (it != channels.end()) {
@@ -830,8 +829,9 @@ void PostProcessing::SaveOpticsCsv() {
                 if (it != edepTriggerMap.end()) {
                     trigger_edep = it->second;
                 }
-                sumWeighted = sum4 * weight + sum8;
-                crystalFile << "," << sum4 << "," << sum8 << "," << sumWeighted << "," << trigger_edep << "," << info.
+                G4double sumWeighted4 = sum4 * weight4 + sum8;
+                G4double sumWeighted8 = sum4 + sum8 * weight8;
+                crystalFile << "," << sum4 << "," << sum8 << "," << sumWeighted4 << "," << sumWeighted8 << "," << trigger_edep << "," << info.
                     trigger;
             }
             crystalFile << "\n";

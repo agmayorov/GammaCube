@@ -31,7 +31,8 @@ namespace Configuration
     inline G4bool saveSecondaries{false};
     inline G4bool savePhotons{false};
 
-    inline G4double weight{1.};
+    inline G4double weight4{1.};
+    inline G4double weight8{1.};
 }
 
 
