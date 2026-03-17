@@ -6,8 +6,8 @@ GalacticFlux::GalacticFlux(const G4double cThreshold) {
     particle = GetParam(configFile, "particle", "proton");
     phiMV = GetParam(configFile, "phiMV", 600);
 
-    Emin = std::max({GetParam(configFile, "E_min", 1.) * MeV, cThreshold});
-    Emax = GetParam(configFile, "E_max", 1000000.) * MeV;
+    Emin = std::max({GetParam(configFile, "E_min", 1.), cThreshold}) / GeV;
+    Emax = GetParam(configFile, "E_max", 1000000.) / GeV;
 
     BuildCDF();
 }
