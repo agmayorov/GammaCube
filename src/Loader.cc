@@ -323,17 +323,17 @@ void Loader::SaveConfig() const {
     if (fluxType == "PLAW") {
         buf << "A: " << std::stod(ReadValue("A:")) << ",\n\t";
         buf << "alpha: " << std::stod(ReadValue("alpha:")) << ",\n\t";
-        buf << "E_Piv: " << std::stod(ReadValue("E_Piv:")) << "\n";
+        buf << "E_Piv: " << std::stod(ReadValue("E_Piv:")) << " MeV\n";
     } else if (fluxType == "COMP") {
         buf << "A: " << std::stod(ReadValue("A:")) << ",\n\t";
         buf << "alpha: " << std::stod(ReadValue("alpha:")) << ",\n\t";
-        buf << "E_Piv: " << std::stod(ReadValue("E_Piv:")) << ",\n\t";
-        buf << "E_Peak: " << std::stod(ReadValue("E_Peak:")) << "\n";
+        buf << "E_Piv: " << std::stod(ReadValue("E_Piv:")) << " MeV,\n\t";
+        buf << "E_Peak: " << std::stod(ReadValue("E_Peak:")) << " MeV\n";
     } else if (fluxType == "SEP") {
         buf << "year: " << std::stoi(ReadValue("year:")) << ",\n\t";
         buf << "order: " << std::stoi(ReadValue("order:")) << "\n";
     } else if (fluxType == "Galactic") {
-        buf << "phiMV: " << std::stod(ReadValue("phiMV:")) << ",\n\t";
+        buf << "phiMV: " << std::stod(ReadValue("phiMV:")) << " MV,\n\t";
         buf << "particle: " << ReadValue("particle:") << "\n";
     } else if (fluxType == "Table") {
         buf << "table_path: " << ReadValue("table_path:") << ",\n\t";
@@ -367,11 +367,11 @@ void Loader::SaveConfig() const {
         std::vector<G4String> EminVec = Split(ReadValue("E_min:"));
         std::vector<G4String> EmaxVec = Split(ReadValue("E_max:"));
         for (size_t i = 0; i < particles.size(); i++) {
-            buf << (i == 0 ? "" : "\t") << particles[i] << ": (" << EminVec[i] << ", " << EmaxVec[i] << "),\n";
+            buf << (i == 0 ? "" : "\t") << particles[i] << ": (" << EminVec[i] << " MeV, " << EmaxVec[i] << " MeV),\n";
         }
     }
     if (fluxType != "Uniform") {
-        buf << "(" << ReadValue("E_min:") << ", " << ReadValue("E_max:") << ")\n";
+        buf << "(" << ReadValue("E_min:") << " MeV, " << ReadValue("E_max:") << " MeV)\n";
     }
     buf << "}\n\n";
 
@@ -384,15 +384,13 @@ void Loader::SaveConfig() const {
     buf << "Veto_then_Crystal: " << crystalAndVetoOpt << "\n}\n\n";
 
     buf << "Thresholds:\n{\n\t";
-    buf << std::fixed << std::setprecision(6);
     if (rate_ok) {
-        buf << "Crystal: " << eCrystalThreshold << "\n\t";
-        buf << "Veto: " << eVetoThreshold << "\n";
+        buf << "Crystal: " << eCrystalThreshold << " MeV\n\t";
+        buf << "Veto: " << eVetoThreshold << " MeV\n";
     }
     buf << "}\n\n";
 
     buf << "Optical_thresholds:\n{\n\t";
-    buf << std::fixed << std::setprecision(6);
     if (rate_ok) {
         buf << "Crystal: " << oCrystalThreshold << "\n\t";
         buf << "Veto: " << oVetoThreshold << "\n\t";
@@ -401,18 +399,21 @@ void Loader::SaveConfig() const {
     buf << "}\n\n";
 
     if (crystalSiPMConfig == "12-rhombus") {
-        buf << "Weight_for_4: " << weight4 <<"\n";
-        buf << "Weight_for_8: " << weight8 <<"\n\n";
+        buf << "Weight_for_4: " << weight4 << "\n";
+        buf << "Weight_for_8: " << weight8 << "\n\n";
     }
+
+    std::string area_dim = fluxDirection.find("isotropic") != std::string::npos ? " sr * cm^2" : " cm^2";
+    std::string area_dim_inv = fluxDirection.find("isotropic") != std::string::npos ? " sr^-1 * cm^-2" : " cm^-2";
 
     buf << "Rates:\n{\n\t";
     buf << std::fixed << std::setprecision(6);
     if (rate_ok) {
-        buf << "Area: " << area << "\n\t";
-        buf << "Integral: " << rr.integral << "\n\t";
-        buf << "Ndot: " << rr.Ndot << "\n\t";
-        buf << "Rate_Crystal_only: " << rr.rateCrystal << "\n\t";
-        buf << "Rate_Both: " << rr.rateBoth << "\n\t";
+        buf << "Area: " << area << area_dim << "\n\t";
+        buf << "Integral: " << rr.integral / (fluxType == "Galactic" ? 10000 : 1) << area_dim_inv << " * s^-1\n\t";
+        buf << "Ndot: " << rr.Ndot << " s^-1\n\t";
+        buf << "Rate_Crystal_only: " << rr.rateCrystal << " s^-1\n\t";
+        buf << "Rate_Both: " << rr.rateBoth << " s^-1\n\t";
     } else {
         buf << "Area: NaN\n\t";
         buf << "Integral: NaN\n\t";
@@ -421,7 +422,7 @@ void Loader::SaveConfig() const {
         buf << "Rate_Both: NaN\n\t";
     }
     if (rate_real_ok) {
-        buf << "Rate_Real: " << rrReal.rateRealCrystal << "\n";
+        buf << "Rate_Real: " << rrReal.rateRealCrystal << " s^-1\n";
     } else {
         buf << "Rate_Real: NaN\n";
     }
@@ -430,11 +431,11 @@ void Loader::SaveConfig() const {
     buf << "Optical_rates:\n{\n\t";
     buf << std::fixed << std::setprecision(6);
     if (rate_opt_ok) {
-        buf << "Area: " << area << "\n\t";
-        buf << "Integral: " << rr_opt.integral << "\n\t";
-        buf << "Ndot: " << rr_opt.Ndot << "\n\t";
-        buf << "Rate_Crystal_only: " << rr_opt.rateCrystal << "\n\t";
-        buf << "Rate_Both: " << rr_opt.rateBoth << "\n\t";
+        buf << "Area: " << area << area_dim << "\n\t";
+        buf << "Integral: " << rr_opt.integral / (fluxType == "Galactic" ? 10000 : 1) << area_dim_inv << " * s^-1\n\t";
+        buf << "Ndot: " << rr_opt.Ndot << " s^-1\n\t";
+        buf << "Rate_Crystal_only: " << rr_opt.rateCrystal << " s^-1\n\t";
+        buf << "Rate_Both: " << rr_opt.rateBoth << " s^-1\n\t";
     } else {
         buf << "Area: NaN\n\t";
         buf << "Integral: NaN\n\t";
@@ -443,7 +444,7 @@ void Loader::SaveConfig() const {
         buf << "Rate_Both: NaN\n\t";
     }
     if (rate_real_opt_ok) {
-        buf << "Rate_Real: " << rrReal_opt.rateRealCrystal << "\n";
+        buf << "Rate_Real: " << rrReal_opt.rateRealCrystal << " s^-1\n";
     } else {
         buf << "Rate_Real: NaN\n";
     }
