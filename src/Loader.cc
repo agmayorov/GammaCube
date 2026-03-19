@@ -123,8 +123,15 @@ Loader::Loader(int argc, char** argv) {
     physicsList->RegisterPhysics(new G4StepLimiterPhysics());
     runManager->SetUserInitialization(physicsList);
 
-    G4double EminMeV = std::max({std::stod(ReadValue("E_min:", "")) * MeV, eCrystalThreshold});
-    G4double EmaxMeV = std::stod(ReadValue("E_max:", "")) * MeV;
+    Emin = std::max({std::stod(ReadValue("E_min:", "")) * MeV, eCrystalThreshold});
+    Emax = std::stod(ReadValue("E_max:", "")) * MeV;
+    if (fluxType == "Table") {
+        std::string path = ReadValue("table_path:", "");
+        auto energyTable = Utils::ReadCSV(path, 1., false, MeV);
+
+        Emin = std::max({energyTable.GetMinE(), Emin});
+        Emax = std::min({energyTable.GetMaxE(), Emax});
+    }
 
     if (fluxDirection == "isotropic") {
         dir = FluxDir::Isotropic;
@@ -140,7 +147,7 @@ Loader::Loader(int argc, char** argv) {
         dir = FluxDir::Horizontal;
     }
     area = Area_cm2(Sizes::modelRadius, Sizes::modelHeight, dir);
-    runManager->SetUserInitialization(new ActionInitialization(area, EminMeV, EmaxMeV));
+    runManager->SetUserInitialization(new ActionInitialization(area));
     runManager->Initialize();
 
     visManager = new G4VisExecutive;
@@ -226,44 +233,35 @@ void Loader::SaveConfig() const {
     FluxType fType{};
     FluxParams fp{};
 
+    er.Emin = Emin;
+    er.Emax = Emax;
+
     if (fluxType == "PLAW") {
         fType = FluxType::PLAW;
         fp.A = std::stod(ReadValue("A:"));
         fp.alpha = std::stod(ReadValue("alpha:"));
         fp.E_piv = std::stod(ReadValue("E_Piv:"));
-        er.Emin = std::stod(ReadValue("E_min:"));
-        er.Emax = std::stod(ReadValue("E_max:"));
     } else if (fluxType == "COMP") {
         fType = FluxType::COMP;
         fp.A = std::stod(ReadValue("A:"));
         fp.alpha = std::stod(ReadValue("alpha:"));
         fp.E_piv = std::stod(ReadValue("E_Piv:"));
         fp.E_peak = std::stod(ReadValue("E_Peak:"));
-        er.Emin = std::stod(ReadValue("E_min:"));
-        er.Emax = std::stod(ReadValue("E_max:"));
     } else if (fluxType == "SEP") {
         fType = FluxType::SEP;
         fp.sep_year = std::stoi(ReadValue("year:"));
         fp.sep_order = std::stoi(ReadValue("order:"));
         fp.sep_csv_path = "../SEP_coefficients.CSV";
-        er.Emin = std::stod(ReadValue("E_min:"));
-        er.Emax = std::stod(ReadValue("E_max:"));
     } else if (fluxType == "Galactic") {
         fType = FluxType::GALACTIC;
         fp.phiMV = std::stod(ReadValue("phiMV:"));
         fp.particle = ReadValue("particle:");
-        er.Emin = std::stod(ReadValue("E_min:"));
-        er.Emax = std::stod(ReadValue("E_max:"));
     } else if (fluxType == "Table") {
         fType = FluxType::TABLE;
         fp.particle = ReadValue("particle:");
         fp.table_path = ReadValue("table_path:");
-        er.Emin = std::stod(ReadValue("E_min:"));
-        er.Emax = std::stod(ReadValue("E_max:"));
     } else {
         fType = FluxType::UNIFORM;
-        er.Emin = std::stod(ReadValue("E_min:"));
-        er.Emax = std::stod(ReadValue("E_max:"));
     }
 
     RateCounts counts{crystalOnly, crystalAndVeto};
@@ -276,7 +274,6 @@ void Loader::SaveConfig() const {
     }
     catch (const std::exception& ex) {
         rate_ok = false;
-        // G4cerr << "[SaveConfig] WARNING: Rate computation failed: " << ex.what() << G4endl;
     }
 
     RateResult rrReal{};
@@ -286,7 +283,6 @@ void Loader::SaveConfig() const {
     }
     catch (const std::exception& ex) {
         rate_real_ok = false;
-        // G4cerr << "[SaveConfig] WARNING: Real rate computation failed: " << ex.what() << G4endl;
     }
 
     RateResult rr_opt{};
@@ -371,7 +367,7 @@ void Loader::SaveConfig() const {
         }
     }
     if (fluxType != "Uniform") {
-        buf << "(" << ReadValue("E_min:") << " MeV, " << ReadValue("E_max:") << " MeV)\n";
+        buf << "(" << Emin << " MeV, " << Emax << " MeV)\n";
     }
     buf << "}\n\n";
 
@@ -487,8 +483,6 @@ void Loader::RunPostProcessing() const {
     };
     std::string part;
 
-    G4double Emin = std::max({std::stod(ReadValue("E_min:")), eCrystalThreshold});
-    G4double Emax = std::stod(ReadValue("E_max:"));
     try {
         std::cout << "Processing... ";
         std::string outDir = fluxType;
@@ -505,7 +499,7 @@ void Loader::RunPostProcessing() const {
             part = "proton";
         }
         outDir = sanitize(outDir);
-        PostProcessing postProcessing(outDir, Emin, Emax, part);
+        PostProcessing postProcessing(outDir, part);
 
         postProcessing.ExtractNtData();
         if (Emin < Emax) {

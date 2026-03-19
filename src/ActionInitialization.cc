@@ -2,10 +2,9 @@
 
 using namespace Configuration;
 
-ActionInitialization::ActionInitialization(const G4double a, const G4double Emin,
-                                           const G4double Emax) : EminMeV(Emin),
-                                                                  EmaxMeV(Emax),
-                                                                  area(a) {
+ActionInitialization::ActionInitialization(const G4double a) : EminMeV(Emin),
+                                                               EmaxMeV(Emax),
+                                                               area(a) {
     if (eCrystalThreshold > EmaxMeV) {
         G4Exception("ActionInitialization", "EnergyRange", FatalException,
                     "The energy threshold for a crystal must be less than the maximum value in a given energy range");
@@ -13,12 +12,12 @@ ActionInitialization::ActionInitialization(const G4double a, const G4double Emin
 }
 
 void ActionInitialization::BuildForMaster() const {
-    RunAction* runAct = new RunAction(area, EminMeV, EmaxMeV);
+    RunAction* runAct = new RunAction(area);
     SetUserAction(runAct);
 }
 
 void ActionInitialization::Build() const {
-    RunAction* runAct = new RunAction(area, EminMeV, EmaxMeV);
+    RunAction* runAct = new RunAction(area);
     SetUserAction(runAct);
 
     EventAction* eventAct = new EventAction(runAct->analysisManager, runAct);

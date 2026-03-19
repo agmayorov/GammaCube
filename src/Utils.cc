@@ -117,7 +117,8 @@ G4double Utils::UnitFactor(const std::string& unitToken) {
 
 Utils::Table Utils::ReadCSV(const std::string& filename,
                             G4double valueScale,
-                            bool clampNonNegative) {
+                            bool clampNonNegative,
+                            G4double energyUnit) {
     std::ifstream file(filename);
     if (!file.is_open()) throw std::runtime_error("Can't open CSV file: " + filename);
 
@@ -144,12 +145,12 @@ Utils::Table Utils::ReadCSV(const std::string& filename,
         col2 = Trim(col2);
         if (col1.empty() || col2.empty()) continue;
 
-        const double e_eV = std::stod(col1);
+        const double e = std::stod(col1);
         double v = std::stod(col2);
         if (clampNonNegative && v < 0.0) v = 0.0;
 
         rows.push_back(Row{
-                           static_cast<G4double>(e_eV) * eV,
+                           static_cast<G4double>(e) * energyUnit,
                            v * valueScale
                        });
     }

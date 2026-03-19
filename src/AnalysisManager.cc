@@ -7,8 +7,8 @@ AnalysisManager::AnalysisManager(const std::string& fName) : fileName(fName) {
     Book();
 }
 
-AnalysisManager::AnalysisManager(const std::string& fName, const int bins, const double vMin, const double vMax) :
-    fileName(fName), nBins(bins), xMin(vMin), xMax(vMax) {
+AnalysisManager::AnalysisManager(const std::string& fName, const int bins) :
+    fileName(fName), nBins(bins) {
     Book();
 }
 
@@ -103,40 +103,40 @@ void AnalysisManager::Book() {
             analysisManager->FinishNtuple(photonsNT);
         }
     }
-    if (xMin < xMax) {
+    if (Emin < Emax) {
         const G4String unit = "MeV";
         const G4String logScheme = "log";
 
         genEnergyHist = analysisManager->CreateH1("genEnergyHist",
                                                   "N_{gen} vs E",
-                                                  nBins, xMin, xMax, unit, "none", logScheme);
+                                                  nBins, Emin, Emax, unit, "none", logScheme);
 
         trigEnergyHist = analysisManager->CreateH1("trigEnergyHist",
                                                    "N_{trig} vs E",
-                                                   nBins, xMin, xMax, unit, "none", logScheme);
+                                                   nBins, Emin, Emax, unit, "none", logScheme);
         if (useOptics)
             trigOptEnergyHist = analysisManager->CreateH1("trigOptEnergyHist",
                                                           "N_{trig,opt} vs E",
-                                                          nBins, xMin, xMax, unit, "none", logScheme);
+                                                          nBins, Emin, Emax, unit, "none", logScheme);
 
         if (fluxDirection.find("isotropic") != std::string::npos) {
             sensitivityHist = analysisManager->CreateH1("sensitivityHist",
                                                         "Sensitivity vs E",
-                                                        nBins, xMin, xMax, unit, "none", logScheme);
+                                                        nBins, Emin, Emax, unit, "none", logScheme);
 
             if (useOptics)
                 sensitivityOptHist = analysisManager->CreateH1("sensitivityOptHist",
                                                                "Sensitivity_{opt} vs E",
-                                                               nBins, xMin, xMax, unit, "none", logScheme);
+                                                               nBins, Emin, Emax, unit, "none", logScheme);
         } else {
             effAreaHist = analysisManager->CreateH1("effAreaHist",
                                                     "A_{eff} vs E",
-                                                    nBins, xMin, xMax, unit, "none", logScheme);
+                                                    nBins, Emin, Emax, unit, "none", logScheme);
 
             if (useOptics)
                 effAreaOptHist = analysisManager->CreateH1("effAreaOptHist",
                                                            "A_{eff,opt} vs E",
-                                                           nBins, xMin, xMax, unit, "none", logScheme);
+                                                           nBins, Emin, Emax, unit, "none", logScheme);
         }
     }
 }

@@ -12,7 +12,7 @@
 
 class ActionInitialization : public G4VUserActionInitialization {
 public:
-    ActionInitialization(G4double, G4double, G4double);
+    ActionInitialization(G4double);
     ~ActionInitialization() override = default;
 
     void BuildForMaster() const override;

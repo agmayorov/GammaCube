@@ -31,6 +31,14 @@ public:
     struct Table {
         std::vector<G4double> E;
         std::vector<G4double> V;
+
+        G4double GetMinE() const {
+            return E.empty() ? 0.0 : E.front();
+        }
+
+        G4double GetMaxE() const {
+            return E.empty() ? 0.0 : E.back();
+        }
     };
 
     struct EmissionTables {
@@ -40,7 +48,8 @@ public:
 
     static Table ReadCSV(const std::string& filename,
                          G4double valueScale = 1.0,
-                         bool clampNonNegative = false);
+                         bool clampNonNegative = false,
+                         G4double energyUnit = eV);
 
     static EmissionTables ReadEmissionCSV(const std::string& filename,
                                           G4double valueScale = 1.0,

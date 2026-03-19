@@ -33,6 +33,9 @@ namespace Configuration
 
     inline G4double weight4{1.};
     inline G4double weight8{1.};
+
+    inline G4double Emin{-1};
+    inline G4double Emax{-1};
 }
 
 

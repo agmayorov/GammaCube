@@ -11,11 +11,10 @@ RunAction::RunAction() {
     mgr->Register(crystalAndVeto);
 }
 
-RunAction::RunAction(const double Agen_cm2, const double Emin_MeV,
-                     const double Emax_MeV) : EminMeV(Emin_MeV),
-                                              EmaxMeV(Emax_MeV),
+RunAction::RunAction(const double Agen_cm2) : EminMeV(Emin),
+                                              EmaxMeV(Emax),
                                               area(Agen_cm2) {
-    analysisManager = new AnalysisManager(outputFile, nBins, EminMeV, EmaxMeV);
+    analysisManager = new AnalysisManager(outputFile, nBins);
     if (nBins < 1) {
         throw std::runtime_error("RunAction: nbins must be >= 1");
     }

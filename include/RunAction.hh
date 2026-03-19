@@ -29,7 +29,7 @@ public:
     AnalysisManager *analysisManager;
 
     RunAction();
-    RunAction(double Agen_cm2, double Emin_MeV, double Emax_MeV);
+    RunAction(double Agen_cm2);
     ~RunAction() override;
 
     void BeginOfRunAction(const G4Run *) override;

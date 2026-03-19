@@ -4,11 +4,9 @@ namespace fs = std::filesystem;
 using namespace Configuration;
 
 PostProcessing::PostProcessing(std::string outputFolderName,
-                               double eMinMeV,
-                               double eMaxMeV,
                                std::string particle) : outputFolderName(std::move(outputFolderName)),
-                                                       eMinMeV(eMinMeV),
-                                                       eMaxMeV(eMaxMeV),
+                                                       eMinMeV(Emin),
+                                                       eMaxMeV(Emax),
                                                        particleName(std::move(particle)) {
     ROOT::EnableImplicitMT();
     gROOT->SetBatch(kTRUE);

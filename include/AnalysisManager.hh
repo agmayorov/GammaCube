@@ -15,7 +15,7 @@ public:
     G4String fileName = "GammaDetector";
 
     explicit AnalysisManager(const std::string&);
-    AnalysisManager(const std::string&, int, double, double);
+    AnalysisManager(const std::string&, int);
     ~AnalysisManager() = default;
 
     void Open();
@@ -79,8 +79,6 @@ private:
     G4int sensitivityOptHist{-1};
 
     G4int nBins{1000};
-    G4double xMin{0};
-    G4double xMax{1000 * MeV};
 
     void Book();
 };

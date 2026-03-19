@@ -31,8 +31,6 @@ class TH1;
 class PostProcessing {
 public:
     PostProcessing(std::string outputFolderName,
-                   double eMinMeV,
-                   double eMaxMeV,
                    std::string particle);
 
     ~PostProcessing();
