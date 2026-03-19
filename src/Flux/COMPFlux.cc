@@ -4,8 +4,9 @@ COMPFlux::COMPFlux(const G4double cThreshold) {
     particle = "gamma";
 
     configFile = "../Flux_config/COMP_params.txt";
-    alpha = GetParam(configFile, "alpha", 1.18511);
+    alpha = GetParam(configFile, "alpha", -1.18511);
     E_Peak = GetParam(configFile, "E_Peak", 1.809619) * MeV;
+    E_Piv = GetParam(configFile, "E_Piv", 0.1) * MeV;
 
     Emin = std::max({GetParam(configFile, "E_min", 0.01) * MeV, cThreshold});
     Emax = GetParam(configFile, "E_max", 50.) * MeV;
@@ -14,14 +15,10 @@ COMPFlux::COMPFlux(const G4double cThreshold) {
 }
 
 void COMPFlux::BuildCDF() {
-    const double k = (2.0 - alpha) / E_Peak;
-    if (k <= 0.0) {
-        G4Exception("COMPFlux::BuildCDF", "BAD_PARAM",
-                    FatalException, "k <= 0 (alpha >= 2, распределение не определено)");
-    }
+    const double k = (2.0 + alpha) / E_Peak;
 
     auto pdf = [&](double E) {
-        return std::pow(E, -alpha) * std::exp(-k * E);
+        return std::pow(E / E_Piv, alpha) * std::exp(-k * E);
     };
 
     const int N = 2000;
@@ -39,7 +36,7 @@ void COMPFlux::BuildCDF() {
         integrand[i] = pdf(Ei);
     }
 
-    std::vector<double> cum(N, 0.0);
+    std::vector cum(N, 0.0);
     for (int i = 1; i < N; ++i) {
         double dE = energyGrid[i] - energyGrid[i - 1];
         cum[i] = cum[i - 1] + 0.5 * (integrand[i] + integrand[i - 1]) * dE;

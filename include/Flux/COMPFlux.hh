@@ -11,6 +11,7 @@ public:
 private:
     G4double alpha{};
     G4double E_Peak{};
+    G4double E_Piv{};
 
     std::vector<double> energyGrid;
     std::vector<double> cdfGrid;
