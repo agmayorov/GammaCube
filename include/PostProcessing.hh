@@ -72,7 +72,8 @@ private:
                      const std::string& plotTitle,
                      const std::string& yTitle,
                      bool filled,
-                     bool useTrig = false);
+                     bool log_y = false,
+                     bool weighted = false);
 
     static double GeomCenter(double eLow, double eHigh);
     static double EffAreaErrFromCounts(double n0, double n, double effArea);

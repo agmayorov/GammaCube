@@ -125,8 +125,11 @@ double fluxTable(const double E, const std::string& csvPath) {
             double E2 = cached_energies[i];
             double flux2 = cached_fluxes[i];
 
-            double flux = flux1 + (flux2 - flux1) * (E - E1) / (E2 - E1);
-            return flux;
+            if (flux1 > 0.0 && flux2 > 0.0 && E1 > 0.0 && E2 > 0.0 && E > 0.0) {
+                const double alpha = std::log(flux2 / flux1) / std::log(E2 / E1);
+                return flux1 * std::pow(E / E1, alpha);
+            }
+            return flux1 + (flux2 - flux1) * (E - E1) / (E2 - E1);
         }
     }
 

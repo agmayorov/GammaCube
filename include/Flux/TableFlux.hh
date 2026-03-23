@@ -26,6 +26,7 @@ private:
     G4String path;
 
     std::vector<G4double> EList;
+    std::vector<G4double> FluxList;;
     std::vector<G4double> CDF;
 
     void BuildCDF();

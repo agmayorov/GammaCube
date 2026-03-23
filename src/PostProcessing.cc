@@ -83,11 +83,13 @@ void PostProcessing::SaveHistPng(const std::string& histName,
                                  const std::string& plotTitle,
                                  const std::string& yTitle,
                                  const bool filled,
-                                 const bool useTrig) {
+                                 const bool log_y,
+                                 const bool weighted) {
     TH1* h = GetHistOrThrow(histName);
 
     TCanvas canvas("canvas", "canvas", 1920, 1080);
     canvas.SetLogx(true);
+    if (log_y) canvas.SetLogy(true);
 
     const short color = GetColorForParticle(particleName);
 
@@ -116,6 +118,7 @@ void PostProcessing::SaveHistPng(const std::string& histName,
         h->SetFillStyle(0);
     }
 
+    if (fluxType != "Uniform" and weighted) h->Scale(1.0, "width");
     h->Draw("HIST");
 
     canvas.SaveAs(outPngPath.c_str());
@@ -245,19 +248,19 @@ void PostProcessing::SaveEffArea() {
 
 
     SaveHistPng("effAreaHist", (fs::path(effectiveAreaDir) / "effective_area.png").string(),
-                "Effective Area vs Energy", "Effective Area [cm^{2}]", false, true);
+                "Effective Area vs Energy", "Effective Area [cm^{2}]", false);
 
     SaveHistPng("genEnergyHist", (fs::path(histogramsDir) / "genEnergyHist.png").string(),
-                "Initial Energy", "Counts", true, false);
+                "Initial Energy", "Counts", true, true, true);
 
     SaveHistPng("trigEnergyHist", (fs::path(histogramsDir) / "trigEnergyHist.png").string(),
-                "N_{trig} vs Energy", "Counts", true, false);
+                "N_{trig} vs Energy", "Counts", true, true, true);
 
     if (useOptics) {
         SaveHistPng("effAreaOptHist", (fs::path(effectiveAreaDir) / "effective_area_opt.png").string(),
-                    "Effective Area vs Energy", "Effective Area [cm^{2}]", false, true);
+                    "Effective Area vs Energy", "Effective Area [cm^{2}]", false);
         SaveHistPng("trigOptEnergyHist", (fs::path(histogramsDir) / "trigOptEnergyHist.png").string(),
-                    "N_{trig, opt} vs Energy", "Counts", true, false);
+                    "N_{trig, opt} vs Energy", "Counts", true);
     }
 
     std::ofstream out((fs::path(effectiveAreaDir) / "effective_area_by_energy.csv").string());
@@ -324,19 +327,19 @@ void PostProcessing::SaveSensitivity() {
     }
 
     SaveHistPng("sensitivityHist", (fs::path(sensitivityDir) / "sensitivity.png").string(),
-                "Sensitivity vs Energy", "Sensitivity [cm^{2} \\cdot sr]", false, true);
+                "Sensitivity vs Energy", "Sensitivity [cm^{2} \\cdot sr]", false);
 
     SaveHistPng("genEnergyHist", (fs::path(histogramsDir) / "genEnergyHist.png").string(),
-                "Initial Energy", "Counts", true, false);
+                "Initial Energy", "Counts", true, true, true);
 
     SaveHistPng("trigEnergyHist", (fs::path(histogramsDir) / "trigEnergyHist.png").string(),
-                "N_{trig} vs Energy", "Counts", true, false);
+                "N_{trig} vs Energy", "Counts", true, true, true);
 
     if (useOptics) {
         SaveHistPng("sensitivityOptHist", (fs::path(sensitivityDir) / "sensitivity_opt.png").string(),
-                    "Sensitivity vs Energy", "Sensitivity [cm^{2} \\cdot sr]", false, true);
+                    "Sensitivity vs Energy", "Sensitivity [cm^{2} \\cdot sr]", false);
         SaveHistPng("trigOptEnergyHist", (fs::path(histogramsDir) / "trigOptEnergyHist.png").string(),
-                    "N_{trig, opt} vs Energy", "Counts", true, false);
+                    "N_{trig, opt} vs Energy", "Counts", true);
     }
 
     std::ofstream out((fs::path(sensitivityDir) / "sensitivity_by_energy.csv").string());
@@ -829,7 +832,8 @@ void PostProcessing::SaveOpticsCsv() {
                 }
                 G4double sumWeighted4 = sum4 * weight4 + sum8;
                 G4double sumWeighted8 = sum4 + sum8 * weight8;
-                crystalFile << "," << sum4 << "," << sum8 << "," << sumWeighted4 << "," << sumWeighted8 << "," << trigger_edep << "," << info.
+                crystalFile << "," << sum4 << "," << sum8 << "," << sumWeighted4 << "," << sumWeighted8 << "," <<
+                    trigger_edep << "," << info.
                     trigger;
             }
             crystalFile << "\n";
