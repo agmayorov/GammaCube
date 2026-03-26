@@ -2,7 +2,7 @@
 #define FLUX_HH
 
 #include <CLHEP/Units/SystemOfUnits.h>
-#include "G4ParticleTable.hh"
+#include <G4ParticleTable.hh>
 #include <G4Types.hh>
 #include <G4SystemOfUnits.hh>
 #include <Randomize.hh>
@@ -13,11 +13,19 @@
 #include <numeric>
 #include <unordered_map>
 
+#include "Configuration.hh"
+
 struct ParticleInfo {
     G4String name;
     G4int pdg;
     G4ParticleDefinition *def;
     G4double energy;
+};
+
+
+struct Row {
+    double E_MeV;
+    double flux;
 };
 
 
@@ -30,8 +38,6 @@ public:
 protected:
     G4String particle;
     G4String configFile;
-    G4double Emin{};
-    G4double Emax{};
 
     virtual G4double SampleEnergy() = 0;
 

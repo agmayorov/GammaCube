@@ -1,12 +1,12 @@
 #ifndef COMPFLUX_HH
 #define COMPFLUX_HH
 
-#include "Flux/Flux.hh"
+#include "Flux.hh"
 
 
 class COMPFlux : public Flux {
 public:
-    explicit COMPFlux(G4double cThreshold);
+    explicit COMPFlux();
 
 private:
     G4double alpha{};

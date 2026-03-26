@@ -162,8 +162,8 @@ void RunAction::AddTriggeredCrystalOnlyOpt(double E_MeV) {
 void RunAction::FillDerivedHists() {
     for (int i = 0; i < nBins; ++i) {
         const double nGen = genCounts[i].GetValue();
-        const double nTrig = trigCounts[i].GetValue();
-        const double nTrigOpt = trigOptCounts[i].GetValue();
+        double nTrig = trigCounts[i].GetValue();
+        double nTrigOpt = trigOptCounts[i].GetValue();
 
         const double centerE = BinCenterMeV(i);
         double aEff = 0.0;
@@ -171,6 +171,8 @@ void RunAction::FillDerivedHists() {
         double sens = 0.0;
         double sensOpt = 0.0;
         if (nGen > 0.0) {
+            if (nTrig < N_MIN) nTrig = 0;
+            if (nTrigOpt < N_MIN_opt) nTrigOpt = 0;
             aEff = area * (nTrig / nGen);
             aEffOpt = area * (nTrigOpt / nGen);
             sens = aEff;

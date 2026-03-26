@@ -8,9 +8,11 @@
 #include <string>
 #include <vector>
 
+using namespace Configuration;
+
 namespace
 {
-    inline std::vector<G4double> ExtractNumbers(const std::string& line) {
+    std::vector<G4double> ExtractNumbers(const std::string& line) {
         static const std::regex re(R"(([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?))");
         std::vector<G4double> out;
         for (std::sregex_iterator it(line.begin(), line.end(), re), end; it != end; ++it) {
@@ -19,16 +21,16 @@ namespace
         return out;
     }
 
-    inline G4double LinearInterp(const G4double x, const G4double x0, const G4double y0,
-                                 const G4double x1, const G4double y1) {
+    G4double LinearInterp(const G4double x, const G4double x0, const G4double y0,
+                          const G4double x1, const G4double y1) {
         const G4double dx = x1 - x0;
         if (!(dx > 0.0)) return y0;
         const G4double t = (x - x0) / dx;
         return y0 + t * (y1 - y0);
     }
 
-    inline G4double LogLogInterp(const G4double x, const G4double x0, const G4double y0,
-                                 const G4double x1, const G4double y1) {
+    G4double LogLogInterp(const G4double x, const G4double x0, const G4double y0,
+                          const G4double x1, const G4double y1) {
         if (!(x > 0.0) || !(x0 > 0.0) || !(x1 > 0.0) || !(y0 > 0.0) || !(y1 > 0.0)) {
             return std::max(0.0, LinearInterp(x, x0, y0, x1, y1));
         }
@@ -36,8 +38,8 @@ namespace
         return y0 * std::pow(x / x0, a);
     }
 
-    inline G4double SegmentIntegral(const G4double E0, const G4double F0,
-                                    const G4double E1, const G4double F1) {
+    G4double SegmentIntegral(const G4double E0, const G4double F0,
+                             const G4double E1, const G4double F1) {
         if (!(E1 > E0)) return 0.0;
 
         const G4double f0 = std::max(0.0, F0);
@@ -54,9 +56,9 @@ namespace
         return 0.5 * (f0 + f1) * (E1 - E0);
     }
 
-    inline G4double InvertLinearSegment(const G4double E0, const G4double F0,
-                                        const G4double E1, const G4double F1,
-                                        const G4double target) {
+    G4double InvertLinearSegment(const G4double E0, const G4double F0,
+                                 const G4double E1, const G4double F1,
+                                 const G4double target) {
         const G4double dE = E1 - E0;
         if (!(dE > 0.0)) return E0;
 
@@ -89,9 +91,9 @@ namespace
         return std::clamp(E0 + x, E0, E1);
     }
 
-    inline G4double InvertPowerLawSegment(const G4double E0, const G4double F0,
-                                          const G4double E1, const G4double F1,
-                                          const G4double target) {
+    G4double InvertPowerLawSegment(const G4double E0, const G4double F0,
+                                   const G4double E1, const G4double F1,
+                                   const G4double target) {
         if (!(E1 > E0)) return E0;
 
         const G4double f0 = std::max(0.0, F0);
@@ -113,13 +115,10 @@ namespace
     }
 }
 
-TableFlux::TableFlux(const G4double cThreshold) {
+TableFlux::TableFlux() {
     configFile = "../Flux_config/Table_params.txt";
     path = GetParam(configFile, "table_path", "../TableSpectrum/flare_M2.csv");
     particle = GetParam(configFile, "particle", "proton");
-
-    Emin = std::max({GetParam(configFile, "E_min", 10.) * MeV, cThreshold});
-    Emax = GetParam(configFile, "E_max", 100.) * MeV;
 
     BuildCDF();
 }
@@ -129,7 +128,7 @@ void TableFlux::BuildCDF() {
     FluxList.clear();
     CDF.clear();
 
-    auto setFallback = [&]() {
+    auto setFallback = [&] {
         EList = {1.0 * MeV, 10.0 * MeV};
         FluxList = {1.0, 1.0};
         CDF = {0.0, 9.0 * MeV};
@@ -214,9 +213,6 @@ void TableFlux::BuildCDF() {
         hi = dataEmax;
     }
 
-    Emin = lo;
-    Emax = hi;
-
     auto interp_at = [&](const G4double E) -> G4double {
         if (E <= rows.front().E_MeV) return rows.front().flux;
         if (E >= rows.back().E_MeV) return rows.back().flux;
@@ -290,7 +286,6 @@ void TableFlux::BuildCDF() {
         G4Exception("TableFlux::BuildCDF", "NONPOSITIVE_TOTAL",
                     JustWarning, "Total spectrum integral is not positive. Using trivial spectrum.");
         setFallback();
-        return;
     }
 }
 

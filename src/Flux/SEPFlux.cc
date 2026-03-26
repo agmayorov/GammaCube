@@ -1,16 +1,15 @@
 #include "Flux/SEPFlux.hh"
 
+using namespace Configuration;
 
-SEPFlux::SEPFlux(const G4double cThreshold) {
+
+SEPFlux::SEPFlux() {
     path = "../SEP_spectrum.CSV";
     particle = "proton";
 
     configFile = "../Flux_config/SEP_params.txt";
     year = static_cast<int>(GetParam(configFile, "year", 1998));
     order = static_cast<int>(GetParam(configFile, "order", 15));
-
-    Emin = std::max({GetParam(configFile, "E_min", 0.1) * MeV, cThreshold});
-    Emax = GetParam(configFile, "E_max", 1000.) * MeV;
 
     BuildCDF();
 }

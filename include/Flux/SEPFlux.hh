@@ -6,15 +6,9 @@
 #include <fstream>
 #include <regex>
 
-
-struct Row {
-    double E_MeV;
-    double flux;
-};
-
 class SEPFlux : public Flux {
 public:
-    explicit SEPFlux(G4double cThreshold);
+    explicit SEPFlux();
 
 private:
     std::string path;

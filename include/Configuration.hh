@@ -36,6 +36,9 @@ namespace Configuration
 
     inline G4double Emin{-1};
     inline G4double Emax{-1};
+
+    inline G4double N_MIN{10};
+    inline G4double N_MIN_opt{10};
 }
 
 

@@ -2,11 +2,11 @@
 
 
 double fluxPLAW(const double E, const double A, double const alpha, const double E_piv) {
-    return A * std::pow(E / E_piv, -alpha);
+    return A * std::pow(E / E_piv, alpha);
 }
 
 double fluxCOMP(const double E, const double A, const double alpha, const double E_piv, const double E_peak) {
-    return A * std::pow(E / E_piv, -alpha) * std::exp((alpha - 2.0) * (E / E_peak));
+    return A * std::pow(E / E_piv, alpha) * std::exp(-(alpha + 2.0) * (E / E_peak));
 }
 
 // SEP: read CSV
@@ -301,7 +301,7 @@ static inline double binEdgeLog(double Emin, double Emax, int nBins, int i) {
 RateResult computeRate(const FluxType type,
                        const FluxParams& p,
                        EnergyRange eRange,
-                       double A_eff_cm2,
+                       double A_cm2,
                        const int N_histories,
                        const RateCounts& detCounts) {
     std::function<double(double)> f;
@@ -335,7 +335,7 @@ RateResult computeRate(const FluxType type,
     case FluxType::GALACTIC: {
         eRange.Emin /= 1000.0;
         eRange.Emax /= 1000.0;
-        A_eff_cm2 /= 10000.0;
+        A_cm2 /= 10000.0;
         f = [=](const double E_GeV) {
             return fluxGalactic(E_GeV, p.phiMV, p.particle);
         };
@@ -346,10 +346,10 @@ RateResult computeRate(const FluxType type,
     }
 
     const double integral = integrateAdaptiveSimpson(f, eRange.Emin, eRange.Emax, 1e-6, 22);
-    const double Ndot = A_eff_cm2 * integral;
+    const double Ndot = A_cm2 * integral;
 
     RateResult R;
-    R.area = A_eff_cm2;
+    R.area = A_cm2;
     R.integral = integral;
     R.Ndot = Ndot;
     R.rateCrystal = N_histories > 0 ? (detCounts.crystalOnly + 0.0) * Ndot / N_histories : 0.0;

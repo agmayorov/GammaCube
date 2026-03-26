@@ -5,10 +5,11 @@
 
 class PLAWFlux : public Flux {
 public:
-    explicit PLAWFlux(G4double cThreshold);
+    explicit PLAWFlux();
 
 private:
     G4double alpha{};
+    G4double Epiv{};
 
     G4double SampleEnergy() override;
 };

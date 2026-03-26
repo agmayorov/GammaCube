@@ -1,12 +1,12 @@
 #ifndef GALACTICFLUX_HH
 #define GALACTICFLUX_HH
 
-#include "Flux/Flux.hh"
+#include "Flux.hh"
 
 
 class GalacticFlux : public Flux {
 public:
-    explicit GalacticFlux(G4double cThreshold);
+    explicit GalacticFlux();
 
 private:
     G4double phiMV{};

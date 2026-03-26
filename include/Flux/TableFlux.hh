@@ -14,13 +14,12 @@
 #include <G4SystemOfUnits.hh>
 #include <Randomize.hh>
 
-#include "Flux/Flux.hh"
-#include "Flux/SEPFlux.hh"
+#include "Flux.hh"
 
 
 class TableFlux : public Flux {
 public:
-    explicit TableFlux(G4double cThreshold);
+    explicit TableFlux();
 
 private:
     G4String path;

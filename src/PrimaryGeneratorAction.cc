@@ -30,17 +30,17 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(G4String fDir, const G4String& fl
     }
 
     if (fluxType == "Uniform") {
-        flux = new UniformFlux(eCrystalThreshold);
+        flux = new UniformFlux();
     } else if (fluxType == "PLAW") {
-        flux = new PLAWFlux(eCrystalThreshold);
+        flux = new PLAWFlux();
     } else if (fluxType == "COMP") {
-        flux = new COMPFlux(eCrystalThreshold);
+        flux = new COMPFlux();
     } else if (fluxType == "SEP") {
-        flux = new SEPFlux(eCrystalThreshold);
+        flux = new SEPFlux();
     } else if (fluxType == "Galactic") {
-        flux = new GalacticFlux(eCrystalThreshold);
+        flux = new GalacticFlux();
     } else if (fluxType == "Table") {
-        flux = new TableFlux(eCrystalThreshold);
+        flux = new TableFlux();
     }
 }
 

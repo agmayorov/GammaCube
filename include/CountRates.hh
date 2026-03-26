@@ -78,7 +78,7 @@ double integrateAdaptiveSimpson(const std::function<double(double)>& f,
 RateResult computeRate(FluxType type,
                        const FluxParams& p,
                        EnergyRange eRange,
-                       double A_eff_cm2,
+                       double A_cm2,
                        int N_histories,
                        const RateCounts& detCounts);
 

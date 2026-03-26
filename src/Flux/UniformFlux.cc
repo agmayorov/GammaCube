@@ -1,7 +1,8 @@
 #include "Flux/UniformFlux.hh"
 
+using namespace Configuration;
 
-UniformFlux::UniformFlux(G4double cThreshold) : eCrystalThreshold(cThreshold) {
+UniformFlux::UniformFlux() {
     const G4String filepath = "../Flux_config/Uniform_params.txt";
 
     const G4String particleLine = GetParam(filepath, "particles", "");

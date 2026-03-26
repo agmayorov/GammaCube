@@ -1,13 +1,12 @@
 #include "Flux/GalacticFlux.hh"
 
-GalacticFlux::GalacticFlux(const G4double cThreshold) {
+using namespace Configuration;
+
+GalacticFlux::GalacticFlux() {
 
     configFile = "../Flux_config/Galactic_params.txt";
     particle = GetParam(configFile, "particle", "proton");
     phiMV = GetParam(configFile, "phiMV", 600);
-
-    Emin = std::max({GetParam(configFile, "E_min", 1.), cThreshold}) / GeV;
-    Emax = GetParam(configFile, "E_max", 1000000.) / GeV;
 
     BuildCDF();
 }
@@ -141,8 +140,6 @@ G4double GalacticFlux::J_TOA_GeV(const G4double E) {
 
     G4double J_LIS = 0;
     if (particle == "alpha") {
-        Emin = Emin * 4;
-        Emax = Emax * 4;
         J_LIS = 4 * J_Alpha(ELis / 4);
     } else if (particle == "e-") {
         J_LIS = J_Electron(ELis);
