@@ -40,6 +40,7 @@ public:
     void SaveSensitivity();
 
     void SaveTrigEdepCsv();
+    void SavePrimaryCsv();
     void SaveEdepCsv();
 
     void SaveOpticsCsv();

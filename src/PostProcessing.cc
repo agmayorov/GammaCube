@@ -211,7 +211,7 @@ void PostProcessing::ExtractNtData() {
     fs::create_directories(csvDir);
 
     ExportTreeToCsv("edep", (fs::path(csvDir) / "edep.csv").string());
-    ExportTreeToCsv("primary", (fs::path(csvDir) / "primary.csv").string());
+    // ExportTreeToCsv("primary", (fs::path(csvDir) / "primary.csv").string());
 
     if (saveSecondaries) {
         ExportTreeToCsv("event", (fs::path(csvDir) / "event.csv").string());
@@ -589,6 +589,207 @@ void PostProcessing::SaveEdepCsv() {
             << deps.crystal << ","
             << deps.veto << ","
             << deps.bottomVeto << "\n";
+    }
+
+    out.close();
+}
+
+
+void PostProcessing::SavePrimaryCsv() {
+    TTree* primary = nullptr;
+    rootFile->GetObject("primary", primary);
+    if (!primary) {
+        throw std::runtime_error("TTree not found: primary");
+    }
+
+    Int_t eventID = 0;
+    Char_t primary_name[64] = {};
+    double E_MeV = 0.0;
+    double dir_x = 0.0;
+    double dir_y = 0.0;
+    double dir_z = 0.0;
+    double pos_x_mm = 0.0;
+    double pos_y_mm = 0.0;
+    double pos_z_mm = 0.0;
+
+    primary->SetBranchStatus("*", false);
+    primary->SetBranchStatus("eventID", true);
+    primary->SetBranchStatus("primary_name", true);
+    primary->SetBranchStatus("E_MeV", true);
+    primary->SetBranchStatus("dir_x", true);
+    primary->SetBranchStatus("dir_y", true);
+    primary->SetBranchStatus("dir_z", true);
+    primary->SetBranchStatus("pos_x_mm", true);
+    primary->SetBranchStatus("pos_y_mm", true);
+    primary->SetBranchStatus("pos_z_mm", true);
+
+    primary->SetBranchAddress("eventID", &eventID);
+    primary->SetBranchAddress("primary_name", primary_name);
+    primary->SetBranchAddress("E_MeV", &E_MeV);
+    primary->SetBranchAddress("dir_x", &dir_x);
+    primary->SetBranchAddress("dir_y", &dir_y);
+    primary->SetBranchAddress("dir_z", &dir_z);
+    primary->SetBranchAddress("pos_x_mm", &pos_x_mm);
+    primary->SetBranchAddress("pos_y_mm", &pos_y_mm);
+    primary->SetBranchAddress("pos_z_mm", &pos_z_mm);
+
+    struct PrimaryInfo {
+        std::string primaryName;
+        double E_MeV = 0.0;
+        double dir_x = 0.0;
+        double dir_y = 0.0;
+        double dir_z = 0.0;
+        double pos_x_mm = 0.0;
+        double pos_y_mm = 0.0;
+        double pos_z_mm = 0.0;
+    };
+
+    std::unordered_map<int, PrimaryInfo> primaryMap;
+    primaryMap.reserve(std::max<Long64_t>(1, primary->GetEntries()));
+
+    const Long64_t nPrimary = primary->GetEntries();
+    for (Long64_t i = 0; i < nPrimary; ++i) {
+        primary->GetEntry(i);
+
+        PrimaryInfo info;
+        info.primaryName = primary_name;
+        info.E_MeV = E_MeV;
+        info.dir_x = dir_x;
+        info.dir_y = dir_y;
+        info.dir_z = dir_z;
+        info.pos_x_mm = pos_x_mm;
+        info.pos_y_mm = pos_y_mm;
+        info.pos_z_mm = pos_z_mm;
+
+        primaryMap[eventID] = std::move(info);
+    }
+
+    std::unordered_map<int, int> triggerMap;
+    {
+        TTree* edep = nullptr;
+        rootFile->GetObject("edep", edep);
+        if (!edep) {
+            throw std::runtime_error("TTree not found: edep");
+        }
+
+        Int_t eventID_e = 0;
+        Char_t det_name[64] = {};
+        double edep_MeV = 0.0;
+
+        edep->SetBranchStatus("*", false);
+        edep->SetBranchStatus("eventID", true);
+        edep->SetBranchStatus("det_name", true);
+        edep->SetBranchStatus("edep_MeV", true);
+
+        edep->SetBranchAddress("eventID", &eventID_e);
+        edep->SetBranchAddress("det_name", det_name);
+        edep->SetBranchAddress("edep_MeV", &edep_MeV);
+
+        struct DetectorEdep {
+            double crystal = 0.0;
+            double veto = 0.0;
+            double bottomVeto = 0.0;
+        };
+
+        std::unordered_map<int, DetectorEdep> edepMap;
+        edepMap.reserve(std::max<Long64_t>(1, edep->GetEntries()));
+
+        const Long64_t nEdep = edep->GetEntries();
+        for (Long64_t i = 0; i < nEdep; ++i) {
+            edep->GetEntry(i);
+
+            auto& deps = edepMap[eventID_e];
+
+            if (std::strcmp(det_name, "Crystal") == 0) {
+                deps.crystal += edep_MeV;
+            } else if (std::strcmp(det_name, "Veto") == 0) {
+                deps.veto += edep_MeV;
+            } else if (std::strcmp(det_name, "BottomVeto") == 0) {
+                deps.bottomVeto += edep_MeV;
+            }
+        }
+
+        for (const auto& [evtID, deps] : edepMap) {
+            triggerMap[evtID] = deps.crystal > 0.0 && deps.veto == 0.0 && deps.bottomVeto == 0.0 ? 1 : 0;
+        }
+    }
+
+    std::unordered_map<int, int> triggerOptMap;
+    if (useOptics) {
+        TTree* sipmEvent = nullptr;
+        rootFile->GetObject("sipm_event", sipmEvent);
+        if (!sipmEvent) {
+            throw std::runtime_error("TTree not found: sipm_event");
+        }
+
+        Int_t eventID_s = 0;
+        Int_t npe_crystal = 0;
+        Int_t npe_veto = 0;
+        Int_t npe_bottom_veto = 0;
+
+        sipmEvent->SetBranchStatus("*", false);
+        sipmEvent->SetBranchStatus("eventID", true);
+        sipmEvent->SetBranchStatus("npe_crystal", true);
+        sipmEvent->SetBranchStatus("npe_veto", true);
+        sipmEvent->SetBranchStatus("npe_bottom_veto", true);
+
+        sipmEvent->SetBranchAddress("eventID", &eventID_s);
+        sipmEvent->SetBranchAddress("npe_crystal", &npe_crystal);
+        sipmEvent->SetBranchAddress("npe_veto", &npe_veto);
+        sipmEvent->SetBranchAddress("npe_bottom_veto", &npe_bottom_veto);
+
+        const Long64_t nSipmEvents = sipmEvent->GetEntries();
+        for (Long64_t i = 0; i < nSipmEvents; ++i) {
+            sipmEvent->GetEntry(i);
+
+            triggerOptMap[eventID_s] = npe_crystal > 0 && npe_veto + npe_bottom_veto == 0 ? 1 : 0;
+        }
+    }
+
+    const std::string outPath = (fs::path(csvDir) / "primary.csv").string();
+    std::ofstream out(outPath);
+    if (!out.is_open()) {
+        throw std::runtime_error("Cannot open output CSV: " + outPath);
+    }
+
+    out << "eventID,primary_name,E_MeV,dir_x,dir_y,dir_z,pos_x_mm,pos_y_mm,pos_z_mm,trigger,trigger_opt\n";
+    out << std::setprecision(17);
+
+    std::vector<int> eventIDs;
+    eventIDs.reserve(primaryMap.size());
+    for (const auto& kv : primaryMap) {
+        eventIDs.push_back(kv.first);
+    }
+    std::sort(eventIDs.begin(), eventIDs.end());
+
+    for (int evtID : eventIDs) {
+        const auto& info = primaryMap.at(evtID);
+
+        int trigger = 0;
+        auto itTrig = triggerMap.find(evtID);
+        if (itTrig != triggerMap.end()) {
+            trigger = itTrig->second;
+        }
+
+        int trigger_opt = 0;
+        if (useOptics) {
+            auto itTrigOpt = triggerOptMap.find(evtID);
+            if (itTrigOpt != triggerOptMap.end()) {
+                trigger_opt = itTrigOpt->second;
+            }
+        }
+
+        out << evtID << ","
+            << info.primaryName << ","
+            << info.E_MeV << ","
+            << info.dir_x << ","
+            << info.dir_y << ","
+            << info.dir_z << ","
+            << info.pos_x_mm << ","
+            << info.pos_y_mm << ","
+            << info.pos_z_mm << ","
+            << trigger << ","
+            << trigger_opt << "\n";
     }
 
     out.close();

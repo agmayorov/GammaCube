@@ -510,6 +510,7 @@ void Loader::RunPostProcessing() const {
         }
         postProcessing.SaveTrigEdepCsv();
         postProcessing.SaveEdepCsv();
+        postProcessing.SavePrimaryCsv();
         if (useOptics) {
             postProcessing.SaveOpticsCsv();
         }
