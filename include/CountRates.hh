@@ -11,6 +11,8 @@
 #include <limits>
 #include <algorithm>
 
+#include "Configuration.hh"
+
 enum class FluxType { PLAW, COMP, SEP, UNIFORM, GALACTIC, TABLE };
 
 struct EnergyRange {

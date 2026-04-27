@@ -137,8 +137,11 @@ double fluxTable(const double E, const std::string& csvPath) {
 }
 
 // --- Uniform ---
-double fluxUniform(const double E, const double E_min, const double E_max) {
-    return 1.0 / (E * std::log(E_max / E_min));
+double fluxUniform(const double E, const double E_min, const double E_max, const bool isLog) {
+    if (isLog) {
+        return 1.0 / (E * std::log(E_max / E_min));
+    }
+    return 1.0 / (E_max - E_min);
 }
 
 
@@ -290,11 +293,13 @@ double integrateAdaptiveSimpson(const std::function<double(double)>& f,
     return adaptiveSimpsonRec(f, a, b, eps, initial, max_depth);
 }
 
-static inline double binEdgeLog(double Emin, double Emax, int nBins, int i) {
-    // i in [0..nBins], logspace like np.logspace
-    const double ratio = Emax / Emin;
-    const double t = static_cast<double>(i) / static_cast<double>(nBins);
-    return Emin * std::pow(ratio, t);
+static double binEdge(double Emin, double Emax, int nBins, int i, bool isLog) {
+    if (isLog) {
+        const double ratio = Emax / Emin;
+        const double t = static_cast<double>(i) / static_cast<double>(nBins);
+        return Emin * std::pow(ratio, t);
+    }
+    return Emin + (Emax - Emin) * static_cast<double>(i) / static_cast<double>(nBins);
 }
 
 
@@ -329,7 +334,7 @@ RateResult computeRate(const FluxType type,
         break;
     case FluxType::UNIFORM:
         f = [=](const double E) {
-            return fluxUniform(E, eRange.Emin, eRange.Emax);
+            return fluxUniform(E, eRange.Emin, eRange.Emax, Configuration::isLogBin);
         };
         break;
     case FluxType::GALACTIC: {
@@ -398,7 +403,7 @@ RateResult computeRateReal(FluxType type,
         break;
     case FluxType::UNIFORM:
         fluxF = [=](double E_MeV) {
-            return fluxUniform(E_MeV, eRange.Emin, eRange.Emax);
+            return fluxUniform(E_MeV, eRange.Emin, eRange.Emax, Configuration::isLogBin);
         };
         break;
     case FluxType::GALACTIC:
@@ -415,9 +420,14 @@ RateResult computeRateReal(FluxType type,
     double rateReal = 0.0;
 
     for (int i = 0; i < nBins; ++i) {
-        const double e1 = binEdgeLog(eRange.Emin, eRange.Emax, nBins, i);
-        const double e2 = binEdgeLog(eRange.Emin, eRange.Emax, nBins, i + 1);
-        const double Ec = std::sqrt(e1 * e2);
+        const double e1 = binEdge(eRange.Emin, eRange.Emax, nBins, i, Configuration::isLogBin);
+        const double e2 = binEdge(eRange.Emin, eRange.Emax, nBins, i + 1, Configuration::isLogBin);
+        double Ec;
+        if (Configuration::isLogBin) {
+            Ec = std::sqrt(e1 * e2);
+        } else {
+            Ec = 0.5 * (e1 + e2);
+        }
         const double dE = e2 - e1;
 
         double A = Aeff[i];

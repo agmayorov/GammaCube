@@ -76,5 +76,10 @@ G4double UniformFlux::SampleEnergy() {
     Emax = EmaxVec[idx] * MeV;
     particle = particles[idx];
 
-    return Emin * std::pow(Emax / Emin, G4UniformRand());;
+    const G4double r = G4UniformRand();
+
+    if (isLogBin) {
+        return Emin * std::pow(Emax / Emin, r);
+    }
+    return Emin + (Emax - Emin) * r;
 }

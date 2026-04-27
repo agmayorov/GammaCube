@@ -22,9 +22,13 @@ RunAction::RunAction(const double Agen_cm2) : EminMeV(Emin),
         throw std::runtime_error("RunAction: invalid Emin/Emax");
     }
     G4double E_low = EmaxMeV > EminMeV ? EminMeV : eCrystalThreshold;
-    logEmin = std::log10(E_low);
-    logEmax = std::log10(EmaxMeV);
-    invDlogE = static_cast<double>(nBins) / (logEmax - logEmin);
+    if (isLogBin) {
+        logEmin = std::log10(E_low);
+        logEmax = std::log10(EmaxMeV);
+        invDlogE = static_cast<double>(nBins) / (logEmax - logEmin);
+    } else {
+        invDlinearE = static_cast<double>(nBins) / (EmaxMeV - E_low);
+    }
 
     effArea.assign(nBins, 0.0);
     effAreaOpt.assign(nBins, 0.0);
@@ -91,11 +95,17 @@ void RunAction::EndOfRunAction(const G4Run*) {
     analysisManager->Close();
 }
 
-int RunAction::FindBinLog(double E_MeV) const {
+int RunAction::FindBin(double E_MeV) const {
     const double E_low = EmaxMeV > EminMeV ? EminMeV : eCrystalThreshold;
     if (E_MeV < E_low || E_MeV >= EmaxMeV) return -1;
-    const double le = std::log10(E_MeV);
-    int idx = static_cast<int>((le - logEmin) * invDlogE);
+
+    int idx = 0;
+    if (isLogBin) {
+        const double le = std::log10(E_MeV);
+        idx = static_cast<int>((le - logEmin) * invDlogE);
+    } else {
+        idx = static_cast<int>((E_MeV - E_low) * invDlinearE);
+    }
 
     if (idx < 0) idx = 0;
     if (idx >= nBins) idx = nBins - 1;
@@ -103,31 +113,32 @@ int RunAction::FindBinLog(double E_MeV) const {
 }
 
 double RunAction::BinCenterMeV(int i) const {
-    const double ratio = EmaxMeV / EminMeV;
+    const double E_low = EmaxMeV > EminMeV ? EminMeV : eCrystalThreshold;
 
-    const double t1 = static_cast<double>(i) / static_cast<double>(nBins);
-    const double t2 = static_cast<double>(i + 1) / static_cast<double>(nBins);
-
-    const double e1 = EminMeV * std::pow(ratio, t1);
-    const double e2 = EminMeV * std::pow(ratio, t2);
-
-    return std::sqrt(e1 * e2);
+    if (isLogBin) {
+        const double ratio = EmaxMeV / E_low;
+        const double e1 = E_low * std::pow(ratio, static_cast<double>(i) / nBins);
+        const double e2 = E_low * std::pow(ratio, static_cast<double>(i + 1) / nBins);
+        return std::sqrt(e1 * e2);
+    }
+    const double dE = (EmaxMeV - E_low) / nBins;
+    return E_low + dE * (static_cast<double>(i) + 0.5);
 }
 
 double RunAction::BinWidthMeV(int i) const {
-    const double ratio = EmaxMeV / EminMeV;
+    const double E_low = EmaxMeV > EminMeV ? EminMeV : eCrystalThreshold;
 
-    const double t1 = static_cast<double>(i) / static_cast<double>(nBins);
-    const double t2 = static_cast<double>(i + 1) / static_cast<double>(nBins);
-
-    const double e1 = EminMeV * std::pow(ratio, t1);
-    const double e2 = EminMeV * std::pow(ratio, t2);
-
-    return e2 - e1;
+    if (isLogBin) {
+        const double ratio = EmaxMeV / E_low;
+        const double e1 = E_low * std::pow(ratio, static_cast<double>(i) / nBins);
+        const double e2 = E_low * std::pow(ratio, static_cast<double>(i + 1) / nBins);
+        return e2 - e1;
+    }
+    return (EmaxMeV - E_low) / nBins;
 }
 
 void RunAction::AddGenerated(double E_MeV) {
-    const int i = EminMeV < EmaxMeV ? FindBinLog(E_MeV) : 0;
+    const int i = EminMeV < EmaxMeV ? FindBin(E_MeV) : 0;
     if (i < 0) return;
 
     genCounts[i] += 1.0;
@@ -138,7 +149,7 @@ void RunAction::AddGenerated(double E_MeV) {
 }
 
 void RunAction::AddTriggeredCrystalOnly(double E_MeV) {
-    const int i = FindBinLog(E_MeV);
+    const int i = FindBin(E_MeV);
     if (i < 0) return;
 
     trigCounts[i] += 1.0;
@@ -149,7 +160,7 @@ void RunAction::AddTriggeredCrystalOnly(double E_MeV) {
 }
 
 void RunAction::AddTriggeredCrystalOnlyOpt(double E_MeV) {
-    const int i = FindBinLog(E_MeV);
+    const int i = FindBin(E_MeV);
     if (i < 0) return;
 
     trigOptCounts[i] += 1.0;

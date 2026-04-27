@@ -105,7 +105,7 @@ void AnalysisManager::Book() {
     }
     if (Emin < Emax) {
         const G4String unit = "MeV";
-        const G4String logScheme = "log";
+        G4String logScheme = isLogBin ? "log" : "linear";
 
         genEnergyHist = analysisManager->CreateH1("genEnergyHist",
                                                   "N_{gen} vs E",

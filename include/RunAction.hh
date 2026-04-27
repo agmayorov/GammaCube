@@ -66,6 +66,7 @@ private:
     double logEmin{0.0};
     double logEmax{0.0};
     double invDlogE{0.0};
+    double invDlinearE{0.0};
 
     std::vector<G4Accumulable<G4double>> genCounts;
     std::vector<G4Accumulable<G4double>> trigCounts;
@@ -73,7 +74,7 @@ private:
     std::vector<G4double> effArea;
     std::vector<G4double> effAreaOpt;
 
-    [[nodiscard]] int FindBinLog(double E_MeV) const;
+    [[nodiscard]] int FindBin(double E_MeV) const;
     [[nodiscard]] double BinCenterMeV(int i) const;
     [[nodiscard]] double BinWidthMeV(int i) const;
 

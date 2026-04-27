@@ -146,6 +146,11 @@ Loader::Loader(int argc, char** argv) {
     } else if (fluxDirection == "horizontal") {
         dir = FluxDir::Horizontal;
     }
+    if (fluxType == "Uniform") {
+        std::string isLogStr = ReadValue("is_log:", configPath);
+        isLogBin = isLogStr == "1" || isLogStr == "true";
+    }
+    std::cout << isLogBin << std::endl;
     area = Area_cm2(Sizes::modelRadius, Sizes::modelHeight, dir);
     runManager->SetUserInitialization(new ActionInitialization(area));
     runManager->Initialize();

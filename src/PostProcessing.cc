@@ -88,8 +88,8 @@ void PostProcessing::SaveHistPng(const std::string& histName,
     TH1* h = GetHistOrThrow(histName);
 
     TCanvas canvas("canvas", "canvas", 1920, 1080);
-    canvas.SetLogx(true);
-    if (log_y) canvas.SetLogy(true);
+    canvas.SetLogx(isLogBin);
+    canvas.SetLogy(log_y and isLogBin);
 
     const short color = GetColorForParticle(particleName);
 
