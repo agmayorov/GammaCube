@@ -824,7 +824,12 @@ void PostProcessing::SaveOpticsCsv() {
     std::string opticDir = (fs::path(runDir) / "optic").string();
     fs::create_directories(opticDir);
 
-    std::unordered_map<int, int> edepTriggerMap;
+    struct DetectorEdep {
+        double crystal = 0.0;
+        double veto = 0.0;
+        double bottomVeto = 0.0;
+    };
+    std::unordered_map<int, DetectorEdep> edepMap;
 
     TTree* edep = nullptr;
     rootFile->GetObject("edep", edep);
@@ -839,13 +844,6 @@ void PostProcessing::SaveOpticsCsv() {
         edep->SetBranchAddress("det_name", det_name);
         edep->SetBranchAddress("edep_MeV", &edep_MeV);
 
-        struct DetectorEdep {
-            double crystal = 0.0;
-            double veto = 0.0;
-            double bottomVeto = 0.0;
-        };
-
-        std::unordered_map<int, DetectorEdep> edepMap;
         const Long64_t nEntries = edep->GetEntries();
         for (Long64_t i = 0; i < nEntries; ++i) {
             edep->GetEntry(i);
@@ -859,10 +857,6 @@ void PostProcessing::SaveOpticsCsv() {
             } else if (std::strcmp(det_name, "BottomVeto") == 0) {
                 deps.bottomVeto += edep_MeV;
             }
-        }
-
-        for (const auto& [evtID, deps] : edepMap) {
-            edepTriggerMap[evtID] = deps.crystal > 0.0 && deps.veto == 0.0 && deps.bottomVeto == 0.0 ? 1 : 0;
         }
     }
 
@@ -964,7 +958,7 @@ void PostProcessing::SaveOpticsCsv() {
         throw std::runtime_error("Cannot open output CSV: trig_opt.csv");
     }
 
-    trigOptFile << "eventID,E0_MeV,trigger_opt,trigger_edep,Crystal_npe,Veto_npe,BottomVeto_npe\n";
+    trigOptFile << "eventID,E0_MeV,trigger_opt,trigger_edep,Crystal_npe,Veto_npe,BottomVeto_npe,Crystal_edep_MeV,Veto_edep_MeV,BottomVeto_edep_MeV\n";
 
     std::vector<Int_t> allEventIDs;
     allEventIDs.reserve(eventMap.size());
@@ -977,9 +971,16 @@ void PostProcessing::SaveOpticsCsv() {
         const auto& info = eventMap[evtID];
 
         int trigger_edep = 0;
-        auto it = edepTriggerMap.find(evtID);
-        if (it != edepTriggerMap.end()) {
-            trigger_edep = it->second;
+        double crystal_edep = 0.0;
+        double veto_edep = 0.0;
+        double bottom_veto_edep = 0.0;
+
+        auto it = edepMap.find(evtID);
+        if (it != edepMap.end()) {
+            crystal_edep = it->second.crystal;
+            veto_edep = it->second.veto;
+            bottom_veto_edep = it->second.bottomVeto;
+            trigger_edep = (crystal_edep > 0.0 && veto_edep == 0.0 && bottom_veto_edep == 0.0) ? 1 : 0;
         }
 
         trigOptFile << evtID << ","
@@ -988,7 +989,10 @@ void PostProcessing::SaveOpticsCsv() {
             << trigger_edep << ","
             << info.crystal_npe << ","
             << info.veto_npe << ","
-            << info.bottom_veto_npe << "\n";
+            << info.bottom_veto_npe << ","
+            << crystal_edep << ","
+            << veto_edep << ","
+            << bottom_veto_edep << "\n";
     }
     trigOptFile.close();
 
@@ -1027,15 +1031,15 @@ void PostProcessing::SaveOpticsCsv() {
                 const auto& info = eventMap[evtID];
 
                 int trigger_edep = 0;
-                auto it = edepTriggerMap.find(evtID);
-                if (it != edepTriggerMap.end()) {
-                    trigger_edep = it->second;
+                auto it = edepMap.find(evtID);
+                if (it != edepMap.end()) {
+                    trigger_edep = (it->second.crystal > 0.0 && it->second.veto == 0.0 && it->second.bottomVeto == 0.0) ? 1 : 0;
                 }
+
                 G4double sumWeighted4 = sum4 * weight4 + sum8;
                 G4double sumWeighted8 = sum4 + sum8 * weight8;
                 crystalFile << "," << sum4 << "," << sum8 << "," << sumWeighted4 << "," << sumWeighted8 << "," <<
-                    trigger_edep << "," << info.
-                    trigger;
+                    trigger_edep << "," << info.trigger;
             }
             crystalFile << "\n";
         }
