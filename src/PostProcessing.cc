@@ -477,7 +477,7 @@ void PostProcessing::SaveTrigEdepCsv() {
             const double v = it->second.veto;
             const double b = it->second.bottomVeto;
 
-            if (c > 0.0 && v + b == 0.0) {
+            if (c > eCrystalThreshold && v <= eVetoThreshold && b <= eVetoThreshold) {
                 crystal_only = c;
             }
         }
@@ -577,9 +577,9 @@ void PostProcessing::SaveEdepCsv() {
     for (int evtID : eventIDs) {
         const auto& deps = edepMap.at(evtID);
 
-        int trigger = deps.crystal > 0.0 &&
-                      deps.veto == 0.0 &&
-                      deps.bottomVeto == 0.0
+        int trigger = deps.crystal > eCrystalThreshold &&
+                      deps.veto <= eVetoThreshold &&
+                      deps.bottomVeto <= eVetoThreshold
                           ? 1
                           : 0;
 
@@ -710,7 +710,7 @@ void PostProcessing::SavePrimaryCsv() {
         }
 
         for (const auto& [evtID, deps] : edepMap) {
-            triggerMap[evtID] = deps.crystal > 0.0 && deps.veto == 0.0 && deps.bottomVeto == 0.0 ? 1 : 0;
+            triggerMap[evtID] = deps.crystal > eCrystalThreshold && deps.veto <= eVetoThreshold && deps.bottomVeto <= eVetoThreshold ? 1 : 0;
         }
     }
 
@@ -742,7 +742,7 @@ void PostProcessing::SavePrimaryCsv() {
         for (Long64_t i = 0; i < nSipmEvents; ++i) {
             sipmEvent->GetEntry(i);
 
-            triggerOptMap[eventID_s] = npe_crystal > 0 && npe_veto + npe_bottom_veto == 0 ? 1 : 0;
+            triggerOptMap[eventID_s] = npe_crystal > oCrystalThreshold && npe_veto <= oVetoThreshold && npe_bottom_veto <= oBottomVetoThreshold ? 1 : 0;
         }
     }
 
@@ -896,7 +896,7 @@ void PostProcessing::SaveOpticsCsv() {
         info.crystal_npe = npe_crystal;
         info.veto_npe = npe_veto;
         info.bottom_veto_npe = npe_bottom_veto;
-        info.trigger = npe_crystal > 0 && npe_veto + npe_bottom_veto == 0 ? 1 : 0;
+        info.trigger = (npe_crystal > oCrystalThreshold && npe_veto <= oVetoThreshold && npe_bottom_veto <= oBottomVetoThreshold) ? 1 : 0;
 
         eventMap[eventID] = info;
     }
@@ -980,7 +980,7 @@ void PostProcessing::SaveOpticsCsv() {
             crystal_edep = it->second.crystal;
             veto_edep = it->second.veto;
             bottom_veto_edep = it->second.bottomVeto;
-            trigger_edep = (crystal_edep > 0.0 && veto_edep == 0.0 && bottom_veto_edep == 0.0) ? 1 : 0;
+            trigger_edep = (crystal_edep > eCrystalThreshold && veto_edep <= eVetoThreshold && bottom_veto_edep <= eVetoThreshold) ? 1 : 0;
         }
 
         trigOptFile << evtID << ","
@@ -1033,7 +1033,7 @@ void PostProcessing::SaveOpticsCsv() {
                 int trigger_edep = 0;
                 auto it = edepMap.find(evtID);
                 if (it != edepMap.end()) {
-                    trigger_edep = (it->second.crystal > 0.0 && it->second.veto == 0.0 && it->second.bottomVeto == 0.0) ? 1 : 0;
+                    trigger_edep = (it->second.crystal > eCrystalThreshold && it->second.veto <= eVetoThreshold && it->second.bottomVeto <= eVetoThreshold) ? 1 : 0;
                 }
 
                 G4double sumWeighted4 = sum4 * weight4 + sum8;
