@@ -32,6 +32,8 @@ Geometry::Geometry() {
 
     tunaCanVisAttr = new G4VisAttributes(G4Color(0.5, 0.5, 0.5));
     tunaCanVisAttr->SetForceSolid(true);
+    plateVisAttr = new G4VisAttributes(G4Color(0.2, 0.2, 0.2));
+    plateVisAttr->SetForceSolid(true);
     detContVisAttr = new G4VisAttributes(G4VisAttributes::GetInvisible());
     detContVisAttr->SetForceSolid(false);
 }
@@ -43,13 +45,13 @@ void Geometry::ConstructTunaCan() {
     G4Material* plateMat = nist->FindOrBuildMaterial("G4_Ti");
 
     // TunaCan
-    G4VSolid* tunaCanWall = new G4Tubs("tunaCanWall", detContainerSize.y(), modelRadius, modelHeight / 2, 0, viewDeg);
-    G4ThreeVector tunaCanWallPos = G4ThreeVector(0, 0, 0);
+    G4VSolid* tunaCanWall = new G4Tubs("tunaCanWall", detContainerSize.y(), modelRadius, modelHeight / 2, 0, DEG::tunaCan * deg);
+    G4ThreeVector tunaCanWallPos = G4ThreeVector(0, 0, shift::tunaCan);
     G4LogicalVolume* tunaCanWallLV = new G4LogicalVolume(tunaCanWall, tunaCanMat, "tunaCanWallLV");
     new G4PVPlacement(zeroRot, tunaCanWallPos, tunaCanWallLV, "TunaCanWallPVPL", worldLV, false, 0, true);
 
-    G4VSolid* tunaCanTop = new G4Tubs("TunaCanTop", 0, detContainerSize.y(), tunaCanThickTop / 2., 0, viewDeg);
-    const G4ThreeVector tunaCanTopPos = G4ThreeVector(0, 0, (modelHeight - tunaCanThickTop) / 2.0);
+    G4VSolid* tunaCanTop = new G4Tubs("TunaCanTop", 0, detContainerSize.y(), tunaCanThickTop / 2., 0, DEG::tunaCan * deg);
+    const G4ThreeVector tunaCanTopPos = G4ThreeVector(0, 0, (modelHeight - tunaCanThickTop) / 2.0 + shift::tunaCan *mm);
     G4LogicalVolume* tunaCanTopLV = new G4LogicalVolume(tunaCanTop, tunaCanMat, "tunaCanTopLV");
     new G4PVPlacement(zeroRot, tunaCanTopPos, tunaCanTopLV, "TunaCanTopPVPL", worldLV, false, 0, true);
 
@@ -57,7 +59,7 @@ void Geometry::ConstructTunaCan() {
     G4VSolid* plateIncomplete = new G4Box("PlateIncomplete", plateSize / 2., plateSize / 2. + plateCornerSize,
                                           plateThick / 2.);
     G4VSolid* plateHole = new G4Tubs("PlateHole", 0., plateOuterHoleRadius, plateThick + 5 * mm, 0., 360);
-    const G4ThreeVector platePos = G4ThreeVector(0, 0, -(modelHeight + plateThick) / 2.0);
+    const G4ThreeVector platePos = G4ThreeVector(0, 0, -(modelHeight + plateThick) / 2.0 - shift::plate);
     G4VSolid* plate = new G4SubtractionSolid("Plate", plateIncomplete, plateHole);
     G4LogicalVolume* plateLV = new G4LogicalVolume(plate, plateMat, "PlateLV");
     new G4PVPlacement(zeroRot, platePos, plateLV, "PlatePVPL", worldLV, false, 0, true);
@@ -65,9 +67,9 @@ void Geometry::ConstructTunaCan() {
     // Plate outer part
     G4VSolid* plateStrip = new G4Box("PlateStrip", plateCornerSize / 2., plateSize / 2., plateThick / 2.);
     const G4ThreeVector plateStripLeftPos = G4ThreeVector((plateSize + plateCornerSize) / 2., 0,
-                                                          -(modelHeight + plateThick) / 2.0);
+                                                          -(modelHeight + plateThick) / 2.0 -shift::plate);
     const G4ThreeVector plateStripRightPos = G4ThreeVector(-(plateSize + plateCornerSize) / 2., 0,
-                                                           -(modelHeight + plateThick) / 2.0);
+                                                           -(modelHeight + plateThick) / 2.0-shift::plate);
     G4LogicalVolume* plateStripLeftLV = new G4LogicalVolume(plateStrip, plateMat, "PlateStripLeftLV");
     G4LogicalVolume* plateStripRightLV = new G4LogicalVolume(plateStrip, plateMat, "PlateStripRightLV");
     new G4PVPlacement(zeroRot, plateStripLeftPos, plateStripLeftLV, "PlateStripLeftPVPL", worldLV, false, 0, true);
@@ -76,14 +78,14 @@ void Geometry::ConstructTunaCan() {
     // Plate center tube
     G4VSolid* plateCenter = new G4Tubs("PlateCenter", plateInnerHoleRadius, plateOuterHoleRadius, plateCenterThick / 2,
                                        0, viewDeg);
-    const G4ThreeVector plateCenterPos = G4ThreeVector(0., 0., -(modelHeight + plateCenterThick) / 2.0);
+    const G4ThreeVector plateCenterPos = G4ThreeVector(0., 0., -(modelHeight + plateCenterThick) / 2.0 - shift::plateHole);
     G4LogicalVolume* plateCenterLV = new G4LogicalVolume(plateCenter, plateMat, "PlateCenterLV");
     new G4PVPlacement(zeroRot, plateCenterPos, plateCenterLV, "PlateCenterPVPL", worldLV, false, 0, true);
 
     // Plate center tube cap
     G4VSolid* plateCenterCap = new G4Tubs("PlateCenterCap", plateBottomHoleRadius, plateOuterHoleRadius, plateThick / 2,
                                           0, viewDeg);
-    const G4ThreeVector plateCenterCapPos = G4ThreeVector(0., 0., -(modelHeight + plateThick) / 2.0 - plateCenterThick);
+    const G4ThreeVector plateCenterCapPos = G4ThreeVector(0., 0., -(modelHeight + plateThick) / 2.0 - plateCenterThick -shift::plateHole);
     G4LogicalVolume* plateCenterCapLV = new G4LogicalVolume(plateCenterCap, plateMat, "PlateCenterCapLV");
     new G4PVPlacement(zeroRot, plateCenterCapPos, plateCenterCapLV, "PlateCenterCapPVPL", worldLV, false, 0, true);
 
@@ -93,7 +95,7 @@ void Geometry::ConstructTunaCan() {
     const G4ThreeVector bottomPartWallPos = G4ThreeVector(
                                                           0., 0.,
                                                           -(modelHeight + bottomCapHeight) / 2.0 - plateCenterThick -
-                                                          plateThick);
+                                                          plateThick -shift::plate);
     G4LogicalVolume* bottomPartWallLV = new G4LogicalVolume(bottomPartWall, tunaCanMat, "BottomPartWallLV");
     new G4PVPlacement(zeroRot, bottomPartWallPos, bottomPartWallLV, "BottomPartWallPVPL", worldLV, false, 0, true);
 
@@ -101,16 +103,16 @@ void Geometry::ConstructTunaCan() {
     const G4ThreeVector bottomPartCapPos = G4ThreeVector(
                                                          0., 0.,
                                                          -(modelHeight - bottomCapThick) / 2.0 - bottomCapHeight -
-                                                         plateCenterThick - plateThick);
+                                                         plateCenterThick - plateThick-shift::plate);
     G4LogicalVolume* bottomPartCapLV = new G4LogicalVolume(bottomPartCap, tunaCanMat, "BottomPartCapLV");
     new G4PVPlacement(zeroRot, bottomPartCapPos, bottomPartCapLV, "BottomPartCapPVPL", worldLV, false, 0, true);
 
     tunaCanWallLV->SetVisAttributes(tunaCanVisAttr);
     tunaCanTopLV->SetVisAttributes(tunaCanVisAttr);
 
-    plateLV->SetVisAttributes(tunaCanVisAttr);
-    plateStripRightLV->SetVisAttributes(tunaCanVisAttr);
-    plateStripLeftLV->SetVisAttributes(tunaCanVisAttr);
+    plateLV->SetVisAttributes(plateVisAttr);
+    plateStripRightLV->SetVisAttributes(plateVisAttr);
+    plateStripLeftLV->SetVisAttributes(plateVisAttr);
 
     plateCenterLV->SetVisAttributes(tunaCanVisAttr);
     plateCenterCapLV->SetVisAttributes(tunaCanVisAttr);

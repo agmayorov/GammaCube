@@ -79,6 +79,7 @@ private:
     G4ProductionCuts* vetoCuts;
 
     G4VisAttributes* tunaCanVisAttr;
+    G4VisAttributes* plateVisAttr;
     G4VisAttributes* detContVisAttr;
 
     void ConstructDetector();

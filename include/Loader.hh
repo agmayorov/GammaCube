@@ -77,6 +77,8 @@ private:
     [[nodiscard]] std::string ReadValue(const std::string &, const std::string &) const;
     void SaveConfig() const;
     void RunPostProcessing() const;
+
+    void LoadFromCSV(const std::string& path);
 };
 
 #endif //LOADER_HH

@@ -44,4 +44,63 @@ namespace Configuration
 }
 
 
+namespace DEG
+{
+    inline G4double tyvekOut{360};
+    inline G4double veto{360};
+    inline G4double tyvekMid{360};
+    inline G4double opticLayerVeto{360};
+    inline G4double rubber{360};
+    inline G4double shell{360};
+    inline G4double bottomVetoShell{360};
+    inline G4double tyvekBottom{360};
+    inline G4double bottomVeto{360};
+    inline G4double opticLayerBottomVeto{360};
+    inline G4double crystalContainer{360};
+    inline G4double crystal{360};
+    inline G4double tyvekIn{360};
+    inline G4double crystalShell{360};
+    inline G4double crystallGlass{360};
+    inline G4double opticLayerCrystall{360};
+    inline G4double holder{360};
+    inline G4double crystalSiPM{360};
+    inline G4double vetoSiPM{360};
+    inline G4double vetoSpring{360};
+    inline G4double vetoBoard{360};
+    inline G4double bottomVetoSiPM{360};
+    inline G4double tunaCan{360};
+    inline G4double plate{360};
+    inline G4double plateHole{360};
+}
+
+namespace shift
+{
+    inline G4double tyvekOut{0};
+    inline G4double veto{0};
+    inline G4double tyvekMid{0};
+    inline G4double opticLayerVeto{0};
+    inline G4double rubber{0};
+    inline G4double shell{0};
+    inline G4double bottomVetoShell{0};
+    inline G4double tyvekBottom{0};
+    inline G4double bottomVeto{0};
+    inline G4double opticLayerBottomVeto{0};
+    inline G4double crystalContainer{0};
+    inline G4double crystal{0};
+    inline G4double tyvekIn{0};
+    inline G4double crystalShell{0};
+    inline G4double crystallGlass{0};
+    inline G4double opticLayerCrystall{0};
+    inline G4double holder{0};
+    inline G4double crystalSiPM{0};
+    inline G4double vetoSiPM{0};
+    inline G4double vetoSpring{0};
+    inline G4double vetoBoard{0};
+    inline G4double bottomVetoSiPM{0};
+    inline G4double tunaCan{0};
+    inline G4double plate{0};
+    inline G4double plateHole{0};
+}
+
+
 #endif //CONFIGURATION_HH

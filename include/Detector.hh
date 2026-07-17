@@ -57,6 +57,7 @@ public:
     G4VisAttributes* visShell{};
     G4VisAttributes* visHolder{};
     G4VisAttributes* visGlass{};
+    G4VisAttributes* visSiPMGlass{};
     G4VisAttributes* visOpticLayer{};
     G4VisAttributes* visBottomVetoShell{};
     G4VisAttributes* visGasket{};

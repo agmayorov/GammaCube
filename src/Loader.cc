@@ -1,5 +1,27 @@
 #include "Loader.hh"
 
+#include <fstream>
+#include <iostream>
+#include <algorithm>
+#include <cctype>
+#include <ctime>
+#include <sstream>
+#include <unistd.h>
+
+#ifdef G4UI_USE_QT
+#include "G4UIQt.hh"
+#include <QTimer>
+#include <QApplication>
+#include <QMainWindow>
+#include <QDockWidget>
+#include <QTabWidget>
+#include <QTabBar>
+#include <QToolBar>
+#include <QMenuBar>
+#include <QEventLoop>
+#include <QAction>
+#endif
+
 using namespace Configuration;
 
 Loader::Loader(int argc, char** argv) {
@@ -17,9 +39,16 @@ Loader::Loader(int argc, char** argv) {
     oCrystalThreshold = 0 * MeV;
     oVetoThreshold = 0 * MeV;
     outputFile = "GammaCube.root";
-    nBins = 1000;
+    nBins = 1;
     saveSecondaries = false;
     savePhotons = false;
+
+    bool visOnly = false;
+    std::string visOutputFile = "frame_output";
+    int visExportDelayMs = 3000;
+    int visWindowWidth = 2000;
+    int visWindowHeight = 3000;
+    bool visFullScreen = false;
 
     for (int i = 0; i < argc; i++) {
         if (std::string input(argv[i]); input == "-i" || input == "--input") {
@@ -48,8 +77,9 @@ Loader::Loader(int argc, char** argv) {
             Sizes::vetoChamferHeight = std::stod(argv[i + 1]) * mm;
         } else if ((input == "-vtr" || input == "--veto-top-rounded") and Sizes::vetoTopRoundedRadius == 0) {
             Sizes::vetoTopRoundedRadius = std::stod(argv[i + 1]) * mm;
-            if (Sizes::vetoTopRoundedRadius > 0)
+            if (Sizes::vetoTopRoundedRadius > 0) {
                 Sizes::vetoChamferHeight = 0 * mm;
+            }
         } else if (input == "-noUI") {
             useUI = false;
         } else if (input == "--polished") {
@@ -77,6 +107,22 @@ Loader::Loader(int argc, char** argv) {
         } else if (input == "-o" || input == "--output-file") {
             outputFile = argv[i + 1];
             outputFile += ".root";
+        } else if (std::string(argv[i]) == "--frame-csv") {
+            LoadFromCSV(argv[i + 1]);
+        } else if (std::string input(argv[i]); input == "-v" || input == "--vis-only") {
+            useUI = false;
+            visOnly = true;
+            macroFile = "../vis.mac";
+        } else if (input == "--vis-output") {
+            visOutputFile = argv[i + 1];
+        } else if (input == "--vis-delay-ms") {
+            visExportDelayMs = std::stoi(argv[i + 1]);
+        } else if (input == "--vis-width") {
+            visWindowWidth = std::stoi(argv[i + 1]);
+        } else if (input == "--vis-height") {
+            visWindowHeight = std::stoi(argv[i + 1]);
+        } else if (input == "--vis-fullscreen") {
+            visFullScreen = true;
         }
     }
 
@@ -96,9 +142,8 @@ Loader::Loader(int argc, char** argv) {
 
     auto* realWorld = new Geometry();
     runManager->SetUserInitialization(realWorld);
+
     auto* physicsList = new FTFP_BERT;
-    physicsList->ReplacePhysics(new G4EmStandardPhysics_option4());
-    physicsList->ReplacePhysics(new G4RadioactiveDecayPhysics());
 
     if (useOptics) {
         auto* opticalPhysics = new G4OpticalPhysics();
@@ -113,18 +158,15 @@ Loader::Loader(int argc, char** argv) {
 
         op->SetScintTrackSecondariesFirst(true);
         op->SetCerenkovTrackSecondariesFirst(false);
-        // op->SetScintByParticleType(true);
-        // op->SetCerenkovMaxPhotonsPerStep(200);
-        // op->SetCerenkovMaxBetaChange(10.0);
 
         physicsList->RegisterPhysics(opticalPhysics);
     }
 
-    physicsList->RegisterPhysics(new G4StepLimiterPhysics());
     runManager->SetUserInitialization(physicsList);
 
     Emin = std::max({std::stod(ReadValue("E_min:", "")) * MeV, eCrystalThreshold});
     Emax = std::stod(ReadValue("E_max:", "")) * MeV;
+
     if (fluxType == "Table") {
         std::string path = ReadValue("table_path:", "");
         auto energyTable = Utils::ReadCSV(path, 1., false, MeV);
@@ -146,42 +188,318 @@ Loader::Loader(int argc, char** argv) {
     } else if (fluxDirection == "horizontal") {
         dir = FluxDir::Horizontal;
     }
+
     if (fluxType == "Uniform") {
         std::string isLogStr = ReadValue("is_log:", configPath);
         isLogBin = isLogStr == "1" || isLogStr == "true";
     }
 
     area = Area_cm2(Sizes::modelRadius, Sizes::modelHeight, dir);
+
     runManager->SetUserInitialization(new ActionInitialization(area));
     runManager->Initialize();
 
     visManager = new G4VisExecutive;
     visManager->Initialize();
+
     G4UImanager* UImanager = G4UImanager::GetUIpointer();
 
-    if (!useUI) {
+    if (visOnly) {
+#ifdef G4UI_USE_QT
+        auto* ui = new G4UIExecutive(argc, argv, "qt");
+
+        auto hideGeant4QtPanels = [ui]() {
+            auto* qtSession = dynamic_cast<G4UIQt*>(ui->GetSession());
+            if (!qtSession) {
+                return;
+            }
+
+            if (auto* coutDock = qtSession->GetCoutDockWidget()) {
+                coutDock->hide();
+
+                if (coutDock->toggleViewAction()) {
+                    coutDock->toggleViewAction()->setVisible(false);
+                }
+            }
+
+            if (auto* uiDock = qtSession->GetUserInterfaceWidget()) {
+                uiDock->hide();
+            }
+
+            if (QMainWindow* mainWindow = qtSession->GetMainWindow()) {
+                for (auto* dock : mainWindow->findChildren<QDockWidget*>()) {
+                    dock->hide();
+
+                    if (dock->toggleViewAction()) {
+                        dock->toggleViewAction()->setVisible(false);
+                    }
+                }
+
+                for (auto* toolbar : mainWindow->findChildren<QToolBar*>()) {
+                    toolbar->hide();
+                }
+
+                if (mainWindow->menuBar()) {
+                    mainWindow->menuBar()->hide();
+                }
+            }
+
+            QApplication::processEvents(QEventLoop::AllEvents, 100);
+        };
+
+        hideGeant4QtPanels();
+
+        QTimer::singleShot(0, hideGeant4QtPanels);
+        QTimer::singleShot(100, hideGeant4QtPanels);
+        QTimer::singleShot(300, hideGeant4QtPanels);
+
+        auto trimLocal = [](std::string s) {
+            auto notSpace = [](unsigned char c) {
+                return !std::isspace(c);
+            };
+
+            s.erase(s.begin(), std::find_if(s.begin(), s.end(), notSpace));
+            s.erase(std::find_if(s.rbegin(), s.rend(), notSpace).base(), s.end());
+
+            return s;
+        };
+
+        auto startsWith = [](const std::string& s, const std::string& prefix) {
+            return s.rfind(prefix, 0) == 0;
+        };
+
+        auto executeVisMacroWithoutPrematureExit = [&]() {
+            hideGeant4QtPanels();
+
+            std::ifstream macro(macroFile);
+            if (!macro.is_open()) {
+                G4Exception(
+                    "Loader::Loader",
+                    "VIS_MACRO_OPEN_FAIL",
+                    FatalException,
+                    ("Cannot open visualisation macro: " + macroFile).c_str()
+                );
+            }
+
+            G4cout << "[vis-only] Executing visualisation macro without exit/export commands: "
+                   << macroFile << G4endl;
+
+            std::string line;
+            while (std::getline(macro, line)) {
+                std::string cmd = trimLocal(line);
+
+                if (cmd.empty()) {
+                    continue;
+                }
+
+                if (cmd[0] == '#') {
+                    continue;
+                }
+
+                if (cmd == "exit" ||
+                    cmd == "/exit" ||
+                    cmd == "/control/exit" ||
+                    cmd == "/session/terminate" ||
+                    startsWith(cmd, "/vis/ogl/export") ||
+                    startsWith(cmd, "/vis/ogl/set/exportFormat")) {
+                    G4cout << "[vis-only] skipped: " << cmd << G4endl;
+                    continue;
+                }
+
+                G4int status = UImanager->ApplyCommand(cmd);
+
+                if (status != 0) {
+                    G4cerr << "[vis-only] command failed with status "
+                           << status << ": " << cmd << G4endl;
+                }
+
+                hideGeant4QtPanels();
+            }
+
+            hideGeant4QtPanels();
+        };
+
+        auto prepareQtViewerForExport = [
+            ui,
+            hideGeant4QtPanels,
+            visWindowWidth,
+            visWindowHeight,
+            visFullScreen
+        ]() {
+            hideGeant4QtPanels();
+
+            auto* qtSession = dynamic_cast<G4UIQt*>(ui->GetSession());
+            if (!qtSession) {
+                G4cerr << "[vis-only] ERROR: current UI session is not G4UIQt." << G4endl;
+                return;
+            }
+
+            QMainWindow* mainWindow = qtSession->GetMainWindow();
+            if (!mainWindow) {
+                G4cerr << "[vis-only] ERROR: G4UIQt main window is null." << G4endl;
+                return;
+            }
+
+            if (auto* viewerTabs = qtSession->GetViewerTabWidget()) {
+                if (auto* tabBar = viewerTabs->findChild<QTabBar*>()) {
+                    tabBar->hide();
+                }
+
+                viewerTabs->setMinimumSize(visWindowWidth, visWindowHeight);
+                viewerTabs->resize(visWindowWidth, visWindowHeight);
+            }
+
+            mainWindow->setMinimumSize(visWindowWidth, visWindowHeight);
+            mainWindow->resize(visWindowWidth, visWindowHeight);
+
+            if (visFullScreen) {
+                mainWindow->showFullScreen();
+            } else {
+                mainWindow->showNormal();
+                mainWindow->resize(visWindowWidth, visWindowHeight);
+            }
+
+            hideGeant4QtPanels();
+
+            mainWindow->raise();
+            mainWindow->activateWindow();
+
+            QApplication::processEvents(QEventLoop::AllEvents, 500);
+
+            hideGeant4QtPanels();
+
+            G4cout << "[vis-only] Qt viewer prepared. Requested window size: "
+                   << visWindowWidth << "x" << visWindowHeight
+                   << ", fullscreen: " << (visFullScreen ? "true" : "false") << G4endl;
+        };
+
+        char cwdBuffer[4096];
+
+        if (getcwd(cwdBuffer, sizeof(cwdBuffer)) != nullptr) {
+            G4cout << "[vis-only] Current working directory: " << cwdBuffer << G4endl;
+        }
+
+        G4cout << "[vis-only] Export target basename: " << visOutputFile << G4endl;
+        G4cout << "[vis-only] Export delay: " << visExportDelayMs << " ms" << G4endl;
+        G4cout << "[vis-only] Requested Qt window size: "
+               << visWindowWidth << "x" << visWindowHeight << G4endl;
+        G4cout << "[vis-only] Fullscreen: "
+               << (visFullScreen ? "true" : "false") << G4endl;
+
+        executeVisMacroWithoutPrematureExit();
+        hideGeant4QtPanels();
+
+        QTimer::singleShot(0, hideGeant4QtPanels);
+        QTimer::singleShot(100, hideGeant4QtPanels);
+        QTimer::singleShot(300, hideGeant4QtPanels);
+
+        QTimer::singleShot(
+            visExportDelayMs,
+            [UImanager, visOutputFile, prepareQtViewerForExport, hideGeant4QtPanels]() {
+                G4cout << "[vis-only] Preparing viewer before PNG export..." << G4endl;
+
+                hideGeant4QtPanels();
+                prepareQtViewerForExport();
+                hideGeant4QtPanels();
+
+                UImanager->ApplyCommand("/vis/viewer/rebuild");
+                UImanager->ApplyCommand("/vis/viewer/refresh");
+                UImanager->ApplyCommand("/vis/viewer/update");
+                UImanager->ApplyCommand("/vis/viewer/flush");
+
+                hideGeant4QtPanels();
+
+                QTimer::singleShot(
+                    1000,
+                    [UImanager, visOutputFile, hideGeant4QtPanels]() {
+                        hideGeant4QtPanels();
+
+                        G4cout << "[vis-only] Exporting PNG..." << G4endl;
+
+                        G4int fmtStatus = UImanager->ApplyCommand("/vis/ogl/set/exportFormat png");
+                        G4cout << "[vis-only] set exportFormat status: "
+                               << fmtStatus << G4endl;
+
+                        G4int exportStatus = UImanager->ApplyCommand(
+                            G4String("/vis/ogl/export ") + visOutputFile
+                        );
+
+                        G4cout << "[vis-only] export status: "
+                               << exportStatus << G4endl;
+
+                        UImanager->ApplyCommand(
+                            G4String("/control/shell ls -lh ") + visOutputFile + "*"
+                        );
+
+                        hideGeant4QtPanels();
+
+                        QTimer::singleShot(
+                            1500,
+                            []() {
+                                G4cout << "[vis-only] Closing Qt session." << G4endl;
+
+                                if (qApp) {
+                                    qApp->quit();
+                                }
+                            }
+                        );
+                    }
+                );
+            }
+        );
+
+        ui->SessionStart();
+
+        delete ui;
+#else
+        G4Exception(
+            "Loader::Loader",
+            "QT_NOT_AVAILABLE",
+            FatalException,
+            "--vis-only requires Geant4 built with Qt support."
+        );
+#endif
+    } else if (!useUI) {
         const G4String command = "/control/execute ";
         UImanager->ApplyCommand(command + macroFile);
     } else {
         auto* ui = new G4UIExecutive(argc, argv, "qt");
+
+#ifdef G4UI_USE_QT
+        auto hideOutputDock = [ui]() {
+            auto* qtSession = dynamic_cast<G4UIQt*>(ui->GetSession());
+            if (!qtSession) {
+                return;
+            }
+
+            if (auto* coutDock = qtSession->GetCoutDockWidget()) {
+                coutDock->hide();
+
+                if (coutDock->toggleViewAction()) {
+                    coutDock->toggleViewAction()->setVisible(false);
+                }
+            }
+
+            QApplication::processEvents(QEventLoop::AllEvents, 100);
+        };
+
+        hideOutputDock();
+
+        QTimer::singleShot(0, hideOutputDock);
+        QTimer::singleShot(100, hideOutputDock);
+        QTimer::singleShot(300, hideOutputDock);
+#endif
+
         UImanager->ApplyCommand("/control/execute ../vis.mac");
+
+#ifdef G4UI_USE_QT
+        hideOutputDock();
+#endif
+
         ui->SessionStart();
+
         delete ui;
     }
-
-    const auto* runAction = dynamic_cast<const RunAction*>(runManager->GetUserRunAction());
-    if (runAction) {
-        const auto& [cOnly, cAndV] = runAction->GetCounts();
-        crystalOnly = cOnly;
-        crystalAndVeto = cAndV;
-        effArea = runAction->GetEffArea();
-        const auto& [cOnlyOpt, cAndVOpt] = runAction->GetOptCounts();
-        crystalOnlyOpt = cOnlyOpt;
-        crystalAndVetoOpt = cAndVOpt;
-        effAreaOpt = runAction->GetEffAreaOpt();
-    }
-    SaveConfig();
-    RunPostProcessing();
 }
 
 Loader::~Loader() {
@@ -189,15 +507,20 @@ Loader::~Loader() {
     delete visManager;
 }
 
-
-std::string Loader::ReadValue(const std::string& key, const std::string& filepath = "") const {
+std::string Loader::ReadValue(const std::string& key, const std::string& filepath) const {
     std::ifstream file(filepath.empty() ? configPath : filepath);
+
     if (!file.is_open()) {
-        G4Exception("Loader::ReadValue", "FILE_OPEN_FAIL",
-                    FatalException, ("Cannot open " + (filepath.empty() ? configPath : filepath)).c_str());
+        G4Exception(
+            "Loader::ReadValue",
+            "FILE_OPEN_FAIL",
+            FatalException,
+            ("Cannot open " + (filepath.empty() ? configPath : filepath)).c_str()
+        );
     }
 
     std::string line;
+
     while (std::getline(file, line)) {
         if (line.find(key) != std::string::npos) {
             return line.substr(key.length() + 1);
@@ -207,322 +530,136 @@ std::string Loader::ReadValue(const std::string& key, const std::string& filepat
     return "";
 }
 
-
 inline std::string Trim(std::string st) {
     auto notSpace = [](const unsigned char c) {
         return !std::isspace(c);
     };
+
     st.erase(st.begin(), std::find_if(st.begin(), st.end(), notSpace));
     st.erase(std::find_if(st.rbegin(), st.rend(), notSpace).base(), st.end());
+
     return st;
 }
-
 
 std::vector<G4String> Split(const G4String& line) {
     std::vector<G4String> result;
     std::stringstream ss(line);
     G4String token;
+
     while (std::getline(ss, token, ',')) {
         token = Trim(token);
-        if (!token.empty())
+
+        if (!token.empty()) {
             result.push_back(token);
+        }
     }
+
     return result;
 }
 
+void Loader::LoadFromCSV(const std::string& path) {
+    std::ifstream file(path);
 
-void Loader::SaveConfig() const {
-    const int N = std::stoi(ReadValue("/run/beamOn", "../run.mac"));
-
-    EnergyRange er{};
-    FluxType fType{};
-    FluxParams fp{};
-
-    er.Emin = Emin;
-    er.Emax = Emax;
-
-    if (fluxType == "PLAW") {
-        fType = FluxType::PLAW;
-        fp.A = std::stod(ReadValue("A:"));
-        fp.alpha = std::stod(ReadValue("alpha:"));
-        fp.E_piv = std::stod(ReadValue("E_Piv:"));
-    } else if (fluxType == "COMP") {
-        fType = FluxType::COMP;
-        fp.A = std::stod(ReadValue("A:"));
-        fp.alpha = std::stod(ReadValue("alpha:"));
-        fp.E_piv = std::stod(ReadValue("E_Piv:"));
-        fp.E_peak = std::stod(ReadValue("E_Peak:"));
-    } else if (fluxType == "SEP") {
-        fType = FluxType::SEP;
-        fp.sep_year = std::stoi(ReadValue("year:"));
-        fp.sep_order = std::stoi(ReadValue("order:"));
-        fp.sep_csv_path = "../SEP_coefficients.CSV";
-    } else if (fluxType == "Galactic") {
-        fType = FluxType::GALACTIC;
-        fp.phiMV = std::stod(ReadValue("phiMV:"));
-        fp.particle = ReadValue("particle:");
-    } else if (fluxType == "Table") {
-        fType = FluxType::TABLE;
-        fp.particle = ReadValue("particle:");
-        fp.table_path = ReadValue("table_path:");
-    } else {
-        fType = FluxType::UNIFORM;
+    if (!file.is_open()) {
+        G4Exception(
+            "Loader::LoadFromCSV",
+            "FILE_OPEN_FAIL",
+            FatalException,
+            ("Cannot open " + path).c_str()
+        );
     }
 
-    RateCounts counts{crystalOnly, crystalAndVeto};
-    RateCounts countsOpt{crystalOnlyOpt, crystalAndVetoOpt};
+    std::string line;
+    std::getline(file, line);
 
-    RateResult rr{};
-    bool rate_ok = true;
-    try {
-        rr = computeRate(fType, fp, er, area, N, counts);
-    }
-    catch (const std::exception& ex) {
-        rate_ok = false;
-    }
+    while (std::getline(file, line)) {
+        auto tokens = Split(line);
 
-    RateResult rrReal{};
-    bool rate_real_ok = true;
-    try {
-        rrReal = computeRateReal(fType, fp, er, effArea, nBins);
-    }
-    catch (const std::exception& ex) {
-        rate_real_ok = false;
-    }
-
-    RateResult rr_opt{};
-    bool rate_opt_ok = useOptics;
-    try {
-        rr_opt = computeRate(fType, fp, er, area, N, countsOpt);
-    }
-    catch (const std::exception& ex) {
-        rate_opt_ok = false;
-        // G4cerr << "[SaveConfig] WARNING: rate computation failed: " << ex.what() << G4endl;
-    }
-
-    RateResult rrReal_opt{};
-    bool rate_real_opt_ok = useOptics;
-    try {
-        rrReal_opt = computeRateReal(fType, fp, er, effAreaOpt, nBins);
-    }
-    catch (const std::exception& ex) {
-        rate_real_opt_ok = false;
-        // G4cerr << "[SaveConfig] WARNING: Real rate computation failed: " << ex.what() << G4endl;
-    }
-
-    std::ostringstream buf;
-
-    buf << "N: " << N << "\n\n";
-    buf << "Detector_type: " << detectorType << "\n";
-    buf << "Crystal_SiPM_configuration: " << crystalSiPMConfig << "\n";
-    buf << "Tyvek_surface: " << (polishedTyvek ? "polished" : "diffuse") << "\n\n";
-    buf << "Use_optics: " << useOptics << "\n\n";
-    buf << "Flux_type: " << fluxType << "\n";
-    buf << "Flux_dir: " << fluxDirection << "\n";
-
-    buf << "Flux_params:\n{\n\t";
-    if (fluxType == "PLAW") {
-        buf << "A: " << std::stod(ReadValue("A:")) << ",\n\t";
-        buf << "alpha: " << std::stod(ReadValue("alpha:")) << ",\n\t";
-        buf << "E_Piv: " << std::stod(ReadValue("E_Piv:")) << " MeV\n";
-    } else if (fluxType == "COMP") {
-        buf << "A: " << std::stod(ReadValue("A:")) << ",\n\t";
-        buf << "alpha: " << std::stod(ReadValue("alpha:")) << ",\n\t";
-        buf << "E_Piv: " << std::stod(ReadValue("E_Piv:")) << " MeV,\n\t";
-        buf << "E_Peak: " << std::stod(ReadValue("E_Peak:")) << " MeV\n";
-    } else if (fluxType == "SEP") {
-        buf << "year: " << std::stoi(ReadValue("year:")) << ",\n\t";
-        buf << "order: " << std::stoi(ReadValue("order:")) << "\n";
-    } else if (fluxType == "Galactic") {
-        buf << "phiMV: " << std::stod(ReadValue("phiMV:")) << " MV,\n\t";
-        buf << "particle: " << ReadValue("particle:") << "\n";
-    } else if (fluxType == "Table") {
-        buf << "table_path: " << ReadValue("table_path:") << ",\n\t";
-        buf << "particle: " << ReadValue("particle:") << "\n";
-    } else if (fluxType == "Uniform") {
-        buf << "fractions: " << ReadValue("fractions:") << "\n";
-    }
-    buf << "}\n\n";
-
-    buf << "Particles: [";
-    if (fluxType == "PLAW") {
-        buf << "gamma";
-    } else if (fluxType == "SEP") {
-        buf << "proton";
-    } else if (fluxType == "Galactic" or fluxType == "Table") {
-        buf << ReadValue("particle:");
-    } else if (fluxType == "Uniform") {
-        buf << ReadValue("particles:");
-    }
-    buf << "]\n";
-
-    buf << "Energies:\n{\n\t";
-    if (fluxType == "PLAW" || fluxType == "COMP") {
-        buf << "gamma: ";
-    } else if (fluxType == "SEP") {
-        buf << "proton: ";
-    } else if (fluxType == "Galactic" or fluxType == "Table") {
-        buf << ReadValue("particle:") << ": ";
-    } else if (fluxType == "Uniform") {
-        std::vector<G4String> particles = Split(ReadValue("particles:"));
-        std::vector<G4String> EminVec = Split(ReadValue("E_min:"));
-        std::vector<G4String> EmaxVec = Split(ReadValue("E_max:"));
-        for (size_t i = 0; i < particles.size(); i++) {
-            buf << (i == 0 ? "" : "\t") << particles[i] << ": (" << EminVec[i] << " MeV, " << EmaxVec[i] << " MeV),\n";
-        }
-    }
-    if (fluxType != "Uniform") {
-        buf << "(" << Emin << " MeV, " << Emax << " MeV)\n";
-    }
-    buf << "}\n\n";
-
-    buf << "Counts:\n{\n\t";
-    buf << "Crystal_only: " << crystalOnly << "\n\t";
-    buf << "Veto_then_Crystal: " << crystalAndVeto << "\n}\n\n";
-
-    buf << "Optical_Counts:\n{\n\t";
-    buf << "Crystal_only: " << crystalOnlyOpt << "\n\t";
-    buf << "Veto_then_Crystal: " << crystalAndVetoOpt << "\n}\n\n";
-
-    buf << "Thresholds:\n{\n\t";
-    if (rate_ok) {
-        buf << "Crystal: " << eCrystalThreshold << " MeV\n\t";
-        buf << "Veto: " << eVetoThreshold << " MeV\n";
-    }
-    buf << "}\n\n";
-
-    buf << "Optical_thresholds:\n{\n\t";
-    if (rate_ok) {
-        buf << "Crystal: " << oCrystalThreshold << "\n\t";
-        buf << "Veto: " << oVetoThreshold << "\n\t";
-        buf << "BottomVeto: " << oBottomVetoThreshold << "\n";
-    }
-    buf << "}\n\n";
-
-    if (crystalSiPMConfig == "12-rhombus") {
-        buf << "Weight_for_4: " << weight4 << "\n";
-        buf << "Weight_for_8: " << weight8 << "\n\n";
-    }
-
-    std::string area_dim = fluxDirection.find("isotropic") != std::string::npos ? " sr * cm^2" : " cm^2";
-    std::string area_dim_inv = fluxDirection.find("isotropic") != std::string::npos ? " sr^-1 * cm^-2" : " cm^-2";
-
-    buf << "Rates:\n{\n\t";
-    buf << std::fixed << std::setprecision(6);
-    if (rate_ok) {
-        buf << "Area: " << area << area_dim << "\n\t";
-        buf << "Integral: " << rr.integral / (fluxType == "Galactic" ? 10000 : 1) << area_dim_inv << " * s^-1\n\t";
-        buf << "Ndot: " << rr.Ndot << " s^-1\n\t";
-        buf << "Rate_Crystal_only: " << rr.rateCrystal << " s^-1\n\t";
-        buf << "Rate_Both: " << rr.rateBoth << " s^-1\n\t";
-    } else {
-        buf << "Area: NaN\n\t";
-        buf << "Integral: NaN\n\t";
-        buf << "Ndot: NaN\n\t";
-        buf << "Rate_Crystal_only: NaN\n\t";
-        buf << "Rate_Both: NaN\n\t";
-    }
-    if (rate_real_ok) {
-        buf << "Rate_Real: " << rrReal.rateRealCrystal << " s^-1\n";
-    } else {
-        buf << "Rate_Real: NaN\n";
-    }
-    buf << "}\n\n";
-
-    buf << "Optical_rates:\n{\n\t";
-    buf << std::fixed << std::setprecision(6);
-    if (rate_opt_ok) {
-        buf << "Area: " << area << area_dim << "\n\t";
-        buf << "Integral: " << rr_opt.integral / (fluxType == "Galactic" ? 10000 : 1) << area_dim_inv << " * s^-1\n\t";
-        buf << "Ndot: " << rr_opt.Ndot << " s^-1\n\t";
-        buf << "Rate_Crystal_only: " << rr_opt.rateCrystal << " s^-1\n\t";
-        buf << "Rate_Both: " << rr_opt.rateBoth << " s^-1\n\t";
-    } else {
-        buf << "Area: NaN\n\t";
-        buf << "Integral: NaN\n\t";
-        buf << "Ndot: NaN\n\t";
-        buf << "Rate_Crystal_only: NaN\n\t";
-        buf << "Rate_Both: NaN\n\t";
-    }
-    if (rate_real_opt_ok) {
-        buf << "Rate_Real: " << rrReal_opt.rateRealCrystal << " s^-1\n";
-    } else {
-        buf << "Rate_Real: NaN\n";
-    }
-    buf << "}\n\n";
-
-    auto sanitize = [](std::string ss) {
-        for (char& c : ss) if (c == ' ') c = '_';
-        return ss;
-    };
-
-    std::string filename = "info_" + detectorType + "_" + fluxType;
-    if (fluxType == "Galactic") {
-        const std::string part = ReadValue("particle:");
-        const std::string phi = ReadValue("phiMV:");
-        filename += "_particle:" + part + "_phiMV:" + phi + ".txt";
-    } else if (fluxType == "Uniform") {
-        const std::string part = ReadValue("particles:");
-        filename += "_particle:" + part + ".txt";
-    } else {
-        filename += ".txt";
-    }
-    filename = sanitize(filename);
-
-    std::ofstream out(filename);
-    if (!out.is_open()) {
-        G4cerr << "Ошибка: не удалось открыть файл " << filename << G4endl;
-        return;
-    }
-    out << buf.str();
-    out.close();
-
-    std::cout << "Configuration saved in " << filename << std::endl;
-}
-
-
-void Loader::RunPostProcessing() const {
-    auto sanitize = [](std::string ss) {
-        for (char& c : ss) if (c == ' ') c = '_';
-        return ss;
-    };
-    std::string part;
-
-    try {
-        std::cout << "Processing... ";
-        std::string outDir = fluxType;
-        if (fluxType == "Galactic") {
-            const std::string phi = ReadValue("phiMV:");
-            part = ReadValue("particle:");
-            outDir += "_particle:" + part + "_phiMV:" + phi;
-        } else if (fluxType == "Uniform") {
-            part = ReadValue("particles:");
-            outDir += "_particles:" + part;
-        } else if (fluxType == "PLAW" || fluxType == "COMP") {
-            part = "gamma";
-        } else if (fluxType == "SEP") {
-            part = "proton";
-        }
-        outDir = sanitize(outDir);
-        PostProcessing postProcessing(outDir, part);
-
-        postProcessing.ExtractNtData();
-        if (Emin < Emax) {
-            if (fluxDirection.find("isotropic") != std::string::npos)
-                postProcessing.SaveSensitivity();
-            else
-                postProcessing.SaveEffArea();
-        }
-        postProcessing.SaveTrigEdepCsv();
-        postProcessing.SaveEdepCsv();
-        postProcessing.SavePrimaryCsv();
-        if (useOptics) {
-            postProcessing.SaveOpticsCsv();
+        if (tokens.size() < 3) {
+            continue;
         }
 
-        std::cout << "Done!\n";
+        std::string name = tokens[0];
+        double deg = std::stod(tokens[1]);
+        double shift = std::stod(tokens[2]);
+
+        if (name == "tyvekOut") {
+            DEG::tyvekOut = deg;
+            shift::tyvekOut = shift;
+        } else if (name == "veto") {
+            DEG::veto = deg;
+            shift::veto = shift;
+        } else if (name == "tyvekMid") {
+            DEG::tyvekMid = deg;
+            shift::tyvekMid = shift;
+        } else if (name == "opticLayerVeto") {
+            DEG::opticLayerVeto = deg;
+            shift::opticLayerVeto = shift;
+        } else if (name == "rubber") {
+            DEG::rubber = deg;
+            shift::rubber = shift;
+        } else if (name == "shell") {
+            DEG::shell = deg;
+            shift::shell = shift;
+        } else if (name == "bottomVetoShell") {
+            DEG::bottomVetoShell = deg;
+            shift::bottomVetoShell = shift;
+        } else if (name == "tyvekBottom") {
+            DEG::tyvekBottom = deg;
+            shift::tyvekBottom = shift;
+        } else if (name == "bottomVeto") {
+            DEG::bottomVeto = deg;
+            shift::bottomVeto = shift;
+        } else if (name == "opticLayerBottomVeto") {
+            DEG::opticLayerBottomVeto = deg;
+            shift::opticLayerBottomVeto = shift;
+        } else if (name == "crystalContainer") {
+            DEG::crystalContainer = deg;
+            shift::crystalContainer = shift;
+        } else if (name == "crystal") {
+            DEG::crystal = deg;
+            shift::crystal = shift;
+        } else if (name == "tyvekIn") {
+            DEG::tyvekIn = deg;
+            shift::tyvekIn = shift;
+        } else if (name == "crystalShell") {
+            DEG::crystalShell = deg;
+            shift::crystalShell = shift;
+        } else if (name == "crystallGlass") {
+            DEG::crystallGlass = deg;
+            shift::crystallGlass = shift;
+        } else if (name == "opticLayerCrystall") {
+            DEG::opticLayerCrystall = deg;
+            shift::opticLayerCrystall = shift;
+        } else if (name == "holder") {
+            DEG::holder = deg;
+            shift::holder = shift;
+        } else if (name == "crystalSiPM") {
+            DEG::crystalSiPM = deg;
+            shift::crystalSiPM = shift;
+        } else if (name == "vetoSiPM") {
+            DEG::vetoSiPM = deg;
+            shift::vetoSiPM = shift;
+        } else if (name == "vetoSpring") {
+            DEG::vetoSpring = deg;
+            shift::vetoSpring = shift;
+        } else if (name == "vetoBoard") {
+            DEG::vetoBoard = deg;
+            shift::vetoBoard = shift;
+        } else if (name == "bottomVetoSiPM") {
+            DEG::bottomVetoSiPM = deg;
+            shift::bottomVetoSiPM = shift;
+        } else if (name == "tunaCan") {
+            DEG::tunaCan = deg;
+            shift::tunaCan = shift;
+        } else if (name == "plate") {
+            DEG::plate = deg;
+            shift::plate = shift;
+        } else if (name == "plateHole") {
+            DEG::plateHole = deg;
+            shift::plateHole = shift;
+        }
     }
-    catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << "\n";
-    }
+
+    file.close();
 }
