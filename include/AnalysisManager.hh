@@ -7,7 +7,7 @@
 #include <G4UnitsTable.hh>
 #include <CLHEP/Units/SystemOfUnits.h>
 #include <globals.hh>
-#include <Sizes.hh>
+#include <geometry/Sizes.hh>
 #include <Configuration.hh>
 
 class AnalysisManager {

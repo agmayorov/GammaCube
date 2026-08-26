@@ -15,7 +15,7 @@
 #include <iomanip>
 #include <sstream>
 
-#include "Sizes.hh"
+#include "geometry/Sizes.hh"
 #include "Configuration.hh"
 #include "AnalysisManager.hh"
 

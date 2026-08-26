@@ -23,12 +23,15 @@ Geometry::Geometry() {
     nist = G4NistManager::Instance();
     zeroRot = new G4RotationMatrix(0, 0, 0);
 
-    detContainerSize = G4ThreeVector(0 * mm,
-                                     modelRadius - tunaCanThickWall,
+    detContainerSize = G4ThreeVector(0 * mm, modelRadius - tunaCanThickWall,
                                      (modelHeight - bottomCapThick - tunaCanThickTop) / 2.0);
-    detContainerPos = G4ThreeVector(0, 0, -(plateCenterThick + tunaCanThickTop) / 2);
+    detContainerPos = G4ThreeVector(0, 0, (plateCenterThick + tunaCanThickTop) / 2 + shiftZ);
 
-    worldHalfSize = std::max({modelRadius * 2, modelHeight}) * 2;
+    // worldHalfSize = std::max({modelRadius * 2, modelHeight}) * 2;
+    worldHalfSize = std::max({
+                                 CubeSatSizes::CubeSat::halfX, CubeSatSizes::CubeSat::halfY,
+                                 CubeSatSizes::CubeSat::halfZ
+                             }) * 2;
 
     tunaCanVisAttr = new G4VisAttributes(G4Color(0.5, 0.5, 0.5));
     tunaCanVisAttr->SetForceSolid(true);
@@ -44,66 +47,65 @@ void Geometry::ConstructTunaCan() {
 
     // TunaCan
     G4VSolid* tunaCanWall = new G4Tubs("tunaCanWall", detContainerSize.y(), modelRadius, modelHeight / 2, 0, viewDeg);
-    G4ThreeVector tunaCanWallPos = G4ThreeVector(0, 0, 0);
+    G4ThreeVector tunaCanWallPos = G4ThreeVector(0, 0, +shiftZ);
     G4LogicalVolume* tunaCanWallLV = new G4LogicalVolume(tunaCanWall, tunaCanMat, "tunaCanWallLV");
-    new G4PVPlacement(zeroRot, tunaCanWallPos, tunaCanWallLV, "TunaCanWallPVPL", worldLV, false, 0, true);
+    new G4PVPlacement(zeroRot, tunaCanWallPos, tunaCanWallLV, "TunaCanWallPVPL", cubeSatLV, false, 0, true);
 
     G4VSolid* tunaCanTop = new G4Tubs("TunaCanTop", 0, detContainerSize.y(), tunaCanThickTop / 2., 0, viewDeg);
-    const G4ThreeVector tunaCanTopPos = G4ThreeVector(0, 0, (modelHeight - tunaCanThickTop) / 2.0);
+    const G4ThreeVector tunaCanTopPos = G4ThreeVector(0, 0, -(modelHeight - tunaCanThickTop) / 2.0 + shiftZ);
     G4LogicalVolume* tunaCanTopLV = new G4LogicalVolume(tunaCanTop, tunaCanMat, "tunaCanTopLV");
-    new G4PVPlacement(zeroRot, tunaCanTopPos, tunaCanTopLV, "TunaCanTopPVPL", worldLV, false, 0, true);
+    new G4PVPlacement(zeroRot, tunaCanTopPos, tunaCanTopLV, "TunaCanTopPVPL", cubeSatLV, false, 0, true);
 
     // Plate square part
     G4VSolid* plateIncomplete = new G4Box("PlateIncomplete", plateSize / 2., plateSize / 2. + plateCornerSize,
                                           plateThick / 2.);
     G4VSolid* plateHole = new G4Tubs("PlateHole", 0., plateOuterHoleRadius, plateThick + 5 * mm, 0., 360);
-    const G4ThreeVector platePos = G4ThreeVector(0, 0, -(modelHeight + plateThick) / 2.0);
+    const G4ThreeVector platePos = G4ThreeVector(0, 0, +(modelHeight + plateThick) / 2.0 + shiftZ);
     G4VSolid* plate = new G4SubtractionSolid("Plate", plateIncomplete, plateHole);
     G4LogicalVolume* plateLV = new G4LogicalVolume(plate, plateMat, "PlateLV");
-    new G4PVPlacement(zeroRot, platePos, plateLV, "PlatePVPL", worldLV, false, 0, true);
+    new G4PVPlacement(zeroRot, platePos, plateLV, "PlatePVPL", cubeSatLV, false, 0, true);
 
     // Plate outer part
     G4VSolid* plateStrip = new G4Box("PlateStrip", plateCornerSize / 2., plateSize / 2., plateThick / 2.);
     const G4ThreeVector plateStripLeftPos = G4ThreeVector((plateSize + plateCornerSize) / 2., 0,
-                                                          -(modelHeight + plateThick) / 2.0);
+                                                          (modelHeight + plateThick) / 2.0 + shiftZ);
     const G4ThreeVector plateStripRightPos = G4ThreeVector(-(plateSize + plateCornerSize) / 2., 0,
-                                                           -(modelHeight + plateThick) / 2.0);
+                                                           (modelHeight + plateThick) / 2.0 + shiftZ);
     G4LogicalVolume* plateStripLeftLV = new G4LogicalVolume(plateStrip, plateMat, "PlateStripLeftLV");
     G4LogicalVolume* plateStripRightLV = new G4LogicalVolume(plateStrip, plateMat, "PlateStripRightLV");
-    new G4PVPlacement(zeroRot, plateStripLeftPos, plateStripLeftLV, "PlateStripLeftPVPL", worldLV, false, 0, true);
-    new G4PVPlacement(zeroRot, plateStripRightPos, plateStripRightLV, "PlateStripRightPVPL", worldLV, false, 0, true);
+    new G4PVPlacement(zeroRot, plateStripLeftPos, plateStripLeftLV, "PlateStripLeftPVPL", cubeSatLV, false, 0, true);
+    new G4PVPlacement(zeroRot, plateStripRightPos, plateStripRightLV, "PlateStripRightPVPL", cubeSatLV, false, 0, true);
 
     // Plate center tube
     G4VSolid* plateCenter = new G4Tubs("PlateCenter", plateInnerHoleRadius, plateOuterHoleRadius, plateCenterThick / 2,
                                        0, viewDeg);
-    const G4ThreeVector plateCenterPos = G4ThreeVector(0., 0., -(modelHeight + plateCenterThick) / 2.0);
+    const G4ThreeVector plateCenterPos = G4ThreeVector(0., 0., (modelHeight + plateCenterThick) / 2.0 + shiftZ);
     G4LogicalVolume* plateCenterLV = new G4LogicalVolume(plateCenter, plateMat, "PlateCenterLV");
-    new G4PVPlacement(zeroRot, plateCenterPos, plateCenterLV, "PlateCenterPVPL", worldLV, false, 0, true);
+    new G4PVPlacement(zeroRot, plateCenterPos, plateCenterLV, "PlateCenterPVPL", cubeSatLV, false, 0, true);
 
     // Plate center tube cap
     G4VSolid* plateCenterCap = new G4Tubs("PlateCenterCap", plateBottomHoleRadius, plateOuterHoleRadius, plateThick / 2,
                                           0, viewDeg);
-    const G4ThreeVector plateCenterCapPos = G4ThreeVector(0., 0., -(modelHeight + plateThick) / 2.0 - plateCenterThick);
+    const G4ThreeVector plateCenterCapPos = G4ThreeVector(0., 0.,
+                                                          (modelHeight + plateThick) / 2.0 + plateCenterThick + shiftZ);
     G4LogicalVolume* plateCenterCapLV = new G4LogicalVolume(plateCenterCap, plateMat, "PlateCenterCapLV");
-    new G4PVPlacement(zeroRot, plateCenterCapPos, plateCenterCapLV, "PlateCenterCapPVPL", worldLV, false, 0, true);
+    new G4PVPlacement(zeroRot, plateCenterCapPos, plateCenterCapLV, "PlateCenterCapPVPL", cubeSatLV, false, 0, true);
 
     // Plate bottom cap
     G4VSolid* bottomPartWall = new G4Tubs("BottomPartWall", bottomCapInnerRadius, plateInnerHoleRadius,
                                           bottomCapHeight / 2, 0, viewDeg);
-    const G4ThreeVector bottomPartWallPos = G4ThreeVector(
-                                                          0., 0.,
-                                                          -(modelHeight + bottomCapHeight) / 2.0 - plateCenterThick -
-                                                          plateThick);
+    const G4ThreeVector bottomPartWallPos = G4ThreeVector(0., 0.,
+                                                          -(-(modelHeight + bottomCapHeight) / 2.0 - plateCenterThick -
+                                                              plateThick) + shiftZ);
     G4LogicalVolume* bottomPartWallLV = new G4LogicalVolume(bottomPartWall, tunaCanMat, "BottomPartWallLV");
-    new G4PVPlacement(zeroRot, bottomPartWallPos, bottomPartWallLV, "BottomPartWallPVPL", worldLV, false, 0, true);
+    new G4PVPlacement(zeroRot, bottomPartWallPos, bottomPartWallLV, "BottomPartWallPVPL", cubeSatLV, false, 0, true);
 
     G4VSolid* bottomPartCap = new G4Tubs("BottomPartCap", 0, bottomCapInnerRadius, bottomCapThick / 2, 0, viewDeg);
-    const G4ThreeVector bottomPartCapPos = G4ThreeVector(
-                                                         0., 0.,
-                                                         -(modelHeight - bottomCapThick) / 2.0 - bottomCapHeight -
-                                                         plateCenterThick - plateThick);
+    const G4ThreeVector bottomPartCapPos = G4ThreeVector(0., 0.,
+                                                         -(-(modelHeight - bottomCapThick) / 2.0 - bottomCapHeight -
+                                                             plateCenterThick - plateThick) + shiftZ);
     G4LogicalVolume* bottomPartCapLV = new G4LogicalVolume(bottomPartCap, tunaCanMat, "BottomPartCapLV");
-    new G4PVPlacement(zeroRot, bottomPartCapPos, bottomPartCapLV, "BottomPartCapPVPL", worldLV, false, 0, true);
+    new G4PVPlacement(zeroRot, bottomPartCapPos, bottomPartCapLV, "BottomPartCapPVPL", cubeSatLV, false, 0, true);
 
     tunaCanWallLV->SetVisAttributes(tunaCanVisAttr);
     tunaCanTopLV->SetVisAttributes(tunaCanVisAttr);
@@ -122,18 +124,13 @@ void Geometry::ConstructTunaCan() {
 
 void Geometry::ConstructDetector() {
     G4VSolid* detContTopTube = new G4Tubs("DetContTopTube", 0, detContainerSize.y(),
-                                          (modelHeight - tunaCanThickTop + plateCenterThick) / 2, 0,
-                                          360 * deg);
-    G4VSolid* detContMidTube = new G4Tubs("DetContMidTube", 0, plateBottomHoleRadius, plateThick / 2., 0,
-                                          360 * deg);
+                                          (modelHeight - tunaCanThickTop + plateCenterThick) / 2, 0, 360 * deg);
+    G4VSolid* detContMidTube = new G4Tubs("DetContMidTube", 0, plateBottomHoleRadius, plateThick / 2., 0, 360 * deg);
     G4VSolid* detContBottomTube = new G4Tubs("DetContBottomTube", 0, bottomCapInnerRadius,
-                                             (bottomCapHeight - bottomCapThick) / 2., 0,
-                                             360 * deg);
-    G4ThreeVector detContMidPos = G4ThreeVector(
-                                                0, 0, -(modelHeight - tunaCanThickTop + plateCenterThick + plateThick) /
-                                                2);
-    G4ThreeVector detContBottomPos = G4ThreeVector(
-                                                   0, 0, -(modelHeight - tunaCanThickTop + plateCenterThick +
+                                             (bottomCapHeight - bottomCapThick) / 2., 0, 360 * deg);
+    G4ThreeVector detContMidPos = G4ThreeVector(0, 0,
+                                                -(modelHeight - tunaCanThickTop + plateCenterThick + plateThick) / 2);
+    G4ThreeVector detContBottomPos = G4ThreeVector(0, 0, -(modelHeight - tunaCanThickTop + plateCenterThick +
                                                        bottomCapHeight - bottomCapThick) / 2 - plateThick);
     G4VSolid* detContIncomplete = new G4UnionSolid("DetContIncomplete", detContTopTube, detContMidTube, zeroRot,
                                                    detContMidPos);
@@ -141,8 +138,11 @@ void Geometry::ConstructDetector() {
     detContainer = new G4UnionSolid("DetectorContainer", detContIncomplete, detContBottomTube, zeroRot,
                                     detContBottomPos);
     detContainerLV = new G4LogicalVolume(detContainer, worldMat, "DetectorContainerLV");
-    detContainerPVPL = new G4PVPlacement(zeroRot, detContainerPos, detContainerLV, "DetectorContainerPVPL", worldLV,
-                                         false, 0, true);
+    auto* detContRot = new G4RotationMatrix();
+    detContRot->rotateX(180 * deg);
+    // detContRot->rotateZ(180 * deg);
+    detContainerPVPL = new G4PVPlacement(detContRot, detContainerPos, detContainerLV, "DetectorContainerPVPL",
+                                         cubeSatLV, false, 0, true);
     detContainerLV->SetVisAttributes(detContVisAttr);
 
     detector = new Detector(detContainerLV, nist);
@@ -178,8 +178,14 @@ G4VPhysicalVolume* Geometry::Construct() {
     worldPVP = new G4PVPlacement(zeroRot, G4ThreeVector(0, 0, 0), worldLV, "WorldPVPL", nullptr, false, 0, false);
     worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
+    auto cubeSat = CubeSat_GeoScan_3U(worldLV, nist);
+    cubeSat.ConstructCubeSat();
+    cubeSatLV = cubeSat.GetCubeSatLV();
+
     ConstructDetector();
     ConstructTunaCan();
+
+    new G4PVPlacement(nullptr, G4ThreeVector(), cubeSatLV, "CubeSatPVP", worldLV, false, 0, true);
 
     return worldPVP;
 }

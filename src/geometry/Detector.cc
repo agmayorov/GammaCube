@@ -1,4 +1,4 @@
-#include "Detector.hh"
+#include "../../include/geometry/Detector.hh"
 
 using namespace Sizes;
 using namespace Configuration;

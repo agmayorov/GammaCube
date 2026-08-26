@@ -22,8 +22,9 @@
 #include <utility>
 
 #include "SensitiveDetector.hh"
-#include "Detector.hh"
-#include "Sizes.hh"
+#include "geometry/Detector.hh"
+#include "geometry/CubeSat_GeoScan_3U.hh"
+#include "geometry/Sizes.hh"
 #include "Configuration.hh"
 
 
@@ -58,6 +59,7 @@ private:
     G4LogicalVolume* tyvekInLV;
     G4LogicalVolume* tyvekBottomLV;
     G4LogicalVolume* tunaCanLV;
+    G4LogicalVolume* cubeSatLV{};
 
     G4LogicalVolume* crystalSensSurfLV;
     G4LogicalVolume* vetoSensSurfLV;

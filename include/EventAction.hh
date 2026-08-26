@@ -15,7 +15,7 @@
 
 #include "Geometry.hh"
 #include "RunAction.hh"
-#include "Sizes.hh"
+#include "geometry/Sizes.hh"
 #include "Configuration.hh"
 #include "AnalysisManager.hh"
 #include "SDHit.hh"

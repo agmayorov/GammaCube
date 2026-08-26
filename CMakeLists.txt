@@ -19,8 +19,12 @@ include(${Geant4_USE_FILE})
 include_directories(${PROJECT_SOURCE_DIR}/include  ${ROOT_INCLUDE_DIRS})
 
 
-file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cc ${PROJECT_SOURCE_DIR}/src/Flux/*.cc)
-file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hh ${PROJECT_SOURCE_DIR}/src/Flux/*.hh)
+file(GLOB sources ${PROJECT_SOURCE_DIR}/src/*.cc
+        ${PROJECT_SOURCE_DIR}/src/Flux/*.cc
+        ${PROJECT_SOURCE_DIR}/src/geometry/*.cc)
+file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hh
+        ${PROJECT_SOURCE_DIR}/src/Flux/*.hh
+        ${PROJECT_SOURCE_DIR}/src/geometry/*.hh)
 
 add_executable(${NAME} GammaCube.cc ${sources} ${headers})
 target_link_libraries(${NAME} ${Geant4_LIBRARIES} ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist ROOT::Graf ROOT::Gpad)

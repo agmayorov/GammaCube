@@ -27,7 +27,7 @@
 #include <G4UIExecutive.hh>
 
 #include "Geometry.hh"
-#include "Sizes.hh"
+#include "geometry/Sizes.hh"
 #include "Configuration.hh"
 #include "ActionInitialization.hh"
 #include "CountRates.hh"

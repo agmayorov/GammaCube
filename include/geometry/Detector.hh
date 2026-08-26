@@ -30,8 +30,8 @@
 #include <G4LogicalSkinSurface.hh>
 
 #include "Sizes.hh"
-#include "Configuration.hh"
-#include "Utils.hh"
+#include "../Configuration.hh"
+#include "../Utils.hh"
 
 
 class Detector {

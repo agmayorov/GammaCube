@@ -11,8 +11,8 @@ namespace  Sizes {
     inline G4double tunaCanThickWall{5 * mm};
     inline G4double tunaCanThickTop{5 * mm};
 
-    inline G4double plateSize{83 * mm};
-    inline G4double plateCornerSize{8.5 * mm};
+    inline G4double plateSize{78 * mm};
+    inline G4double plateCornerSize{10 * mm};
     inline G4double plateThick{3 * mm};
 
     inline G4double plateOuterHoleRadius{37 * mm};
@@ -118,6 +118,8 @@ namespace  Sizes {
     inline G4int crystalSiPMCount{12};
     inline G4int vetoSiPMCount{8};
     inline G4int bottomVetoSiPMCount{4};
+
+    inline G4int shiftZ = 3 * mm;
 
 }
 
