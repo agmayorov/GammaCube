@@ -3,14 +3,14 @@
 
 PrimaryGeneratorAction::PrimaryGeneratorAction(G4String fDir, const G4String& fluxType, const G4double cThreshold)
     : particleGun(new G4ParticleGun(1)),
-      center(G4ThreeVector(0, 0, -Sizes::modelHeight / 2.0)),
+      center(G4ThreeVector(0, 0, Sizes::modelHeight / 2.0 + Sizes::shiftZ)),
       detectorHalfSize(G4ThreeVector(0 * mm, Sizes::modelRadius, Sizes::modelHeight)),
       fluxDirection(std::move(fDir)),
       eCrystalThreshold(cThreshold) {
-    const G4ThreeVector tempVec = G4ThreeVector(0,
-                                                detectorHalfSize.y(),
-                                                detectorHalfSize.z());
-    radius = sqrt(tempVec.y() * tempVec.y() + tempVec.z() * tempVec.z()) + 5 * mm;
+    const G4ThreeVector tempVec = G4ThreeVector(CubeSatSizes::CubeSat::halfX,
+                                                CubeSatSizes::CubeSat::halfY,
+                                                CubeSatSizes::CubeSat::halfZ);
+    radius = sqrt(tempVec.x() * tempVec.x() + tempVec.y() * tempVec.y() + tempVec.z() * tempVec.z()) + 5 * mm;
 
     std::vector<G4String> fluxDirList = {
         "isotropic", "isotropic_up", "isotropic_down", "vertical_up", "vertical_down", "horizontal"
