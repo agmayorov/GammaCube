@@ -193,10 +193,12 @@ void RunAction::FillDerivedHists() {
         effAreaOpt[i] = aEffOpt;
         if (fluxDirection.find("isotropic") != std::string::npos) {
             analysisManager->FillSensitivityHist(centerE, sens);
-            analysisManager->FillSensitivityOptHist(centerE, sensOpt);
+            if (useOptics)
+                analysisManager->FillSensitivityOptHist(centerE, sensOpt);
         } else {
             analysisManager->FillEffAreaHist(centerE, aEff);
-            analysisManager->FillEffAreaOptHist(centerE, aEffOpt);
+            if (useOptics)
+                analysisManager->FillEffAreaOptHist(centerE, aEffOpt);
         }
     }
 }

@@ -181,6 +181,7 @@ G4VPhysicalVolume* Geometry::Construct() {
     auto cubeSat = CubeSat_GeoScan_3U(worldLV, nist);
     cubeSat.ConstructCubeSat();
     cubeSatLV = cubeSat.GetCubeSatLV();
+    // cubeSatLV = worldLV;
 
     ConstructDetector();
     ConstructTunaCan();
