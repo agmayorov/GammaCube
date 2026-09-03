@@ -664,7 +664,6 @@ void Detector::ConstructSiPM() {
         auto* mpt = new G4MaterialPropertiesTable();
 
         auto pde = Utils::ReadCSV("../OpticalParameters/SiPM_PDE.csv", 1.0, true);
-        Utils::NormalizeMaxToOne(pde);
         mpt->AddProperty("EFFICIENCY", pde.E, pde.V, pde.E.size());
 
         std::vector refl(pde.E.size(), 0.02);

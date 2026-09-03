@@ -382,7 +382,7 @@ void Utils::ApplyScintillation(G4Material* mat,
         const auto it = c.find("SCINTILLATIONYIELD");
         if (it == c.end())
             throw std::runtime_error("Missing SCINTILLATIONYIELD in const map");
-        mpt->AddConstProperty("SCINTILLATIONYIELD", static_cast<int>(it->second));
+        mpt->AddConstProperty("SCINTILLATIONYIELD", it->second);
     }
 
     AddConstIfPresent(mpt, c, "RESOLUTIONSCALE");
