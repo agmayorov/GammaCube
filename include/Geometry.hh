@@ -25,6 +25,7 @@
 #include "Detector.hh"
 #include "Sizes.hh"
 #include "Configuration.hh"
+#include "GenSurface.hh"
 
 
 class Geometry : public G4VUserDetectorConstruction {

@@ -244,25 +244,6 @@ double fluxGalactic(const double E, const double phiMV, const std::string& name)
     return num / den * J_LIS;
 }
 
-// ---------------- Area ----------------
-
-double Area_cm2(const double R_mm, const double H_mm, const FluxDir dir) {
-    const double R_cm = R_mm / 10.0;
-    const double H_cm = H_mm / 10.0;
-
-    if (dir == FluxDir::Vertical_up || dir == FluxDir::Vertical_down) {
-        return M_PI * R_cm * R_cm;
-    }
-    if (dir == FluxDir::Horizontal) {
-        return 2 * R_cm * H_cm;
-    }
-    const double val = std::sqrt(R_cm * R_cm + H_cm * H_cm) + 0.5;
-    if (dir == FluxDir::Isotropic_down || dir == FluxDir::Isotropic_up) {
-        return 2.0 * M_PI * M_PI * val * val;
-    }
-    return 4.0 * M_PI * M_PI * val * val;
-}
-
 // ---------------- Integral ----------------
 
 static double simpson(const std::function<double(double)>& f, const double a, const double b) {

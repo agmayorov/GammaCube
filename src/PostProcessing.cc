@@ -247,8 +247,12 @@ void PostProcessing::SaveEffArea() {
     }
 
 
+    const G4bool isPoint = GenSurface::For(fluxDirection).IsPoint();
+    const std::string effTitle = isPoint ? "Efficiency vs Energy" : "Effective Area vs Energy";
+    const std::string effAxis = isPoint ? "Efficiency" : "Effective Area [cm^{2}]";
+
     SaveHistPng("effAreaHist", (fs::path(effectiveAreaDir) / "effective_area.png").string(),
-                "Effective Area vs Energy", "Effective Area [cm^{2}]", false);
+                effTitle, effAxis, false);
 
     SaveHistPng("genEnergyHist", (fs::path(histogramsDir) / "genEnergyHist.png").string(),
                 "Initial Energy", "Counts", true, true, true);
@@ -258,7 +262,7 @@ void PostProcessing::SaveEffArea() {
 
     if (useOptics) {
         SaveHistPng("effAreaOptHist", (fs::path(effectiveAreaDir) / "effective_area_opt.png").string(),
-                    "Effective Area vs Energy", "Effective Area [cm^{2}]", false);
+                    effTitle, effAxis, false);
         SaveHistPng("trigOptEnergyHist", (fs::path(histogramsDir) / "trigOptEnergyHist.png").string(),
                     "N_{trig, opt} vs Energy", "Counts", true);
     }

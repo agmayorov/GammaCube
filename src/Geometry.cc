@@ -29,6 +29,8 @@ Geometry::Geometry() {
     detContainerPos = G4ThreeVector(0, 0, -(plateCenterThick + tunaCanThickTop) / 2);
 
     worldHalfSize = std::max({modelRadius * 2, modelHeight}) * 2;
+    worldHalfSize = std::max(worldHalfSize, GenSurface::For(fluxDirection).OuterRadius()
+                                            + std::fabs(GenSurface::PayloadCentre().z()) + GenSurface::Margin());
 
     tunaCanVisAttr = new G4VisAttributes(G4Color(0.5, 0.5, 0.5));
     tunaCanVisAttr->SetForceSolid(true);

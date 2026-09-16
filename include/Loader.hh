@@ -32,6 +32,8 @@
 #include "ActionInitialization.hh"
 #include "CountRates.hh"
 #include "PostProcessing.hh"
+#include "GenSurface.hh"
+#include "GenSurfaceVis.hh"
 
 #ifdef G4MULTITHREADED
 #include <G4MTRunManager.hh>
@@ -56,6 +58,7 @@ class Loader {
 #endif
 
     G4VisManager *visManager;
+    GenSurfaceVis *genSurfaceVis;
 
 public:
     Loader(int argc, char **argv);
@@ -70,9 +73,7 @@ private:
 
     std::string geomConfigPath;
 
-
-
-    FluxDir dir{};
+    GenSurface genSurface;
 
     [[nodiscard]] std::string ReadValue(const std::string &, const std::string &) const;
     void SaveConfig() const;

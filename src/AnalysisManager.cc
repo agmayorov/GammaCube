@@ -119,7 +119,7 @@ void AnalysisManager::Book() {
                                                           "N_{trig,opt} vs E",
                                                           nBins, Emin, Emax, unit, "none", logScheme);
 
-        if (fluxDirection.find("isotropic") != std::string::npos) {
+        if (GenSurface::For(fluxDirection).IsIsotropic()) {
             sensitivityHist = analysisManager->CreateH1("sensitivityHist",
                                                         "Sensitivity vs E",
                                                         nBins, Emin, Emax, unit, "none", logScheme);

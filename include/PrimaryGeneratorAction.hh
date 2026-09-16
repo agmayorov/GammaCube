@@ -21,6 +21,7 @@
 
 #include "EventAction.hh"
 #include "Geometry.hh"
+#include "GenSurface.hh"
 #include "Flux/Flux.hh"
 #include "Flux/UniformFlux.hh"
 #include "Flux/PLAWFlux.hh"
@@ -40,9 +41,7 @@ public:
 private:
     G4ParticleGun *particleGun = nullptr;
 
-    G4double radius;
-    G4ThreeVector center;
-    G4ThreeVector detectorHalfSize;
+    GenSurface genSurface;
 
     G4String fluxDirection;
     ParticleInfo pInfo{};
@@ -50,8 +49,6 @@ private:
     Flux *flux;
 
     G4double eCrystalThreshold;
-
-    void GenerateOnSphere(G4ThreeVector &pos, G4ThreeVector &dir) const;
 };
 
 #endif //PRMIARYGENERATIONACTION_HH

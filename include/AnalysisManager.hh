@@ -9,6 +9,7 @@
 #include <globals.hh>
 #include <Sizes.hh>
 #include <Configuration.hh>
+#include "GenSurface.hh"
 
 class AnalysisManager {
 public:

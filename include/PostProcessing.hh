@@ -24,6 +24,7 @@
 #include <TError.h>
 
 #include "Configuration.hh"
+#include "GenSurface.hh"
 
 class TFile;
 class TH1;

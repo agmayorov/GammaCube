@@ -191,7 +191,7 @@ void RunAction::FillDerivedHists() {
         }
         effArea[i] = aEff;
         effAreaOpt[i] = aEffOpt;
-        if (fluxDirection.find("isotropic") != std::string::npos) {
+        if (GenSurface::For(fluxDirection).IsIsotropic()) {
             analysisManager->FillSensitivityHist(centerE, sens);
             analysisManager->FillSensitivityOptHist(centerE, sensOpt);
         } else {

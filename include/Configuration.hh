@@ -12,6 +12,12 @@ namespace Configuration
 
     inline G4String fluxType{"Uniform"};
     inline G4String fluxDirection{"isotropic"};
+    inline G4double beamTheta{0.};
+    inline G4double beamPhi{0.};
+    inline G4double sourceZ{0.};
+    inline G4double coneAngle{180. * deg};
+
+    inline G4long seed{0};
 
     inline G4double eCrystalThreshold{0 * MeV};
     inline G4double eVetoThreshold{0 * MeV};

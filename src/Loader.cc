@@ -74,6 +74,16 @@ Loader::Loader(int argc, char** argv) {
             weight4 = std::stod(argv[i + 1]);
         } else if (input == "-w8" || input == "--weight8") {
             weight8 = std::stod(argv[i + 1]);
+        } else if (input == "--source-z") {
+            sourceZ = std::stod(argv[i + 1]) * mm;
+        } else if (input == "--cone") {
+            coneAngle = std::stod(argv[i + 1]) * deg;
+        } else if (input == "--theta") {
+            beamTheta = std::stod(argv[i + 1]) * deg;
+        } else if (input == "--phi") {
+            beamPhi = std::stod(argv[i + 1]) * deg;
+        } else if (input == "-s" || input == "--seed") {
+            seed = std::stol(argv[i + 1]);
         } else if (input == "-o" || input == "--output-file") {
             outputFile = argv[i + 1];
             outputFile += ".root";
@@ -82,10 +92,26 @@ Loader::Loader(int argc, char** argv) {
 
     savePhotons = savePhotons and useOptics;
 
+    if (fluxDirection == "vertical_down") {
+        fluxDirection = "flat";
+        beamTheta = 0 * deg;
+        beamPhi = 0 * deg;
+    } else if (fluxDirection == "vertical_up") {
+        fluxDirection = "flat";
+        beamTheta = 180 * deg;
+        beamPhi = 0 * deg;
+    } else if (fluxDirection == "horizontal") {
+        fluxDirection = "flat";
+        beamTheta = 90 * deg;
+        beamPhi = 0 * deg;
+    }
+    genSurface = GenSurface::For(fluxDirection);
+
     configPath = "../Flux_config/" + fluxType + "_params.txt";
 
     CLHEP::HepRandom::setTheEngine(new CLHEP::RanecuEngine);
-    CLHEP::HepRandom::setTheSeed(time(nullptr));
+    if (seed == 0) seed = time(nullptr);
+    CLHEP::HepRandom::setTheSeed(seed);
 
 #ifdef G4MULTITHREADED
     runManager = new G4MTRunManager;
@@ -133,30 +159,19 @@ Loader::Loader(int argc, char** argv) {
         Emax = std::min({energyTable.GetMaxE(), Emax});
     }
 
-    if (fluxDirection == "isotropic") {
-        dir = FluxDir::Isotropic;
-    } else if (fluxDirection == "isotropic_up") {
-        dir = FluxDir::Isotropic_up;
-    } else if (fluxDirection == "isotropic_down") {
-        dir = FluxDir::Isotropic_down;
-    } else if (fluxDirection == "vertical_up") {
-        dir = FluxDir::Vertical_up;
-    } else if (fluxDirection == "vertical_down") {
-        dir = FluxDir::Vertical_down;
-    } else if (fluxDirection == "horizontal") {
-        dir = FluxDir::Horizontal;
-    }
     if (fluxType == "Uniform") {
         std::string isLogStr = ReadValue("is_log:", configPath);
         isLogBin = isLogStr == "1" || isLogStr == "true";
     }
 
-    area = Area_cm2(Sizes::modelRadius, Sizes::modelHeight, dir);
+    area = genSurface.Norm_cm2();
     runManager->SetUserInitialization(new ActionInitialization(area));
     runManager->Initialize();
 
     visManager = new G4VisExecutive;
     visManager->Initialize();
+    genSurfaceVis = new GenSurfaceVis;
+    visManager->RegisterRunDurationUserVisAction("GenSurface", genSurfaceVis, GenSurfaceVis::Extent());
     G4UImanager* UImanager = G4UImanager::GetUIpointer();
 
     if (!useUI) {
@@ -187,6 +202,7 @@ Loader::Loader(int argc, char** argv) {
 Loader::~Loader() {
     delete runManager;
     delete visManager;
+    delete genSurfaceVis;
 }
 
 
@@ -312,13 +328,48 @@ void Loader::SaveConfig() const {
 
     std::ostringstream buf;
 
-    buf << "N: " << N << "\n\n";
+    buf << "N: " << N << "\n";
+    buf << "Seed: " << seed << "\n\n";
     buf << "Detector_type: " << detectorType << "\n";
     buf << "Crystal_SiPM_configuration: " << crystalSiPMConfig << "\n";
     buf << "Tyvek_surface: " << (polishedTyvek ? "polished" : "diffuse") << "\n\n";
     buf << "Use_optics: " << useOptics << "\n\n";
     buf << "Flux_type: " << fluxType << "\n";
-    buf << "Flux_dir: " << fluxDirection << "\n";
+    buf << "Flux_dir: " << fluxDirection << "\n\n";
+
+    buf << "Generation_surface:\n{\n\t";
+    buf << "shape: " << genSurface.ShapeName() << ",\n\t";
+    buf << "centre: (" << genSurface.Origin().x() / mm << ", " << genSurface.Origin().y() / mm << ", "
+        << genSurface.Origin().z() / mm << ") mm,\n\t";
+    buf << "cylinder_radius: " << genSurface.CylinderRadius() / mm << " mm,\n\t";
+    buf << "cylinder_half_height: " << genSurface.CylinderHalfHeight() / mm << " mm,\n\t";
+    if (genSurface.IsIsotropic()) {
+        buf << "R_gen: " << genSurface.Radius() / mm << " mm,\n\t";
+        buf << "geometric_factor: " << genSurface.GeomFactor_cm2sr() << " cm^2*sr\n";
+    } else if (genSurface.IsPoint()) {
+        buf << "theta: " << genSurface.Theta() / deg << " deg,\n\t";
+        buf << "phi: " << genSurface.Phi() / deg << " deg,\n\t";
+        buf << "axis: (" << genSurface.Axis().x() << ", " << genSurface.Axis().y() << ", "
+            << genSurface.Axis().z() << "),\n\t";
+        buf << "source_radius: " << genSurface.SourceRadius() / mm << " mm,\n\t";
+        buf << "source_position: (" << genSurface.SourcePosition().x() / mm << ", "
+            << genSurface.SourcePosition().y() / mm << ", " << genSurface.SourcePosition().z() / mm << ") mm";
+        if (genSurface.IsCone()) {
+            buf << ",\n\tcone_half_angle: " << genSurface.ConeAngle() / deg << " deg,\n\t";
+            buf << "solid_angle_fraction: " << genSurface.ConeSolidAngleFraction();
+        }
+        buf << "\n";
+    } else {
+        buf << "theta: " << genSurface.Theta() / deg << " deg,\n\t";
+        buf << "phi: " << genSurface.Phi() / deg << " deg,\n\t";
+        buf << "axis: (" << genSurface.Axis().x() << ", " << genSurface.Axis().y() << ", "
+            << genSurface.Axis().z() << "),\n\t";
+        buf << "half_u: " << genSurface.HalfU() / mm << " mm,\n\t";
+        buf << "half_v: " << genSurface.HalfV() / mm << " mm,\n\t";
+        buf << "standoff: " << genSurface.Standoff() / mm << " mm,\n\t";
+        buf << "S_perp: " << genSurface.SPerp_cm2() << " cm^2\n";
+    }
+    buf << "}\n\n";
 
     buf << "Flux_params:\n{\n\t";
     if (fluxType == "PLAW") {
@@ -404,52 +455,72 @@ void Loader::SaveConfig() const {
         buf << "Weight_for_8: " << weight8 << "\n\n";
     }
 
-    std::string area_dim = fluxDirection.find("isotropic") != std::string::npos ? " sr * cm^2" : " cm^2";
-    std::string area_dim_inv = fluxDirection.find("isotropic") != std::string::npos ? " sr^-1 * cm^-2" : " cm^-2";
+    auto efficiencyBlock = [&](const std::string& title, const G4int only, const G4int withVeto) {
+        const G4double eff = N > 0 ? static_cast<G4double>(only) / N : 0.;
+        const G4double effBoth = N > 0 ? static_cast<G4double>(only + withVeto) / N : 0.;
+        buf << title << ":\n{\n\t";
+        buf << "Crystal_only: " << eff << "\n\t";
+        buf << "Both: " << effBoth;
+        if (genSurface.IsCone()) {
+            buf << "\n\tSolid_angle_fraction: " << genSurface.ConeSolidAngleFraction() << "\n\t";
+            buf << "Absolute_Crystal_only: " << eff * genSurface.ConeSolidAngleFraction() << "\n\t";
+            buf << "Absolute_Both: " << effBoth * genSurface.ConeSolidAngleFraction();
+        }
+        buf << "\n}\n\n";
+    };
 
-    buf << "Rates:\n{\n\t";
-    buf << std::fixed << std::setprecision(6);
-    if (rate_ok) {
-        buf << "Area: " << area << area_dim << "\n\t";
-        buf << "Integral: " << rr.integral / (fluxType == "Galactic" ? 10000 : 1) << area_dim_inv << " * s^-1\n\t";
-        buf << "Ndot: " << rr.Ndot << " s^-1\n\t";
-        buf << "Rate_Crystal_only: " << rr.rateCrystal << " s^-1\n\t";
-        buf << "Rate_Both: " << rr.rateBoth << " s^-1\n\t";
+    if (genSurface.IsPoint()) {
+        buf << std::defaultfloat << std::setprecision(6);
+        efficiencyBlock("Efficiency", crystalOnly, crystalAndVeto);
+        if (useOptics) efficiencyBlock("Optical_efficiency", crystalOnlyOpt, crystalAndVetoOpt);
     } else {
-        buf << "Area: NaN\n\t";
-        buf << "Integral: NaN\n\t";
-        buf << "Ndot: NaN\n\t";
-        buf << "Rate_Crystal_only: NaN\n\t";
-        buf << "Rate_Both: NaN\n\t";
-    }
-    if (rate_real_ok) {
-        buf << "Rate_Real: " << rrReal.rateRealCrystal << " s^-1\n";
-    } else {
-        buf << "Rate_Real: NaN\n";
-    }
-    buf << "}\n\n";
+        std::string area_dim = genSurface.IsIsotropic() ? " sr * cm^2" : " cm^2";
+        std::string area_dim_inv = genSurface.IsIsotropic() ? " sr^-1 * cm^-2" : " cm^-2";
 
-    buf << "Optical_rates:\n{\n\t";
-    buf << std::fixed << std::setprecision(6);
-    if (rate_opt_ok) {
-        buf << "Area: " << area << area_dim << "\n\t";
-        buf << "Integral: " << rr_opt.integral / (fluxType == "Galactic" ? 10000 : 1) << area_dim_inv << " * s^-1\n\t";
-        buf << "Ndot: " << rr_opt.Ndot << " s^-1\n\t";
-        buf << "Rate_Crystal_only: " << rr_opt.rateCrystal << " s^-1\n\t";
-        buf << "Rate_Both: " << rr_opt.rateBoth << " s^-1\n\t";
-    } else {
-        buf << "Area: NaN\n\t";
-        buf << "Integral: NaN\n\t";
-        buf << "Ndot: NaN\n\t";
-        buf << "Rate_Crystal_only: NaN\n\t";
-        buf << "Rate_Both: NaN\n\t";
+        buf << "Rates:\n{\n\t";
+        buf << std::fixed << std::setprecision(6);
+        if (rate_ok) {
+            buf << "Area: " << area << area_dim << "\n\t";
+            buf << "Integral: " << rr.integral / (fluxType == "Galactic" ? 10000 : 1) << area_dim_inv << " * s^-1\n\t";
+            buf << "Ndot: " << rr.Ndot << " s^-1\n\t";
+            buf << "Rate_Crystal_only: " << rr.rateCrystal << " s^-1\n\t";
+            buf << "Rate_Both: " << rr.rateBoth << " s^-1\n\t";
+        } else {
+            buf << "Area: NaN\n\t";
+            buf << "Integral: NaN\n\t";
+            buf << "Ndot: NaN\n\t";
+            buf << "Rate_Crystal_only: NaN\n\t";
+            buf << "Rate_Both: NaN\n\t";
+        }
+        if (rate_real_ok) {
+            buf << "Rate_Real: " << rrReal.rateRealCrystal << " s^-1\n";
+        } else {
+            buf << "Rate_Real: NaN\n";
+        }
+        buf << "}\n\n";
+
+        buf << "Optical_rates:\n{\n\t";
+        buf << std::fixed << std::setprecision(6);
+        if (rate_opt_ok) {
+            buf << "Area: " << area << area_dim << "\n\t";
+            buf << "Integral: " << rr_opt.integral / (fluxType == "Galactic" ? 10000 : 1) << area_dim_inv << " * s^-1\n\t";
+            buf << "Ndot: " << rr_opt.Ndot << " s^-1\n\t";
+            buf << "Rate_Crystal_only: " << rr_opt.rateCrystal << " s^-1\n\t";
+            buf << "Rate_Both: " << rr_opt.rateBoth << " s^-1\n\t";
+        } else {
+            buf << "Area: NaN\n\t";
+            buf << "Integral: NaN\n\t";
+            buf << "Ndot: NaN\n\t";
+            buf << "Rate_Crystal_only: NaN\n\t";
+            buf << "Rate_Both: NaN\n\t";
+        }
+        if (rate_real_opt_ok) {
+            buf << "Rate_Real: " << rrReal_opt.rateRealCrystal << " s^-1\n";
+        } else {
+            buf << "Rate_Real: NaN\n";
+        }
+        buf << "}\n\n";
     }
-    if (rate_real_opt_ok) {
-        buf << "Rate_Real: " << rrReal_opt.rateRealCrystal << " s^-1\n";
-    } else {
-        buf << "Rate_Real: NaN\n";
-    }
-    buf << "}\n\n";
 
     auto sanitize = [](std::string ss) {
         for (char& c : ss) if (c == ' ') c = '_';
@@ -460,13 +531,12 @@ void Loader::SaveConfig() const {
     if (fluxType == "Galactic") {
         const std::string part = ReadValue("particle:");
         const std::string phi = ReadValue("phiMV:");
-        filename += "_particle:" + part + "_phiMV:" + phi + ".txt";
+        filename += "_particle:" + part + "_phiMV:" + phi;
     } else if (fluxType == "Uniform") {
         const std::string part = ReadValue("particles:");
-        filename += "_particle:" + part + ".txt";
-    } else {
-        filename += ".txt";
+        filename += "_particle:" + part;
     }
+    filename += "_" + GenSurface::DirectionTag() + ".txt";
     filename = sanitize(filename);
 
     std::ofstream out(filename);
@@ -503,12 +573,13 @@ void Loader::RunPostProcessing() const {
         } else if (fluxType == "SEP") {
             part = "proton";
         }
+        outDir += "_" + GenSurface::DirectionTag();
         outDir = sanitize(outDir);
         PostProcessing postProcessing(outDir, part);
 
         postProcessing.ExtractNtData();
         if (Emin < Emax) {
-            if (fluxDirection.find("isotropic") != std::string::npos)
+            if (genSurface.IsIsotropic())
                 postProcessing.SaveSensitivity();
             else
                 postProcessing.SaveEffArea();

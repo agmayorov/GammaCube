@@ -68,10 +68,6 @@ double fluxGalactic(double E);
 
 double J_proton(double E_GeV);
 
-enum class FluxDir { Vertical_down, Vertical_up, Horizontal, Isotropic_up, Isotropic_down, Isotropic };
-
-double Area_cm2(double R_mm, double H_mm, FluxDir dir);
-
 double integrateAdaptiveSimpson(const std::function<double(double)>& f,
                                 double a, double b,
                                 double rel_tol = 1e-6, int max_depth = 20);
