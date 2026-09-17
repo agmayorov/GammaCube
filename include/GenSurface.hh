@@ -18,6 +18,7 @@ public:
     static void PayloadExtent(G4double& radius, G4double& zMin, G4double& zMax);
     static G4ThreeVector PayloadCentre();
     static G4double BoundingRadius();
+    static G4double MinSourceRadius(G4double z);
     static G4ThreeVector Arrival(G4double theta, G4double phi);
     static G4String DirectionTag();
     static G4double Margin() { return 5. * mm; }

@@ -15,6 +15,7 @@ namespace Configuration
     inline G4double beamTheta{0.};
     inline G4double beamPhi{0.};
     inline G4double sourceZ{0.};
+    inline G4double sourceR{-1.};
     inline G4double coneAngle{180. * deg};
 
     inline G4long seed{0};

@@ -44,6 +44,21 @@ G4double GenSurface::BoundingRadius() {
 }
 
 
+G4double GenSurface::MinSourceRadius(const G4double z) {
+    G4double r, zMin, zMax;
+    PayloadExtent(r, zMin, zMax);
+
+    const G4double plateTop = -modelHeight / 2.0;
+    const G4double plateBottom = plateTop - plateThick;
+    const G4double plateHalf = plateSize / 2.0 + plateCornerSize;
+
+    G4double rMin = 0.;
+    if (z > zMin - Margin() && z < zMax + Margin()) rMin = r + Margin();
+    if (z > plateBottom - Margin() && z < plateTop + Margin()) rMin = std::sqrt(2.0) * plateHalf + Margin();
+    return rMin;
+}
+
+
 G4ThreeVector GenSurface::Arrival(const G4double theta, const G4double phi) {
     return {std::sin(theta) * std::cos(phi), std::sin(theta) * std::sin(phi), std::cos(theta)};
 }
@@ -54,7 +69,9 @@ G4String GenSurface::DirectionTag() {
 
     std::ostringstream ss;
     ss << fluxDirection << "_t" << beamTheta / deg << "_p" << beamPhi / deg;
-    if (fluxDirection == "point_beam" || fluxDirection == "point_iso") ss << "_z" << sourceZ / mm;
+    if (fluxDirection == "point_beam" || fluxDirection == "point_iso") {
+        ss << "_r" << (sourceR < 0. ? BoundingRadius() : sourceR) / mm << "_z" << sourceZ / mm;
+    }
     if (fluxDirection == "point_iso") ss << "_c" << Configuration::coneAngle / deg;
     return ss.str();
 }
@@ -93,7 +110,14 @@ GenSurface GenSurface::For(const G4String& fluxDirection) {
             G4Exception("GenSurface::For", "ConeAngle", FatalException, "Cone angle must be in (0, 180] deg");
         }
         s.shape = fluxDirection == "point_beam" ? Shape::PointBeam : Shape::PointIso;
-        s.sourceRadius = BoundingRadius();
+        s.sourceRadius = sourceR < 0. ? BoundingRadius() : sourceR;
+        if (s.sourceRadius < MinSourceRadius(sourceZ)) {
+            std::ostringstream msg;
+            msg << "Point source at r = " << s.sourceRadius / mm << " mm, z = " << sourceZ / mm
+                << " mm is inside or too close to the model. Minimal radius at this height: "
+                << MinSourceRadius(sourceZ) / mm << " mm";
+            G4Exception("GenSurface::For", "SourceRadius", FatalException, msg.str().c_str());
+        }
         s.sourcePosition = G4ThreeVector(s.sourceRadius * std::cos(s.phi), s.sourceRadius * std::sin(s.phi), sourceZ);
         s.coneAngle = s.shape == Shape::PointIso ? Configuration::coneAngle : 0.;
         return s;

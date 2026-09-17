@@ -74,6 +74,8 @@ Loader::Loader(int argc, char** argv) {
             weight4 = std::stod(argv[i + 1]);
         } else if (input == "-w8" || input == "--weight8") {
             weight8 = std::stod(argv[i + 1]);
+        } else if (input == "--source-r") {
+            sourceR = std::stod(argv[i + 1]) * mm;
         } else if (input == "--source-z") {
             sourceZ = std::stod(argv[i + 1]) * mm;
         } else if (input == "--cone") {

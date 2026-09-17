@@ -167,7 +167,7 @@ void GenSurfaceVis::DrawSphere(G4VVisManager* vis, const GenSurface& s) {
 void GenSurfaceVis::DrawPoint(G4VVisManager* vis, const GenSurface& s) {
     const G4ThreeVector p = s.SourcePosition();
     const G4ThreeVector axis = s.Axis();
-    const G4double length = 0.5 * s.SourceRadius();
+    const G4double length = 0.5 * GenSurface::BoundingRadius();
 
     G4Circle marker(p);
     marker.SetScreenSize(8.);
