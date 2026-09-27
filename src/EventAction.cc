@@ -6,8 +6,8 @@ using namespace Configuration;
 EventAction::EventAction(AnalysisManager* an, RunAction* r) : analysisManager(an), run(r) {
     detMap = {
         {"DetectorSD/EdepHits", 0, "Crystal"},
-        {"VetoSD/EdepHits", 1, "Veto"},
-        {"BottomVetoSD/EdepHits", 2, "BottomVeto"},
+        // {"VetoSD/EdepHits", 1, "Veto"},
+        // {"BottomVetoSD/EdepHits", 2, "BottomVeto"},
     };
     HCIDs.assign(detMap.size(), -1);
 }

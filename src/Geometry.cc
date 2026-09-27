@@ -151,12 +151,12 @@ void Geometry::ConstructDetector() {
     detector->Construct();
     std::vector<G4LogicalVolume*> sensitiveLV = detector->GetSensitiveLV();
     crystalLV = sensitiveLV.at(0);
-    vetoLV = sensitiveLV.at(1);
-    bottomVetoLV = sensitiveLV.at(2);
-    tyvekOutLV = sensitiveLV.at(3);
-    tyvekMidLV = sensitiveLV.at(4);
-    tyvekInLV = sensitiveLV.at(5);
-    tyvekBottomLV = sensitiveLV.at(6);
+    // vetoLV = sensitiveLV.at(1);
+    // bottomVetoLV = sensitiveLV.at(2);
+    // tyvekOutLV = sensitiveLV.at(3);
+    // tyvekMidLV = sensitiveLV.at(4);
+    // tyvekInLV = sensitiveLV.at(5);
+    // tyvekBottomLV = sensitiveLV.at(6);
 }
 
 
@@ -181,7 +181,7 @@ G4VPhysicalVolume* Geometry::Construct() {
     worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
     ConstructDetector();
-    ConstructTunaCan();
+    // ConstructTunaCan();
 
     return worldPVP;
 }
@@ -208,13 +208,13 @@ void Geometry::ConstructSDandField() {
     sdManager->AddNewDetector(detectorSD);
     crystalLV->SetSensitiveDetector(detectorSD);
 
-    auto* vetoSD = new SensitiveDetector("VetoSD", 1, "Veto");
-    sdManager->AddNewDetector(vetoSD);
-    vetoLV->SetSensitiveDetector(vetoSD);
-
-    auto* bottomVetoSD = new SensitiveDetector("BottomVetoSD", 2, "BottomVeto");
-    sdManager->AddNewDetector(bottomVetoSD);
-    bottomVetoLV->SetSensitiveDetector(bottomVetoSD);
+    // auto* vetoSD = new SensitiveDetector("VetoSD", 1, "Veto");
+    // sdManager->AddNewDetector(vetoSD);
+    // vetoLV->SetSensitiveDetector(vetoSD);
+    //
+    // auto* bottomVetoSD = new SensitiveDetector("BottomVetoSD", 2, "BottomVeto");
+    // sdManager->AddNewDetector(bottomVetoSD);
+    // bottomVetoLV->SetSensitiveDetector(bottomVetoSD);
 
     if (useOptics) {
         auto* sipmSD = new SiPMOpticalSD("SiPMOpticalSD");

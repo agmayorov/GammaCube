@@ -295,8 +295,8 @@ void Detector::Construct() {
     ConstructCrystal();
     ConstructSiPM();
     ConstructCrystalSiPM();
-    ConstructBottomVetoSiPM();
-    ConstructVetoSiPM();
+    // ConstructBottomVetoSiPM();
+    // ConstructVetoSiPM();
     ConstructOpticalSurfaces();
 }
 
@@ -345,8 +345,8 @@ void Detector::ConstructVeto() {
     G4VSolid* tyvekOut = new G4UnionSolid("TyvekOut", tyvekOutTop, tyvekOutWall, nullptr, -tyvekOutTopPos);
 
     tyvekOutLV = new G4LogicalVolume(tyvekOut, tyvekMat, "TyvekOutLV");
-    tyvekOutPVP = new G4PVPlacement(nullptr, tyvekOutPos + tyvekOutTopPos, tyvekOutLV, "TyvekOutPVP", detContainerLV,
-                                    false, 0, true);
+    // tyvekOutPVP = new G4PVPlacement(nullptr, tyvekOutPos + tyvekOutTopPos, tyvekOutLV, "TyvekOutPVP", detContainerLV,
+                                    // false, 0, true);
     tyvekOutLV->SetVisAttributes(visTyvekOut);
 
     // Veto
@@ -395,7 +395,7 @@ void Detector::ConstructVeto() {
     G4VSolid* veto = new G4UnionSolid("Veto", vetoTop, vetoWall, nullptr, -vetoTopPos);
 
     vetoLV = new G4LogicalVolume(veto, vetoMat, "VetoLV");
-    vetoPVP = new G4PVPlacement(nullptr, vetoPos + vetoTopPos, vetoLV, "VetoPVP", detContainerLV, false, 0, true);
+    // vetoPVP = new G4PVPlacement(nullptr, vetoPos + vetoTopPos, vetoLV, "VetoPVP", detContainerLV, false, 0, true);
     vetoLV->SetVisAttributes(visVeto);
 
     // Tyvek Mid
@@ -409,7 +409,7 @@ void Detector::ConstructVeto() {
     G4VSolid* tyvekMid = new G4UnionSolid("TyvekMid", tyvekMidWall, tyvekMidTop, nullptr, tyvekMidTopPos);
 
     tyvekMidLV = new G4LogicalVolume(tyvekMid, tyvekMat, "TyvekMidLV");
-    tyvekMidPVP = new G4PVPlacement(nullptr, tyvekMidPos, tyvekMidLV, "TyvekMidPVP", detContainerLV, false, 0, true);
+    // tyvekMidPVP = new G4PVPlacement(nullptr, tyvekMidPos, tyvekMidLV, "TyvekMidPVP", detContainerLV, false, 0, true);
     tyvekMidLV->SetVisAttributes(visTyvekMid);
 
     // Optic Layer for Veto
@@ -418,9 +418,9 @@ void Detector::ConstructVeto() {
     vetoOpticLayerLV = new G4LogicalVolume(vetoOpticLayer, opticLayerMat, "VetoOpticLayerLV");
     G4ThreeVector vetoOpticLayerPos = tyvekOutPos + G4ThreeVector(0, 0, -tyvekOutSize.z() - (vetoOpticLayerHeight -
                                                                       vetoChamferHeight - vetoTopRoundedRadius) / 2.0);
-    vetoOpticLayerPVP = new G4PVPlacement(nullptr, vetoOpticLayerPos, vetoOpticLayerLV, "VetoOpticLayerPVP",
-                                          detContainerLV, false, 0,
-                                          true);
+    // vetoOpticLayerPVP = new G4PVPlacement(nullptr, vetoOpticLayerPos, vetoOpticLayerLV, "VetoOpticLayerPVP",
+                                          // detContainerLV, false, 0,
+                                          // true);
     vetoOpticLayerLV->SetVisAttributes(visOpticLayer);
 }
 
@@ -431,7 +431,7 @@ void Detector::ConstructShell() {
                                             vetoThickTop - tyvekMidThickTop);
     G4VSolid* rubber = new G4Tubs("Rubber", 0, tyvekMidSize.x(), rubberHeight / 2., 0, viewDeg);
     G4LogicalVolume* rubberLV = new G4LogicalVolume(rubber, rubberMat, "RubberLV");
-    new G4PVPlacement(nullptr, rubberPos, rubberLV, "RubberPVP", detContainerLV, false, 0, true);
+    // new G4PVPlacement(nullptr, rubberPos, rubberLV, "RubberPVP", detContainerLV, false, 0, true);
     rubberLV->SetVisAttributes(visRubber);
 
     // Core Logical volume for all core components
@@ -459,13 +459,13 @@ void Detector::ConstructShell() {
                                      viewDeg);
     G4LogicalVolume* shellWallLV = new G4LogicalVolume(shellWall, AlMat, "ShellWallLV");
     G4ThreeVector shellWallPos = G4ThreeVector(0, 0, 0);
-    new G4PVPlacement(nullptr, shellWallPos, shellWallLV, "ShellWallPVP", coreLV, false, 0, true);
+    // new G4PVPlacement(nullptr, shellWallPos, shellWallLV, "ShellWallPVP", coreLV, false, 0, true);
     shellWallLV->SetVisAttributes(visShell);
 
     G4VSolid* shellTop = new G4Tubs("ShellTop", 0, shellWallSize.x(), shellThickTop / 2., 0, viewDeg);
     G4ThreeVector shellTopPos = G4ThreeVector(0, 0, (shellWallSize.z() - shellThickTop) / 2.);
     G4LogicalVolume* shellTopLV = new G4LogicalVolume(shellTop, AlMat, "ShellTopLV");
-    new G4PVPlacement(nullptr, shellTopPos, shellTopLV, "ShellTopPVP", coreLV, false, 0, true);
+    // new G4PVPlacement(nullptr, shellTopPos, shellTopLV, "ShellTopPVP", coreLV, false, 0, true);
     shellTopLV->SetVisAttributes(visShell);
 
     G4ThreeVector shellBottomSize = G4ThreeVector(shellWallSize.x(), bottomCapInnerRadius,
@@ -474,7 +474,7 @@ void Detector::ConstructShell() {
                                        viewDeg);
     G4ThreeVector shellBottomPos = coreBottomPos;
     G4LogicalVolume* shellBottomLV = new G4LogicalVolume(shellBottom, AlMat, "ShellBottomLV");
-    new G4PVPlacement(nullptr, shellBottomPos, shellBottomLV, "ShellBottomPVP", coreLV, false, 0, true);
+    // new G4PVPlacement(nullptr, shellBottomPos, shellBottomLV, "ShellBottomPVP", coreLV, false, 0, true);
     shellBottomLV->SetVisAttributes(visShell);
 
     G4ThreeVector shellTabSize = G4ThreeVector(shellWallSize.x() - shellTabLength, shellWallSize.x(),
@@ -484,7 +484,7 @@ void Detector::ConstructShell() {
         + GasketHeight;
     G4ThreeVector shellTabPos = G4ThreeVector(0, 0, shellWallSize.z() / 2. - shellTabDepth - shellTabHeight / 2.);
     G4LogicalVolume* shellTabLV = new G4LogicalVolume(shellTab, AlMat, "ShellTabLV");
-    new G4PVPlacement(nullptr, shellTabPos, shellTabLV, "ShellTabPVP", coreLV, false, 0, true);
+    // new G4PVPlacement(nullptr, shellTabPos, shellTabLV, "ShellTabPVP", coreLV, false, 0, true);
     shellTabLV->SetVisAttributes(visAl);
 
     // Rubber Gasket between Crystal and SiPM Holder
@@ -492,7 +492,7 @@ void Detector::ConstructShell() {
     G4VSolid* Gasket = new G4Tubs("GasketTab", GasketSize.x(), GasketSize.y(), GasketSize.z(), 0, viewDeg);
     G4ThreeVector GasketPos = G4ThreeVector(0, 0, shellWallSize.z() / 2. - shellTabDepth + GasketHeight / 2.);
     G4LogicalVolume* GasketLV = new G4LogicalVolume(Gasket, rubberMat, "GasketLV");
-    new G4PVPlacement(nullptr, GasketPos, GasketLV, "GasketPVP", coreLV, false, 0, true);
+    // new G4PVPlacement(nullptr, GasketPos, GasketLV, "GasketPVP", coreLV, false, 0, true);
     GasketLV->SetVisAttributes(visAl);
 }
 
@@ -508,7 +508,7 @@ void Detector::ConstructBottomVeto() {
     G4VSolid* bottomVetoShell = new G4Tubs("BottomVetoShell", bottomVetoShellSize.x(), bottomVetoShellSize.y(),
                                            bottomVetoShellSize.z(), 0, viewDeg);
     G4LogicalVolume* bottomVetoShellLV = new G4LogicalVolume(bottomVetoShell, AlMat, "BottomVetoShellLV");
-    new G4PVPlacement(nullptr, bottomVetoShellPos, bottomVetoShellLV, "BottomVetoShellPVP", coreLV, false, 0, true);
+    // new G4PVPlacement(nullptr, bottomVetoShellPos, bottomVetoShellLV, "BottomVetoShellPVP", coreLV, false, 0, true);
     bottomVetoShellLV->SetVisAttributes(visShell);
 
     G4ThreeVector bottomVetoShellTabSize = G4ThreeVector(bottomVetoShellSize.x() - bottomVetoShellTabLength,
@@ -520,8 +520,8 @@ void Detector::ConstructBottomVeto() {
                                                                                  bottomVetoShellTabHeight) / 2. -
                                                                              bottomVetoHeight - tyvekBottomThickTop);
     G4LogicalVolume* bottomVetoShellTabLV = new G4LogicalVolume(bottomVetoShellTab, AlMat, "BottomVetoShellTabLV");
-    new G4PVPlacement(nullptr, bottomVetoShellTabPos, bottomVetoShellTabLV, "BottomVetoShellTabPVP", coreLV, false, 0,
-                      true);
+    // new G4PVPlacement(nullptr, bottomVetoShellTabPos, bottomVetoShellTabLV, "BottomVetoShellTabPVP", coreLV, false, 0,
+                      // true);
     bottomVetoShellTabLV->SetVisAttributes(visAl);
 
     // Bottom Tyvek
@@ -539,15 +539,15 @@ void Detector::ConstructBottomVeto() {
                                              tyvekBottomTopPos);
 
     tyvekBottomLV = new G4LogicalVolume(tyvekBottom, tyvekMat, "TyvekBottomLV");
-    tyvekBottomPVP = new G4PVPlacement(nullptr, tyvekBottomPos, tyvekBottomLV, "TyvekBottomPVP", coreLV, false, 0,
-                                       true);
+    // tyvekBottomPVP = new G4PVPlacement(nullptr, tyvekBottomPos, tyvekBottomLV, "TyvekBottomPVP", coreLV, false, 0,
+                                       // true);
     tyvekBottomLV->SetVisAttributes(visTyvekBottom);
 
     // Bottom Veto
     G4ThreeVector bottomVetoPos = tyvekBottomPos - G4ThreeVector(0, 0, tyvekBottomThickTop / 2.0);
     G4VSolid* bottomVeto = new G4Tubs("BottomVeto", 0., bottomVetoRadius, bottomVetoHeight / 2., 0, viewDeg);
     bottomVetoLV = new G4LogicalVolume(bottomVeto, vetoMat, "BottomVetoLV");
-    bottomVetoPVP = new G4PVPlacement(nullptr, bottomVetoPos, bottomVetoLV, "BottomVetoPVP", coreLV, false, 0, true);
+    // bottomVetoPVP = new G4PVPlacement(nullptr, bottomVetoPos, bottomVetoLV, "BottomVetoPVP", coreLV, false, 0, true);
     bottomVetoLV->SetVisAttributes(visVeto);
 
     // Optic Layer for Bottom Veto
@@ -556,8 +556,8 @@ void Detector::ConstructBottomVeto() {
     bottomVetoOpticLayerLV = new G4LogicalVolume(bottomVetoOpticLayer, opticLayerMat, "BottomVetoOpticLayerLV");
     G4ThreeVector bottomVetoOpticLayerPos = bottomVetoShellTabPos + G4ThreeVector(
      0, 0, (bottomVetoShellTabHeight - bottomVetoOpticLayerHeight) / 2.0);
-    bottomVetoOpticLayerPVP = new G4PVPlacement(nullptr, bottomVetoOpticLayerPos, bottomVetoOpticLayerLV,
-                                                "BottomVetoOpticLayerPVP", coreLV, false, 0, true);
+    // bottomVetoOpticLayerPVP = new G4PVPlacement(nullptr, bottomVetoOpticLayerPos, bottomVetoOpticLayerLV,
+                                                // "BottomVetoOpticLayerPVP", coreLV, false, 0, true);
     bottomVetoOpticLayerLV->SetVisAttributes(visOpticLayer);
 }
 
@@ -682,13 +682,13 @@ void Detector::ConstructHolder(G4ThreeVector& refPos, const G4String& prefix) {
                                       viewDeg);
     G4ThreeVector holderWallPos = refPos + G4ThreeVector(0, 0, holderHeight / 2.);
     G4LogicalVolume* holderWallLV = new G4LogicalVolume(holderWall, AlMat, prefix + "HolderWallLV");
-    new G4PVPlacement(nullptr, holderWallPos, holderWallLV, prefix + "HolderWallPVP", coreLV, false, 0, true);
+    // new G4PVPlacement(nullptr, holderWallPos, holderWallLV, prefix + "HolderWallPVP", coreLV, false, 0, true);
     holderWallLV->SetVisAttributes(visHolder);
 
     G4VSolid* holderBottom = new G4Tubs(prefix + "HolderBottom", 0, holderSize.x(), holderThickBottom / 2., 0, viewDeg);
     G4ThreeVector holderBottomPos = refPos + G4ThreeVector(0, 0, holderThickBottom / 2.);
     G4LogicalVolume* holderBottomLV = new G4LogicalVolume(holderBottom, AlMat, prefix + "HolderBottomLV");
-    new G4PVPlacement(nullptr, holderBottomPos, holderBottomLV, prefix + "HolderBottomPVP", coreLV, false, 0, true);
+    // new G4PVPlacement(nullptr, holderBottomPos, holderBottomLV, prefix + "HolderBottomPVP", coreLV, false, 0, true);
     holderBottomLV->SetVisAttributes(visHolder);
 
     // Spring holder
@@ -719,7 +719,7 @@ void Detector::ConstructHolder(G4ThreeVector& refPos, const G4String& prefix) {
     G4VSolid* springHolder = new G4SubtractionSolid("SpringHolder", springHolderIncomplete, cutterY);
     G4ThreeVector springHolderPos = refPos + G4ThreeVector(0, 0, holderThickBottom + springHolderHeight / 2.);
     G4LogicalVolume* springHolderLV = new G4LogicalVolume(springHolder, AlMat, prefix + "SpringHolderLV");
-    new G4PVPlacement(nullptr, springHolderPos, springHolderLV, prefix + "SpringHolderPVP", coreLV, false, 0, true);
+    // new G4PVPlacement(nullptr, springHolderPos, springHolderLV, prefix + "SpringHolderPVP", coreLV, false, 0, true);
     springHolderLV->SetVisAttributes(visHolder);
 
     // Board
@@ -736,7 +736,7 @@ void Detector::ConstructHolder(G4ThreeVector& refPos, const G4String& prefix) {
     G4ThreeVector payloadPos = refPos + G4ThreeVector(0, 0, holderThickBottom + springLength - payloadHeight / 2.);
     G4VSolid* payload = new G4Box(prefix + "Payload", payloadLength / 2., payloadWidth / 2., payloadHeight / 2.);
     G4LogicalVolume* payloadLV = new G4LogicalVolume(payload, payloadMat, prefix + "PayloadLV");
-    new G4PVPlacement(nullptr, payloadPos, payloadLV, prefix + "PayloadPVP", coreLV, false, 0, true);
+    // new G4PVPlacement(nullptr, payloadPos, payloadLV, prefix + "PayloadPVP", coreLV, false, 0, true);
     payloadLV->SetVisAttributes(visPayload);
 }
 
@@ -1041,21 +1041,21 @@ void Detector::ConstructOpticalSurfaces() {
     // 1) Crystal <-> TyvekIn
     AddBidirectionalBorder("CrystalToTyvekIn", "TyvekInToCrystal", crystalPVP, tyvekInPVP, tyvekSurf);
 
-    // 2) Veto <-> TyvekMid
-    AddBidirectionalBorder("VetoToTyvekMid", "TyvekMidToVeto", vetoPVP, tyvekMidPVP, tyvekSurf);
-    // 3) Veto <-> TyvekOut
-    AddBidirectionalBorder("VetoToTyvekOut", "TyvekOutToVeto", vetoPVP, tyvekOutPVP, tyvekSurf);
-
-    // 4) Bottom Veto <-> TyvekBottom
-    AddBidirectionalBorder("BottomVetoToTyvekBottom", "TyvekBottomToBottomVeto", bottomVetoPVP, tyvekBottomPVP,
-                           tyvekSurf);
+    // // 2) Veto <-> TyvekMid
+    // AddBidirectionalBorder("VetoToTyvekMid", "TyvekMidToVeto", vetoPVP, tyvekMidPVP, tyvekSurf);
+    // // 3) Veto <-> TyvekOut
+    // AddBidirectionalBorder("VetoToTyvekOut", "TyvekOutToVeto", vetoPVP, tyvekOutPVP, tyvekSurf);
+    //
+    // // 4) Bottom Veto <-> TyvekBottom
+    // AddBidirectionalBorder("BottomVetoToTyvekBottom", "TyvekBottomToBottomVeto", bottomVetoPVP, tyvekBottomPVP,
+    //                        tyvekSurf);
 
     // 5) Crystal SiPM Container <-> Crystal SiPM Board
     AddBidirectionalBorder("CrystalSiPMToBoard", "BoardToCrystalSiPM", crystalSiPMContPVP, crystalSiPMBoardPVP,
                            tyvekSurf);
-    // 6) Bottom Veto SiPM Container <-> Bottom Veto SiPM Board
-    AddBidirectionalBorder("BottomVetoSiPMToBoard", "BoardToBottomVetoSiPM", bottomVetoSiPMContPVP,
-                           bottomVetoSiPMBoardPVP, tyvekSurf);
-    // 7) Veto SiPM Container <-> Veto SiPM Board
-    AddBidirectionalBorder("VetoSiPMToBoard", "BoardToVetoSiPM", vetoSiPMContPVP, vetoSiPMBoardPVP, tyvekSurf);
+    // // 6) Bottom Veto SiPM Container <-> Bottom Veto SiPM Board
+    // AddBidirectionalBorder("BottomVetoSiPMToBoard", "BoardToBottomVetoSiPM", bottomVetoSiPMContPVP,
+    //                        bottomVetoSiPMBoardPVP, tyvekSurf);
+    // // 7) Veto SiPM Container <-> Veto SiPM Board
+    // AddBidirectionalBorder("VetoSiPMToBoard", "BoardToVetoSiPM", vetoSiPMContPVP, vetoSiPMBoardPVP, tyvekSurf);
 }
