@@ -1,5 +1,7 @@
 #include "geometry/CubeSat_GeoScan_3U.hh"
 
+#include "geometry/Sizes.hh"
+
 using namespace CubeSatSizes;
 
 CubeSat_GeoScan_3U::CubeSat_GeoScan_3U(G4LogicalVolume* world, G4NistManager* nistManager) : worldLV(world),
@@ -7,10 +9,10 @@ CubeSat_GeoScan_3U::CubeSat_GeoScan_3U(G4LogicalVolume* world, G4NistManager* ni
     DefineVisual();
     DefineMaterial();
 
-    // cubeSat = new G4Box("CubeSat", CubeSat::halfX, CubeSat::halfY,
-    //                     CubeSat::halfZ + CameraSizes::CameraBox::halfZ - Frame::bracketHeight);
+    cubeSat = new G4Box("CubeSat", CubeSat::halfX, CubeSat::halfY,
+                        CubeSat::halfZ + Sizes::modelHeight - Frame::bracketHeight);
 
-    cubeSat = new G4Box("CubeSat", CubeSat::halfX, CubeSat::halfY, CubeSat::halfZ);
+    // cubeSat = new G4Box("CubeSat", CubeSat::halfX, CubeSat::halfY, CubeSat::halfZ);
     cubeSatLV = new G4LogicalVolume(cubeSat, vacuumMat, "CubeSatLV");
     cubeSatLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 }
@@ -34,6 +36,7 @@ void CubeSat_GeoScan_3U::DefineVisual() {
 void CubeSat_GeoScan_3U::DefineMaterial() {
     auto* elH = nist->FindOrBuildElement("H");
     auto* elC = nist->FindOrBuildElement("C");
+    auto* elFe = nist->FindOrBuildElement("F");
 
     G4Material* SiO2 = nist->FindOrBuildMaterial("G4_SILICON_DIOXIDE");
 
@@ -51,7 +54,8 @@ void CubeSat_GeoScan_3U::DefineMaterial() {
         boardMat->AddMaterial(Epoxy, 0.472);
         boardMat->AddMaterial(SiO2, 0.528);
     }
-    mechanicsMat = nist->FindOrBuildMaterial("G4_Fe");
+    mechanicsMat = new G4Material("Mechanics", 1.8 * g / cm3, 1);
+    mechanicsMat->AddElement(elFe, 1);
     vacuumMat = nist->FindOrBuildMaterial("G4_Galactic");
 }
 

@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "CameraSizes.hh"
+#include "geometry/Sizes.hh"
 
 namespace CubeSatSizes
 {
@@ -215,7 +216,7 @@ namespace CubeSatSizes
     }
 
     // const G4double displacement = CameraSizes::CameraBox::halfZ - Frame::bracketHeight;
-    const G4double displacement = 0.0 * mm;
+    const G4double displacement = Sizes::modelHeight - Frame::bracketHeight;
 }
 
 #endif // CUBESATSIZES_HH

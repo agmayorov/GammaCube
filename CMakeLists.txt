@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 17)
 project(${NAME})
 
 #set (CMAKE_PREFIX_PATH /GEANT4/)
-set (CMAKE_PREFIX_PATH /opt/GEANT4/geant4-v11.3.0-install)
+set (CMAKE_PREFIX_PATH /opt/GEANT4/geant4-v11.4.2-install /opt/ROOT/root-install)
 
 option(WITH_GEANT4_UIVIS "Build project with Geant4 UI and Vis drivers" ON)
 if (WITH_GEANT4_UIVIS)

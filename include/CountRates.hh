@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <G4ThreeVector.hh>
 #include <stdexcept>
 #include <cmath>
 #include <fstream>
@@ -12,6 +13,7 @@
 #include <algorithm>
 
 #include "Configuration.hh"
+#include "geometry/CubeSatSizes.hh"
 
 enum class FluxType { PLAW, COMP, SEP, UNIFORM, GALACTIC, TABLE };
 
@@ -70,7 +72,7 @@ double J_proton(double E_GeV);
 
 enum class FluxDir { Vertical_down, Vertical_up, Horizontal, Isotropic_up, Isotropic_down, Isotropic };
 
-double Area_cm2(double R_mm, double H_mm, FluxDir dir);
+double Area_cm2(FluxDir dir);
 
 double integrateAdaptiveSimpson(const std::function<double(double)>& f,
                                 double a, double b,

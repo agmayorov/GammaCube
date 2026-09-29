@@ -119,8 +119,7 @@ namespace  Sizes {
     inline G4int vetoSiPMCount{8};
     inline G4int bottomVetoSiPMCount{4};
 
-    inline G4int shiftZ = 3 * mm;
-
+    inline G4double shiftZ = -49.8 * 3 *mm +12;
 }
 
 #endif //SIZES_HH
