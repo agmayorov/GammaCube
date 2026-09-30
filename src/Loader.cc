@@ -17,7 +17,7 @@ Loader::Loader(int argc, char** argv) {
     oCrystalThreshold = 0 * MeV;
     oVetoThreshold = 0 * MeV;
     outputFile = "GammaCube.root";
-    nBins = 1000;
+    nBins = 100;
     saveSecondaries = false;
     savePhotons = false;
 
@@ -151,7 +151,7 @@ Loader::Loader(int argc, char** argv) {
         isLogBin = isLogStr == "1" || isLogStr == "true";
     }
 
-    area = Area_cm2(Sizes::modelRadius, Sizes::modelHeight, dir);
+    area = Area_cm2(dir);
     runManager->SetUserInitialization(new ActionInitialization(area));
     runManager->Initialize();
 

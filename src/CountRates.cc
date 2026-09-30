@@ -246,17 +246,19 @@ double fluxGalactic(const double E, const double phiMV, const std::string& name)
 
 // ---------------- Area ----------------
 
-double Area_cm2(const double R_mm, const double H_mm, const FluxDir dir) {
-    const double R_cm = R_mm / 10.0;
-    const double H_cm = H_mm / 10.0;
-
+double Area_cm2(const FluxDir dir) {
     if (dir == FluxDir::Vertical_up || dir == FluxDir::Vertical_down) {
-        return M_PI * R_cm * R_cm;
+        return 4 * CubeSatSizes::CubeSat::halfX * CubeSatSizes::CubeSat::halfY/cm2;
     }
     if (dir == FluxDir::Horizontal) {
-        return 2 * R_cm * H_cm;
+        return 4 * CubeSatSizes::CubeSat::halfZ * CubeSatSizes::CubeSat::halfY/cm2;
     }
-    const double val = std::sqrt(R_cm * R_cm + H_cm * H_cm) + 0.5;
+
+    const G4ThreeVector tempVec = G4ThreeVector(CubeSatSizes::CubeSat::halfX,
+                                                CubeSatSizes::CubeSat::halfY,
+                                                CubeSatSizes::CubeSat::halfZ);
+    G4double val = sqrt(tempVec.x() * tempVec.x() + tempVec.y() * tempVec.y() + tempVec.z() * tempVec.z()) + 5 * mm;
+    val = val/cm;
     if (dir == FluxDir::Isotropic_down || dir == FluxDir::Isotropic_up) {
         return 2.0 * M_PI * M_PI * val * val;
     }

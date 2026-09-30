@@ -183,11 +183,15 @@ G4VPhysicalVolume* Geometry::Construct() {
     cubeSatLV = cubeSat.GetCubeSatLV();
     // cubeSatLV = worldLV;
 
+    auto engine = Engine(worldLV, nist);
+    engine.ConstructEngine();
+    engineLV = engine.GetEngineLV();
+
     ConstructDetector();
     ConstructTunaCan();
 
     new G4PVPlacement(nullptr, G4ThreeVector(), cubeSatLV, "CubeSatPVP", worldLV, false, 0, true);
-
+    new G4PVPlacement(nullptr, G4ThreeVector(0,0,EngineSizes::engineContainer::halfZ + 8 *cm), engineLV, "EnginePVP", cubeSatLV, false, 0, true);
     return worldPVP;
 }
 

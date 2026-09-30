@@ -1,6 +1,6 @@
-particles: gamma
+particles: proton
 fractions: 1.
 is_log: 1
 
-E_min: 0.1
-E_max: 10
+E_min: 100
+E_max: 10000000

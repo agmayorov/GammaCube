@@ -4,7 +4,9 @@
 PrimaryGeneratorAction::PrimaryGeneratorAction(G4String fDir, const G4String& fluxType, const G4double cThreshold)
     : particleGun(new G4ParticleGun(1)),
       center(G4ThreeVector(0, 0, Sizes::modelHeight / 2.0 + Sizes::shiftZ)),
-      detectorHalfSize(G4ThreeVector(0 * mm, Sizes::modelRadius, Sizes::modelHeight)),
+      detectorHalfSize(G4ThreeVector(CubeSatSizes::CubeSat::halfX,
+                                     CubeSatSizes::CubeSat::halfY,
+                                     CubeSatSizes::CubeSat::halfZ)),
       fluxDirection(std::move(fDir)),
       eCrystalThreshold(cThreshold) {
     const G4ThreeVector tempVec = G4ThreeVector(CubeSatSizes::CubeSat::halfX,
@@ -52,11 +54,16 @@ PrimaryGeneratorAction::~PrimaryGeneratorAction() {
 
 void PrimaryGeneratorAction::GenerateOnSphere(G4ThreeVector& pos, G4ThreeVector& dir) const {
     G4double u = 0;
-    if (fluxDirection == "isotropic") {
+    if (fluxDirection == "isotropic")
+    {
         u = 2.0 * G4UniformRand() - 1.0; // cos(theta) ~ U[-1,1]
-    } else if (fluxDirection == "isotropic_up") {
+    }
+    else if (fluxDirection == "isotropic_up")
+    {
         u = G4UniformRand(); // cos(theta) ~ U[0,1]
-    } else if (fluxDirection == "isotropic_down") {
+    }
+    else if (fluxDirection == "isotropic_down")
+    {
         u = -G4UniformRand(); // cos(theta) ~ U[-1,0]
     }
     const G4double phi = 2.0 * M_PI * G4UniformRand();
@@ -82,31 +89,35 @@ void PrimaryGeneratorAction::GenerateOnSphere(G4ThreeVector& pos, G4ThreeVector&
 }
 
 
-void PrimaryGeneratorAction::GeneratePrimaries(G4Event* evt) {
+void PrimaryGeneratorAction::GeneratePrimaries(G4Event* evt)
+{
     G4ThreeVector x, v;
-    if (fluxDirection == "vertical_up") {
+    if (fluxDirection == "vertical_up")
+    {
         v = G4ThreeVector(0., 0., 1.);
-        const G4double r = std::sqrt(G4UniformRand()) * detectorHalfSize.y(); // 1 * mm;
-        const G4double phi = G4UniformRand() * 2 * pi;
-        const G4double x_ = r * std::cos(phi);
-        const G4double y_ = r * std::sin(phi);
+        const G4double x_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.x(); // 1 * mm;
+        const G4double y_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.y(); // 1 * mm;
         const G4double z_ = -radius;
         x = G4ThreeVector(x_, y_, z_);
-    } else if (fluxDirection == "vertical_down") {
+    }
+    else if (fluxDirection == "vertical_down")
+    {
         v = G4ThreeVector(0., 0., -1.);
-        const G4double r = std::sqrt(G4UniformRand()) * detectorHalfSize.y(); // 1 * mm;
-        const G4double phi = G4UniformRand() * 2 * pi;
-        const G4double x_ = r * std::cos(phi);
-        const G4double y_ = r * std::sin(phi);
+        const G4double x_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.x(); // 1 * mm;
+        const G4double y_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.y(); // 1 * mm;
         const G4double z_ = radius;
         x = G4ThreeVector(x_, y_, z_);
-    } else if (fluxDirection == "horizontal") {
+    }
+    else if (fluxDirection == "horizontal")
+    {
         v = G4ThreeVector(-1., 0., 0.);
         const G4double x_ = radius;
         const G4double y_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.y(); // 1 * mm;
-        const G4double z_ = (G4UniformRand() - 0.5) * detectorHalfSize.z();     // 1 * mm;
+        const G4double z_ = 2 * (G4UniformRand() - 0.5) * detectorHalfSize.z(); // 1 * mm;
         x = G4ThreeVector(x_, y_, z_);
-    } else {
+    }
+    else
+    {
         GenerateOnSphere(x, v);
     }
     ParticleInfo info = flux->GenerateParticle();
@@ -118,7 +129,8 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* evt) {
     particleGun->SetParticleTime(0.0 * ns);
     particleGun->GeneratePrimaryVertex(evt);
 
-    if (auto* ea = dynamic_cast<EventAction*>(G4EventManager::GetEventManager()->GetUserEventAction())) {
+    if (auto* ea = dynamic_cast<EventAction*>(G4EventManager::GetEventManager()->GetUserEventAction()))
+    {
         PrimaryRec rec;
         rec.index = static_cast<int>(ea->primBuf.size());
         rec.pdg = info.pdg;
