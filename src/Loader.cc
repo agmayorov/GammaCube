@@ -16,6 +16,10 @@ Loader::Loader(int argc, char** argv) {
     yieldScale = 1;
     oCrystalThreshold = 0 * MeV;
     oVetoThreshold = 0 * MeV;
+    photonTimeLimit = -1.;
+    sipmCells = 0;
+    sipmRecoveryTime = 95 * ns;
+    sipmCrosstalk = 0.;
     outputFile = "GammaCube.root";
     nBins = 1000;
     saveSecondaries = false;
@@ -44,6 +48,14 @@ Loader::Loader(int argc, char** argv) {
             oVetoThreshold = std::stoi(argv[i + 1]);
         } else if (input == "-obvt" || input == "--bottom-veto-optic-threshold") {
             oBottomVetoThreshold = std::stoi(argv[i + 1]);
+        } else if (input == "-ptl" || input == "--photon-time-limit") {
+            photonTimeLimit = std::stod(argv[i + 1]) * us;
+        } else if (input == "-sc" || input == "--sipm-cells") {
+            sipmCells = std::stoi(argv[i + 1]);
+        } else if (input == "-sr" || input == "--sipm-recovery") {
+            sipmRecoveryTime = std::stod(argv[i + 1]) * ns;
+        } else if (input == "-xt" || input == "--sipm-crosstalk") {
+            sipmCrosstalk = std::stod(argv[i + 1]);
         } else if ((input == "-vch" || input == "--veto-chamfer-height") and Sizes::vetoTopRoundedRadius == 0) {
             Sizes::vetoChamferHeight = std::stod(argv[i + 1]) * mm;
         } else if ((input == "-vtr" || input == "--veto-top-rounded") and Sizes::vetoTopRoundedRadius == 0) {
@@ -93,6 +105,11 @@ Loader::Loader(int argc, char** argv) {
     }
 
     savePhotons = savePhotons and useOptics;
+    if (!useOptics) {
+        photonTimeLimit = -1.;
+        sipmCells = 0;
+        sipmCrosstalk = 0.;
+    }
 
     if (fluxDirection == "vertical_down") {
         fluxDirection = "flat";
@@ -196,6 +213,8 @@ Loader::Loader(int argc, char** argv) {
         crystalOnlyOpt = cOnlyOpt;
         crystalAndVetoOpt = cAndVOpt;
         effAreaOpt = runAction->GetEffAreaOpt();
+        killedPhotons = runAction->GetKilledPhotons();
+        trackedPhotons = runAction->GetTrackedPhotons();
     }
     SaveConfig();
     RunPostProcessing();
@@ -335,7 +354,29 @@ void Loader::SaveConfig() const {
     buf << "Detector_type: " << detectorType << "\n";
     buf << "Crystal_SiPM_configuration: " << crystalSiPMConfig << "\n";
     buf << "Tyvek_surface: " << (polishedTyvek ? "polished" : "diffuse") << "\n\n";
-    buf << "Use_optics: " << useOptics << "\n\n";
+    buf << "Use_optics: " << useOptics << "\n";
+    if (useOptics) {
+        buf << "Photon_time_limit: ";
+        if (photonTimeLimit > 0) {
+            buf << photonTimeLimit / us << " us\n";
+            buf << "Killed_photons: " << static_cast<long long>(killedPhotons)
+                << " of " << static_cast<long long>(trackedPhotons);
+            if (trackedPhotons > 0)
+                buf << " (" << 100. * killedPhotons / trackedPhotons << " %)";
+            buf << "\n";
+        } else {
+            buf << "off\n";
+        }
+        buf << "SiPM_microcells: ";
+        if (sipmCells > 0)
+            buf << sipmCells << " (recovery " << sipmRecoveryTime / ns << " ns)\n";
+        else
+            buf << "off\n";
+        buf << "SiPM_crosstalk: ";
+        if (sipmCrosstalk > 0) buf << sipmCrosstalk << "\n";
+        else buf << "off\n";
+    }
+    buf << "\n";
     buf << "Flux_type: " << fluxType << "\n";
     buf << "Flux_dir: " << fluxDirection << "\n\n";
 

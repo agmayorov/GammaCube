@@ -41,6 +41,9 @@ public:
     void AddCrystalOnlyOpt(const G4int v) { crystalOnlyOpt += v; }
     void AddCrystalAndVetoOpt(const G4int v) { crystalAndVetoOpt += v; }
 
+    void AddKilledPhotons(const G4double v) { killedPhotons += v; }
+    void AddTrackedPhotons(const G4double v) { trackedPhotons += v; }
+
     void AddGenerated(double E_MeV);
     void AddTriggeredCrystalOnly(double E_MeV);
     void AddTriggeredCrystalOnlyOpt(double E_MeV);
@@ -51,13 +54,20 @@ public:
     [[nodiscard]] const std::vector<double>& GetEffArea() const { return effArea; }
     [[nodiscard]] const std::vector<double>& GetEffAreaOpt() const { return effAreaOpt; }
 
+    [[nodiscard]] G4double GetKilledPhotons() const { return totalKilledPhotons; }
+    [[nodiscard]] G4double GetTrackedPhotons() const { return totalTrackedPhotons; }
+
 private:
     G4Accumulable<G4int> crystalOnly{0};   // Crystal && !Veto
     G4Accumulable<G4int> crystalAndVeto{0};   // Crystal && Veto
     G4Accumulable<G4int> crystalOnlyOpt{0};
     G4Accumulable<G4int> crystalAndVetoOpt{0};
+    G4Accumulable<G4double> killedPhotons{0.};
+    G4Accumulable<G4double> trackedPhotons{0.};
     ParticleCounts totals{};
     ParticleCounts totalsOpt{};
+    G4double totalKilledPhotons{0.};
+    G4double totalTrackedPhotons{0.};
 
     double EminMeV{0.0};
     double EmaxMeV{0.0};

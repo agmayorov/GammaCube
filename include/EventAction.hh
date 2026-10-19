@@ -65,6 +65,11 @@ public:
     std::vector<G4int> photonCountBuf{0, 0, 0};
     std::vector<PhotonRec> photonBuf;
 
+    // readout gate (--photon-time-limit), filled by SteppingAction
+    G4double eventT0{-1.};
+    G4int killedPhotons{0};
+    G4int trackedPhotons{0};
+
     EventAction(AnalysisManager *, RunAction *);
     ~EventAction() override = default;
 

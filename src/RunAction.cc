@@ -45,6 +45,9 @@ void RunAction::BookAccumulables() {
     mgr->Register(crystalOnlyOpt);
     mgr->Register(crystalAndVetoOpt);
 
+    mgr->Register(killedPhotons);
+    mgr->Register(trackedPhotons);
+
     genCounts.clear();
     trigCounts.clear();
     trigOptCounts.clear();
@@ -75,6 +78,8 @@ void RunAction::BeginOfRunAction(const G4Run*) {
 
     totals = {};
     totalsOpt = {};
+    totalKilledPhotons = 0.;
+    totalTrackedPhotons = 0.;
     std::fill(effArea.begin(), effArea.end(), 0.0);
     std::fill(effAreaOpt.begin(), effAreaOpt.end(), 0.0);
 }
@@ -87,6 +92,8 @@ void RunAction::EndOfRunAction(const G4Run*) {
         totals.crystalOnly = crystalOnly.GetValue();
         totalsOpt.crystalAndVeto = crystalAndVetoOpt.GetValue();
         totalsOpt.crystalOnly = crystalOnlyOpt.GetValue();
+        totalKilledPhotons = killedPhotons.GetValue();
+        totalTrackedPhotons = trackedPhotons.GetValue();
         if (EminMeV < EmaxMeV) {
             FillDerivedHists();
         }

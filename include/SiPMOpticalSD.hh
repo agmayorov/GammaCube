@@ -3,6 +3,8 @@
 
 #include <G4VSensitiveDetector.hh>
 #include <G4OpBoundaryProcess.hh>
+#include <Randomize.hh>
+#include <cmath>
 #include <unordered_map>
 
 #include <G4Step.hh>
@@ -38,6 +40,12 @@ public:
 
 private:
     G4OpBoundaryProcess* GetBoundaryProcess();
+
+    // Microcell saturation and optical crosstalk; returns the number of fired cells
+    G4int FireCell(SiPMGroup grp, G4int ch, G4double t);
+
+    // (group, channel) -> (microcell -> time of its last avalanche)
+    std::unordered_map<G4int, std::unordered_map<G4int, G4double>> cellLastFire;
 
     G4OpBoundaryProcess* boundary{nullptr};
     G4LogicalVolume* SiPMWindowLV{nullptr};

@@ -20,6 +20,9 @@ void EventAction::BeginOfEventAction(const G4Event*) {
     hasVeto = false;
     hasCrystalOpt = false;
     hasVetoOpt = false;
+    eventT0 = -1.;
+    killedPhotons = 0;
+    trackedPhotons = 0;
 }
 
 void EventAction::EndOfEventAction(const G4Event* evt) {
@@ -66,6 +69,11 @@ void EventAction::EndOfEventAction(const G4Event* evt) {
     }
 
     if (useOptics) {
+        if (run and photonTimeLimit > 0) {
+            run->AddKilledPhotons(killedPhotons);
+            run->AddTrackedPhotons(trackedPhotons);
+        }
+
         WriteSiPMFromSD_(eventID);
         if (run and hasCrystalOpt && !hasVetoOpt) run->AddCrystalOnlyOpt(1);
         if (run and hasCrystalOpt && hasVetoOpt) run->AddCrystalAndVetoOpt(1);

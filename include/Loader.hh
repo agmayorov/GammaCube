@@ -70,6 +70,8 @@ private:
     G4int crystalAndVeto{};
     G4int crystalOnlyOpt{};
     G4int crystalAndVetoOpt{};
+    G4double killedPhotons{};
+    G4double trackedPhotons{};
 
     std::string geomConfigPath;
 

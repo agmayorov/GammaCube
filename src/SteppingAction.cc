@@ -1,7 +1,40 @@
 #include "SteppingAction.hh"
 
 
+// Readout gate: an optical photon that is still alive photonTimeLimit after the
+// event started depositing energy is dropped, exactly as the SiPM electronics
+// would ignore it. The gate opens at the first energy deposit of the event so
+// that a delayed decay is timed from its own interaction, not from t = 0.
+// Known limitation: with two bursts in one event the gate opens on the first one.
+void SteppingAction::ApplyPhotonTimeLimit(const G4Step* step, EventAction* ea) {
+    auto* track = step->GetTrack();
+
+    if (track->GetDefinition() != G4OpticalPhoton::Definition()) {
+        if (ea->eventT0 < 0 and step->GetTotalEnergyDeposit() > 0.)
+            ea->eventT0 = step->GetPreStepPoint()->GetGlobalTime();
+        return;
+    }
+
+    if (track->GetCurrentStepNumber() == 1) ++ea->trackedPhotons;
+
+    // No deposit seen yet (should not happen): time the photon from its own birth
+    if (ea->eventT0 < 0) ea->eventT0 = track->GetGlobalTime() - track->GetLocalTime();
+
+    if (track->GetGlobalTime() - ea->eventT0 > Configuration::photonTimeLimit) {
+        track->SetTrackStatus(fStopAndKill);
+        ++ea->killedPhotons;
+    }
+}
+
 void SteppingAction::UserSteppingAction(const G4Step* step) {
+    auto* ea = static_cast<EventAction*>(G4EventManager::GetEventManager()->GetUserEventAction());
+
+    if (Configuration::photonTimeLimit > 0 and ea) {
+        ApplyPhotonTimeLimit(step, ea);
+    }
+
+    if (!Configuration::saveSecondaries and !Configuration::savePhotons) return;
+
     const auto* post = step->GetPostStepPoint();
     const auto* postProc = post->GetProcessDefinedStep();
 
@@ -21,7 +54,6 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
     const G4int parentID = track->GetParentID();
 
     auto secs = step->GetSecondaryInCurrentStep();
-    auto* ea = static_cast<EventAction*>(G4EventManager::GetEventManager()->GetUserEventAction());
     if (ea) {
         if (secs && !secs->empty()) {
             for (size_t i = 0; i < secs->size(); ++i) {
