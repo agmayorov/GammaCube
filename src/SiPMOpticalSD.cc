@@ -8,6 +8,40 @@ void SiPMOpticalSD::Initialize(G4HCofThisEvent*) {
     perChCrystal.clear();
     perChVeto.clear();
     perChBottom.clear();
+    cellLastFire.clear();
+}
+
+// A detected photon lands on a random microcell. The cell fires only if it has
+// recharged since its last avalanche (probability 1 - exp(-dt/tau)), which is
+// what makes a SiPM saturate. Each avalanche may then set off its neighbours,
+// modelled as a geometric cascade with probability Configuration::sipmCrosstalk.
+// Photons are not tracked in time order, so the gap between two hits on one cell
+// is taken as |dt|: for a pair of hits that gives the same suppression probability,
+// only the roles of the two are swapped. Crosstalk cells are not booked as occupied,
+// which is harmless at the per-cent occupancies this detector reaches.
+G4int SiPMOpticalSD::FireCell(const SiPMGroup grp, const G4int ch, const G4double t) {
+    using namespace Configuration;
+
+    if (sipmCells > 0) {
+        auto& cells = cellLastFire[static_cast<G4int>(grp) * 1024 + ch];
+        const G4int cell = static_cast<G4int>(G4UniformRand() * sipmCells);
+
+        if (const auto it = cells.find(cell); it != cells.end()) {
+            const G4double dt = std::abs(t - it->second);
+            const G4double recovered = sipmRecoveryTime > 0 ? 1. - std::exp(-dt / sipmRecoveryTime) : 0.;
+            if (G4UniformRand() >= recovered) return 0;   // cell is still recharging
+            it->second = t;
+        } else {
+            cells.emplace(cell, t);
+        }
+    }
+
+    G4int fired = 1;
+    if (sipmCrosstalk > 0.) {
+        while (G4UniformRand() < sipmCrosstalk) ++fired;
+    }
+
+    return fired;
 }
 
 G4OpBoundaryProcess* SiPMOpticalSD::GetBoundaryProcess() {
@@ -94,19 +128,21 @@ G4bool SiPMOpticalSD::ProcessHits(G4Step* step, G4TouchableHistory*) {
         grp = ClassifyByPVName(prePV);
         if (grp == SiPMGroup::Unknown) grp = ClassifyByPVName(postPV);
     }
+    const G4int fired = grp != SiPMGroup::Unknown ? FireCell(grp, ch, track->GetGlobalTime()) : 0;
+
     G4String detName = "";
     if (grp == SiPMGroup::Crystal) {
         detName = "Crystal";
-        ++npeCrystal;
-        if (ch >= 0) ++perChCrystal[ch];
+        npeCrystal += fired;
+        if (ch >= 0) perChCrystal[ch] += fired;
     } else if (grp == SiPMGroup::Veto) {
         detName = "Veto";
-        ++npeVeto;
-        if (ch >= 0) ++perChVeto[ch];
+        npeVeto += fired;
+        if (ch >= 0) perChVeto[ch] += fired;
     } else if (grp == SiPMGroup::Bottom) {
         detName = "BottomVeto";
-        ++npeBottom;
-        if (ch >= 0) ++perChBottom[ch];
+        npeBottom += fired;
+        if (ch >= 0) perChBottom[ch] += fired;
     } else {
         // Unknown classification: still kill photon to avoid infinite bouncing after "Detection"
         // but do not count it.

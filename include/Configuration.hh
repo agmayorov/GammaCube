@@ -28,6 +28,11 @@ namespace Configuration
     inline G4int oCrystalThreshold{0};
     inline G4int oVetoThreshold{0};
     inline G4int oBottomVetoThreshold{0};
+    inline G4double photonTimeLimit{-1.};   // readout gate; <= 0 means disabled
+
+    inline G4int sipmCells{0};                   // microcells per channel; 0 disables saturation
+    inline G4double sipmRecoveryTime{95 * ns};   // microcell recharge time constant
+    inline G4double sipmCrosstalk{0.};           // optical crosstalk probability; 0 disables it
 
     inline G4String crystalSiPMConfig{"12-cross"};
     inline G4bool polishedTyvek{false};

@@ -26,7 +26,7 @@ void ActionInitialization::Build() const {
     PrimaryGeneratorAction* primaryGenerator = new PrimaryGeneratorAction(fluxDirection, fluxType, eCrystalThreshold);
     SetUserAction(primaryGenerator);
 
-    if (saveSecondaries || savePhotons) {
+    if (saveSecondaries || savePhotons || (useOptics && photonTimeLimit > 0)) {
         SteppingAction* stepAct = new SteppingAction();
         SetUserAction(stepAct);
     }
