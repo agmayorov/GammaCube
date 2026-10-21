@@ -346,7 +346,7 @@ void Detector::ConstructVeto() {
 
     tyvekOutLV = new G4LogicalVolume(tyvekOut, tyvekMat, "TyvekOutLV");
     // tyvekOutPVP = new G4PVPlacement(nullptr, tyvekOutPos + tyvekOutTopPos, tyvekOutLV, "TyvekOutPVP", detContainerLV,
-                                    // false, 0, true);
+    // false, 0, true);
     tyvekOutLV->SetVisAttributes(visTyvekOut);
 
     // Veto
@@ -419,8 +419,8 @@ void Detector::ConstructVeto() {
     G4ThreeVector vetoOpticLayerPos = tyvekOutPos + G4ThreeVector(0, 0, -tyvekOutSize.z() - (vetoOpticLayerHeight -
                                                                       vetoChamferHeight - vetoTopRoundedRadius) / 2.0);
     // vetoOpticLayerPVP = new G4PVPlacement(nullptr, vetoOpticLayerPos, vetoOpticLayerLV, "VetoOpticLayerPVP",
-                                          // detContainerLV, false, 0,
-                                          // true);
+    // detContainerLV, false, 0,
+    // true);
     vetoOpticLayerLV->SetVisAttributes(visOpticLayer);
 }
 
@@ -521,7 +521,7 @@ void Detector::ConstructBottomVeto() {
                                                                              bottomVetoHeight - tyvekBottomThickTop);
     G4LogicalVolume* bottomVetoShellTabLV = new G4LogicalVolume(bottomVetoShellTab, AlMat, "BottomVetoShellTabLV");
     // new G4PVPlacement(nullptr, bottomVetoShellTabPos, bottomVetoShellTabLV, "BottomVetoShellTabPVP", coreLV, false, 0,
-                      // true);
+    // true);
     bottomVetoShellTabLV->SetVisAttributes(visAl);
 
     // Bottom Tyvek
@@ -540,7 +540,7 @@ void Detector::ConstructBottomVeto() {
 
     tyvekBottomLV = new G4LogicalVolume(tyvekBottom, tyvekMat, "TyvekBottomLV");
     // tyvekBottomPVP = new G4PVPlacement(nullptr, tyvekBottomPos, tyvekBottomLV, "TyvekBottomPVP", coreLV, false, 0,
-                                       // true);
+    // true);
     tyvekBottomLV->SetVisAttributes(visTyvekBottom);
 
     // Bottom Veto
@@ -557,7 +557,7 @@ void Detector::ConstructBottomVeto() {
     G4ThreeVector bottomVetoOpticLayerPos = bottomVetoShellTabPos + G4ThreeVector(
      0, 0, (bottomVetoShellTabHeight - bottomVetoOpticLayerHeight) / 2.0);
     // bottomVetoOpticLayerPVP = new G4PVPlacement(nullptr, bottomVetoOpticLayerPos, bottomVetoOpticLayerLV,
-                                                // "BottomVetoOpticLayerPVP", coreLV, false, 0, true);
+    // "BottomVetoOpticLayerPVP", coreLV, false, 0, true);
     bottomVetoOpticLayerLV->SetVisAttributes(visOpticLayer);
 }
 
@@ -613,24 +613,24 @@ void Detector::ConstructCrystal() {
     crystalShellLV->SetVisAttributes(visShell);
 
     // Crystal Glass
-    G4VSolid* crystalGlass = new G4Tubs("CrystalGlass", 0, crystalShellSize.x(), crystalGlassHeight / 2., 0, viewDeg);
-    crystalGlassLV = new G4LogicalVolume(crystalGlass, glassMat, "CrystalGlassLV");
-    G4ThreeVector crystalGlassPos = crystalShellPos + G4ThreeVector(
-                                                                    0, 0, -crystalShellSize.z() + crystalGlassHeight /
-                                                                    2.0);
-    new G4PVPlacement(nullptr, crystalGlassPos, crystalGlassLV, "CrystalGlassPVP", crystalContLV, false, 0, true);
-    crystalGlassLV->SetVisAttributes(visGlass);
+    // G4VSolid* crystalGlass = new G4Tubs("CrystalGlass", 0, crystalShellSize.x(), crystalGlassHeight / 2., 0, viewDeg);
+    // crystalGlassLV = new G4LogicalVolume(crystalGlass, glassMat, "CrystalGlassLV");
+    // G4ThreeVector crystalGlassPos = crystalShellPos + G4ThreeVector(
+    //                                                                 0, 0, -crystalShellSize.z() + crystalGlassHeight /
+    //                                                                 2.0);
+    // new G4PVPlacement(nullptr, crystalGlassPos, crystalGlassLV, "CrystalGlassPVP", crystalContLV, false, 0, true);
+    // crystalGlassLV->SetVisAttributes(visGlass);
 
     // Optic layer for crystal
-    G4VSolid* crystalOpticLayer = new G4Tubs("CrystalOpticLayer", 0, crystalSize.y(), crystalOpticLayerHeight / 2., 0,
-                                             viewDeg);
-    crystalOpticLayerLV = new G4LogicalVolume(crystalOpticLayer, opticLayerMat, "CrystalOpticLayerLV");
-    G4ThreeVector crystalOpticLayerPos = crystalContPos + G4ThreeVector(
-                                                                        0, 0, -crystalContSize.z() -
-                                                                        crystalOpticLayerHeight / 2.0);
-    crystalOpticLayerPVP = new G4PVPlacement(nullptr, crystalOpticLayerPos, crystalOpticLayerLV, "CrystalOpticLayerPVP",
-                                             coreLV, false, 0, true);
-    crystalOpticLayerLV->SetVisAttributes(visOpticLayer);
+    // G4VSolid* crystalOpticLayer = new G4Tubs("CrystalOpticLayer", 0, crystalSize.y(), crystalOpticLayerHeight / 2., 0,
+    //                                          viewDeg);
+    // crystalOpticLayerLV = new G4LogicalVolume(crystalOpticLayer, opticLayerMat, "CrystalOpticLayerLV");
+    // G4ThreeVector crystalOpticLayerPos = crystalContPos + G4ThreeVector(
+    //                                                                     0, 0, -crystalContSize.z() -
+    //                                                                     crystalOpticLayerHeight / 2.0);
+    // crystalOpticLayerPVP = new G4PVPlacement(nullptr, crystalOpticLayerPos, crystalOpticLayerLV, "CrystalOpticLayerPVP",
+    //                                          coreLV, false, 0, true);
+    // crystalOpticLayerLV->SetVisAttributes(visOpticLayer);
 }
 
 void Detector::ConstructSiPM() {
@@ -723,10 +723,11 @@ void Detector::ConstructHolder(G4ThreeVector& refPos, const G4String& prefix) {
     springHolderLV->SetVisAttributes(visHolder);
 
     // Board
-    G4ThreeVector boardPos = refPos + G4ThreeVector(0, 0, holderThickBottom + springLength + boardHeight / 2.);
-    G4VSolid* board = new G4Tubs(prefix + "Board", 0, holderSize.x(), boardHeight / 2., 0, viewDeg);
+    G4ThreeVector boardPos = G4ThreeVector(0, 0, -crystalContSize.z() + 0.2 * mm);
+    G4VSolid* board = new G4Tubs(prefix + "Board", 0, holderSize.x(), 0.2 * mm, 0, viewDeg);
     G4LogicalVolume* boardLV = new G4LogicalVolume(board, boardMat, prefix + "BoardLV");
-    G4PVPlacement* tempPVP = new G4PVPlacement(nullptr, boardPos, boardLV, prefix + "BoardPVP", coreLV, false, 0, true);
+    G4PVPlacement* tempPVP = new G4PVPlacement(nullptr, boardPos, boardLV, prefix + "BoardPVP", crystalContLV, false, 0,
+                                               true);
     boardLV->SetVisAttributes(visBoard);
 
     if (prefix == "CrystalSiPM") crystalSiPMBoardPVP = tempPVP;
@@ -752,14 +753,13 @@ void Detector::ConstructCrystalSiPM() {
     ConstructHolder(SiPMHolderPos, "CrystalSiPM");
 
     // SiPM Container
-    G4ThreeVector SiPMContPos = SiPMHolderPos + G4ThreeVector(0, 0,
-                                                              holderThickBottom + springLength + boardHeight +
-                                                              SiPMHeight / 2.);
+    G4ThreeVector SiPMContPos = G4ThreeVector(0, 0,
+                                              -crystalContSize.z() - SiPMHeight / 2. + 1 * mm);
     G4VSolid* SiPMCont = new G4Tubs("CrystalSiPMContainer", 0, coreTopSize.y() - holderThickWall - shellThickWall,
                                     SiPMHeight / 2., 0, 360 * deg);
     G4LogicalVolume* SiPMContLV = new G4LogicalVolume(SiPMCont, galacticMat, "CrystalSiPMContainerLV");
     crystalSiPMContPVP = new G4PVPlacement(nullptr, SiPMContPos, SiPMContLV, "CrystalSiPMContainerPVP",
-                                           coreLV, false, 0, true);
+                                           crystalContLV, false, 0, true);
     SiPMContLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
     // Crystal SiPM
