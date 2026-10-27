@@ -117,6 +117,11 @@ void Layout::SatelliteExtentZ(G4double& zMin, G4double& zMax) {
 }
 
 
+G4double Layout::SatelliteTopZ() {
+    return CubeSatSizes::CubeSat::halfZ - CubeSatSizes::Frame::bracketHeight;
+}
+
+
 G4String Layout::Tag() {
     G4String tag = geometryConfig == "default" ? "" : geometryConfig;
     if (!engineConfig.empty()) tag += "_engine-" + engineConfig;

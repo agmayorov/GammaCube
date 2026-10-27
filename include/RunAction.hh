@@ -45,8 +45,9 @@ public:
     void AddTrackedPhotons(const G4double v) { trackedPhotons += v; }
 
     void AddGenerated(double E_MeV);
-    void AddTriggeredCrystalOnly(double E_MeV);
-    void AddTriggeredCrystalOnlyOpt(double E_MeV);
+    // events passing the --trigger condition, per primary energy bin
+    void AddTriggered(double E_MeV);
+    void AddTriggeredOpt(double E_MeV);
 
     [[nodiscard]] const ParticleCounts& GetCounts() const { return totals; }
     [[nodiscard]] const ParticleCounts& GetOptCounts() const { return totalsOpt; }

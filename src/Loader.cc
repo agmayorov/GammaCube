@@ -87,6 +87,8 @@ Loader::Loader(int argc, char** argv) {
             // the model name is optional: "--camera" alone means the default camera
             const G4bool hasValue = i + 1 < argc && argv[i + 1][0] != '-';
             cameraConfig = hasValue ? argv[i + 1] : "galper";
+        } else if (input == "--trigger") {
+            triggerType = argv[i + 1];
         } else if (input == "-w4" || input == "--weight4") {
             weight4 = std::stod(argv[i + 1]);
         } else if (input == "-w8" || input == "--weight8") {
@@ -128,6 +130,10 @@ Loader::Loader(int argc, char** argv) {
         fluxDirection = "flat";
         beamTheta = 90 * deg;
         beamPhi = 0 * deg;
+    }
+    if (triggerType != "gamma" && triggerType != "charged") {
+        G4Exception("Loader::Loader", "Trigger", FatalException,
+                    ("Trigger not found: " + triggerType + ".\nAvailable triggers: gamma, charged").c_str());
     }
     Layout::Configure();
     genSurface = GenSurface::For(fluxDirection);
@@ -359,7 +365,9 @@ void Loader::SaveConfig() const {
     buf << "Seed: " << seed << "\n\n";
     buf << "Geometry_config: " << geometryConfig << "\n";
     buf << "Engine: " << (engineConfig.empty() ? "none" : engineConfig) << "\n";
-    buf << "Camera: " << (cameraConfig.empty() ? "none" : cameraConfig) << "\n\n";
+    buf << "Camera: " << (cameraConfig.empty() ? "none" : cameraConfig) << "\n";
+    buf << "Trigger: " << triggerType << (triggerType == "charged" ? " (Crystal && Veto)" : " (Crystal && !Veto)")
+        << "\n\n";
     buf << "Detector_type: " << detectorType << "\n";
     buf << "Crystal_SiPM_configuration: " << crystalSiPMConfig << "\n";
     buf << "Tyvek_surface: " << (polishedTyvek ? "polished" : "diffuse") << "\n\n";
@@ -595,6 +603,7 @@ void Loader::SaveConfig() const {
     }
     filename += "_" + GenSurface::DirectionTag();
     if (!Layout::Tag().empty()) filename += "_" + Layout::Tag();
+    if (triggerType != "gamma") filename += "_trigger-" + triggerType;
     filename += ".txt";
     filename = sanitize(filename);
 
@@ -634,6 +643,7 @@ void Loader::RunPostProcessing() const {
         }
         outDir += "_" + GenSurface::DirectionTag();
         if (!Layout::Tag().empty()) outDir += "_" + Layout::Tag();
+        if (triggerType != "gamma") outDir += "_trigger-" + triggerType;
         outDir = sanitize(outDir);
         PostProcessing postProcessing(outDir, part);
 

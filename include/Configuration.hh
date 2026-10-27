@@ -27,6 +27,13 @@ namespace Configuration
     inline G4double eCrystalThreshold{0 * MeV};
     inline G4double eVetoThreshold{0 * MeV};
 
+    inline G4String triggerType{"gamma"};   // gamma: Crystal && !Veto | charged: Crystal && Veto
+
+    // Registration condition; veto is the veto cup or the bottom veto
+    inline G4bool Triggered(const G4bool crystal, const G4bool veto) {
+        return crystal && (triggerType == "charged" ? veto : !veto);
+    }
+
     inline G4bool useOptics{false};
     inline G4int yieldScale{1};
     inline G4int oCrystalThreshold{0};

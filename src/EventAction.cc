@@ -61,9 +61,9 @@ void EventAction::EndOfEventAction(const G4Event* evt) {
     if (run and hasCrystal && hasVeto) run->AddCrystalAndVeto(1);
 
     if (primaryE_MeV > 0.0) {
-        if (hasCrystal && !hasVeto) {
+        if (Triggered(hasCrystal, hasVeto)) {
             if (run) {
-                run->AddTriggeredCrystalOnly(primaryE_MeV);
+                run->AddTriggered(primaryE_MeV);
             }
         }
     }
@@ -79,7 +79,7 @@ void EventAction::EndOfEventAction(const G4Event* evt) {
         if (run and hasCrystalOpt && hasVetoOpt) run->AddCrystalAndVetoOpt(1);
 
         if (primaryE_MeV > 0.0) {
-            if (run and hasCrystalOpt && !hasVetoOpt) run->AddTriggeredCrystalOnlyOpt(primaryE_MeV);
+            if (run and Triggered(hasCrystalOpt, hasVetoOpt)) run->AddTriggeredOpt(primaryE_MeV);
         }
     }
 }

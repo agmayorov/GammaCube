@@ -155,7 +155,7 @@ void RunAction::AddGenerated(double E_MeV) {
     }
 }
 
-void RunAction::AddTriggeredCrystalOnly(double E_MeV) {
+void RunAction::AddTriggered(double E_MeV) {
     const int i = FindBin(E_MeV);
     if (i < 0) return;
 
@@ -166,7 +166,7 @@ void RunAction::AddTriggeredCrystalOnly(double E_MeV) {
     }
 }
 
-void RunAction::AddTriggeredCrystalOnlyOpt(double E_MeV) {
+void RunAction::AddTriggeredOpt(double E_MeV) {
     const int i = FindBin(E_MeV);
     if (i < 0) return;
 

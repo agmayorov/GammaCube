@@ -68,6 +68,25 @@ G4double GenSurface::BoundingRadius() {
 }
 
 
+// isotropic: tunacan centres the sphere on the top of the satellite, at the detector as in default,
+// and enlarges it to hold the whole satellite; the other configurations use the envelope centre
+G4ThreeVector GenSurface::SphereCentre() {
+    if (geometryConfig == "tunacan") return {0., 0., Layout::SatelliteTopZ()};
+    return PayloadCentre();
+}
+
+
+G4double GenSurface::SphereRadius() {
+    if (geometryConfig != "tunacan") return BoundingRadius();
+
+    // the farthest box corner from a centre on the axis
+    const Envelope e = PayloadEnvelope();
+    const G4double zc = SphereCentre().z();
+    const G4double dz = std::max(e.zMax - zc, zc - e.zMin);
+    return std::sqrt(e.halfX * e.halfX + e.halfY * e.halfY + dz * dz) + Margin();
+}
+
+
 G4double GenSurface::MinSourceRadius(const G4double z) {
     const Envelope e = PayloadEnvelope();
     const G4double r = e.box ? std::hypot(e.halfX, e.halfY) : e.halfX;
@@ -131,6 +150,8 @@ GenSurface GenSurface::For(const G4String& fluxDirection) {
 
     if (fluxDirection == "isotropic" || fluxDirection == "isotropic_up" || fluxDirection == "isotropic_down") {
         s.shape = Shape::Sphere;
+        s.origin = SphereCentre();
+        s.radius = s.standoff = SphereRadius();
         if (fluxDirection == "isotropic_up") s.hemisphere = 1;
         else if (fluxDirection == "isotropic_down") s.hemisphere = -1;
         return s;

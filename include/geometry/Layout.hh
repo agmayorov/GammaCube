@@ -23,6 +23,8 @@ namespace Layout {
 
     // Satellite configurations: world z range occupied by the whole model
     void SatelliteExtentZ(G4double& zMin, G4double& zMax);
+    // Top of the satellite body without the brackets: what the TunaCan plate stands on
+    G4double SatelliteTopZ();
 
     // Suffix for output names; empty for the default geometry, so its file names do not change
     G4String Tag();

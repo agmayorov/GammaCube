@@ -35,8 +35,8 @@ Geometry::Geometry() {
     detContainerPos = G4ThreeVector(0, 0, -(plateCenterThick + tunaCanThickTop) / 2);
 
     worldHalfSize = std::max({modelRadius * 2, modelHeight}) * 2;
-    worldHalfSize = std::max(worldHalfSize, GenSurface::For(fluxDirection).OuterRadius()
-                                            + std::fabs(GenSurface::PayloadCentre().z()) + GenSurface::Margin());
+    const GenSurface genSurface = GenSurface::For(fluxDirection);
+    worldHalfSize = std::max(worldHalfSize, genSurface.OuterRadius() + genSurface.Origin().mag() + GenSurface::Margin());
     worldHalfSize = std::max(worldHalfSize, GenSurface::BoundingRadius()
                                             + GenSurface::PayloadCentre().mag() + GenSurface::Margin());
 
