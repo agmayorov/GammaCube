@@ -30,6 +30,7 @@
 #include <G4LogicalSkinSurface.hh>
 
 #include "Sizes.hh"
+#include "Layout.hh"
 #include "Configuration.hh"
 #include "Utils.hh"
 
@@ -78,6 +79,9 @@ public:
     G4LogicalVolume* GetSiPMWindowLV() const { return SiPMWindowLV; }
 
 private:
+    // experiment: only the crystal with its shell, glass, optic layer, board and SiPMs are placed
+    G4bool bareCrystal{false};
+
     G4ThreeVector crystalSize;
     G4ThreeVector vetoSize;
     G4ThreeVector tyvekInSize;

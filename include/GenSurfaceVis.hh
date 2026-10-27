@@ -15,7 +15,7 @@ public:
     static G4VisExtent Extent();
 
 private:
-    static void DrawPayloadCylinder(G4VVisManager* vis);
+    static void DrawPayloadEnvelope(G4VVisManager* vis);
     static void DrawFlat(G4VVisManager* vis, const GenSurface& s);
     static void DrawSphere(G4VVisManager* vis, const GenSurface& s);
     static void DrawPoint(G4VVisManager* vis, const GenSurface& s);

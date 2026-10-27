@@ -10,6 +10,10 @@ namespace Configuration
 {
     inline G4String detectorType{"CsI"};
 
+    inline G4String geometryConfig{"default"};   // default | tunacan | cubesat | experiment
+    inline G4String engineConfig{""};            // "" (no engine) | sputnix | geoscan
+    inline G4String cameraConfig{""};            // "" (no camera) | galper
+
     inline G4String fluxType{"Uniform"};
     inline G4String fluxDirection{"isotropic"};
     inline G4double beamTheta{0.};

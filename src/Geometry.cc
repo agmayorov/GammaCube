@@ -1,5 +1,11 @@
 #include "Geometry.hh"
 
+#include <sstream>
+
+#include <CLHEP/Random/MixMaxRng.h>
+#include <G4Point3D.hh>
+#include <Randomize.hh>
+
 using namespace Sizes;
 using namespace Configuration;
 
@@ -31,96 +37,12 @@ Geometry::Geometry() {
     worldHalfSize = std::max({modelRadius * 2, modelHeight}) * 2;
     worldHalfSize = std::max(worldHalfSize, GenSurface::For(fluxDirection).OuterRadius()
                                             + std::fabs(GenSurface::PayloadCentre().z()) + GenSurface::Margin());
+    worldHalfSize = std::max(worldHalfSize, GenSurface::BoundingRadius()
+                                            + GenSurface::PayloadCentre().mag() + GenSurface::Margin());
 
-    tunaCanVisAttr = new G4VisAttributes(G4Color(0.5, 0.5, 0.5));
-    tunaCanVisAttr->SetForceSolid(true);
     detContVisAttr = new G4VisAttributes(G4VisAttributes::GetInvisible());
     detContVisAttr->SetForceSolid(false);
 }
-
-void Geometry::ConstructTunaCan() {
-    if (tunaCanThickWall <= 0. and tunaCanThickTop <= 0.) return;
-
-    G4Material* tunaCanMat = nist->FindOrBuildMaterial("G4_Al");
-    G4Material* plateMat = nist->FindOrBuildMaterial("G4_Ti");
-
-    // TunaCan
-    G4VSolid* tunaCanWall = new G4Tubs("tunaCanWall", detContainerSize.y(), modelRadius, modelHeight / 2, 0, viewDeg);
-    G4ThreeVector tunaCanWallPos = G4ThreeVector(0, 0, 0);
-    G4LogicalVolume* tunaCanWallLV = new G4LogicalVolume(tunaCanWall, tunaCanMat, "tunaCanWallLV");
-    new G4PVPlacement(zeroRot, tunaCanWallPos, tunaCanWallLV, "TunaCanWallPVPL", worldLV, false, 0, true);
-
-    G4VSolid* tunaCanTop = new G4Tubs("TunaCanTop", 0, detContainerSize.y(), tunaCanThickTop / 2., 0, viewDeg);
-    const G4ThreeVector tunaCanTopPos = G4ThreeVector(0, 0, (modelHeight - tunaCanThickTop) / 2.0);
-    G4LogicalVolume* tunaCanTopLV = new G4LogicalVolume(tunaCanTop, tunaCanMat, "tunaCanTopLV");
-    new G4PVPlacement(zeroRot, tunaCanTopPos, tunaCanTopLV, "TunaCanTopPVPL", worldLV, false, 0, true);
-
-    // Plate square part
-    G4VSolid* plateIncomplete = new G4Box("PlateIncomplete", plateSize / 2., plateSize / 2. + plateCornerSize,
-                                          plateThick / 2.);
-    G4VSolid* plateHole = new G4Tubs("PlateHole", 0., plateOuterHoleRadius, plateThick + 5 * mm, 0., 360);
-    const G4ThreeVector platePos = G4ThreeVector(0, 0, -(modelHeight + plateThick) / 2.0);
-    G4VSolid* plate = new G4SubtractionSolid("Plate", plateIncomplete, plateHole);
-    G4LogicalVolume* plateLV = new G4LogicalVolume(plate, plateMat, "PlateLV");
-    new G4PVPlacement(zeroRot, platePos, plateLV, "PlatePVPL", worldLV, false, 0, true);
-
-    // Plate outer part
-    G4VSolid* plateStrip = new G4Box("PlateStrip", plateCornerSize / 2., plateSize / 2., plateThick / 2.);
-    const G4ThreeVector plateStripLeftPos = G4ThreeVector((plateSize + plateCornerSize) / 2., 0,
-                                                          -(modelHeight + plateThick) / 2.0);
-    const G4ThreeVector plateStripRightPos = G4ThreeVector(-(plateSize + plateCornerSize) / 2., 0,
-                                                           -(modelHeight + plateThick) / 2.0);
-    G4LogicalVolume* plateStripLeftLV = new G4LogicalVolume(plateStrip, plateMat, "PlateStripLeftLV");
-    G4LogicalVolume* plateStripRightLV = new G4LogicalVolume(plateStrip, plateMat, "PlateStripRightLV");
-    new G4PVPlacement(zeroRot, plateStripLeftPos, plateStripLeftLV, "PlateStripLeftPVPL", worldLV, false, 0, true);
-    new G4PVPlacement(zeroRot, plateStripRightPos, plateStripRightLV, "PlateStripRightPVPL", worldLV, false, 0, true);
-
-    // Plate center tube
-    G4VSolid* plateCenter = new G4Tubs("PlateCenter", plateInnerHoleRadius, plateOuterHoleRadius, plateCenterThick / 2,
-                                       0, viewDeg);
-    const G4ThreeVector plateCenterPos = G4ThreeVector(0., 0., -(modelHeight + plateCenterThick) / 2.0);
-    G4LogicalVolume* plateCenterLV = new G4LogicalVolume(plateCenter, plateMat, "PlateCenterLV");
-    new G4PVPlacement(zeroRot, plateCenterPos, plateCenterLV, "PlateCenterPVPL", worldLV, false, 0, true);
-
-    // Plate center tube cap
-    G4VSolid* plateCenterCap = new G4Tubs("PlateCenterCap", plateBottomHoleRadius, plateOuterHoleRadius, plateThick / 2,
-                                          0, viewDeg);
-    const G4ThreeVector plateCenterCapPos = G4ThreeVector(0., 0., -(modelHeight + plateThick) / 2.0 - plateCenterThick);
-    G4LogicalVolume* plateCenterCapLV = new G4LogicalVolume(plateCenterCap, plateMat, "PlateCenterCapLV");
-    new G4PVPlacement(zeroRot, plateCenterCapPos, plateCenterCapLV, "PlateCenterCapPVPL", worldLV, false, 0, true);
-
-    // Plate bottom cap
-    G4VSolid* bottomPartWall = new G4Tubs("BottomPartWall", bottomCapInnerRadius, plateInnerHoleRadius,
-                                          bottomCapHeight / 2, 0, viewDeg);
-    const G4ThreeVector bottomPartWallPos = G4ThreeVector(
-                                                          0., 0.,
-                                                          -(modelHeight + bottomCapHeight) / 2.0 - plateCenterThick -
-                                                          plateThick);
-    G4LogicalVolume* bottomPartWallLV = new G4LogicalVolume(bottomPartWall, tunaCanMat, "BottomPartWallLV");
-    new G4PVPlacement(zeroRot, bottomPartWallPos, bottomPartWallLV, "BottomPartWallPVPL", worldLV, false, 0, true);
-
-    G4VSolid* bottomPartCap = new G4Tubs("BottomPartCap", 0, bottomCapInnerRadius, bottomCapThick / 2, 0, viewDeg);
-    const G4ThreeVector bottomPartCapPos = G4ThreeVector(
-                                                         0., 0.,
-                                                         -(modelHeight - bottomCapThick) / 2.0 - bottomCapHeight -
-                                                         plateCenterThick - plateThick);
-    G4LogicalVolume* bottomPartCapLV = new G4LogicalVolume(bottomPartCap, tunaCanMat, "BottomPartCapLV");
-    new G4PVPlacement(zeroRot, bottomPartCapPos, bottomPartCapLV, "BottomPartCapPVPL", worldLV, false, 0, true);
-
-    tunaCanWallLV->SetVisAttributes(tunaCanVisAttr);
-    tunaCanTopLV->SetVisAttributes(tunaCanVisAttr);
-
-    plateLV->SetVisAttributes(tunaCanVisAttr);
-    plateStripRightLV->SetVisAttributes(tunaCanVisAttr);
-    plateStripLeftLV->SetVisAttributes(tunaCanVisAttr);
-
-    plateCenterLV->SetVisAttributes(tunaCanVisAttr);
-    plateCenterCapLV->SetVisAttributes(tunaCanVisAttr);
-
-    bottomPartWallLV->SetVisAttributes(tunaCanVisAttr);
-    bottomPartCapLV->SetVisAttributes(tunaCanVisAttr);
-}
-
 
 void Geometry::ConstructDetector() {
     G4VSolid* detContTopTube = new G4Tubs("DetContTopTube", 0, detContainerSize.y(),
@@ -143,8 +65,8 @@ void Geometry::ConstructDetector() {
     detContainer = new G4UnionSolid("DetectorContainer", detContIncomplete, detContBottomTube, zeroRot,
                                     detContBottomPos);
     detContainerLV = new G4LogicalVolume(detContainer, worldMat, "DetectorContainerLV");
-    detContainerPVPL = new G4PVPlacement(zeroRot, detContainerPos, detContainerLV, "DetectorContainerPVPL", worldLV,
-                                         false, 0, true);
+    detContainerPVPL = new G4PVPlacement(Layout::NataliaPlacement() * G4Translate3D(detContainerPos), detContainerLV,
+                                         "DetectorContainerPVPL", worldLV, false, 0, true);
     detContainerLV->SetVisAttributes(detContVisAttr);
 
     detector = new Detector(detContainerLV, nist);
@@ -180,11 +102,81 @@ G4VPhysicalVolume* Geometry::Construct() {
     worldPVP = new G4PVPlacement(zeroRot, G4ThreeVector(0, 0, 0), worldLV, "WorldPVPL", nullptr, false, 0, false);
     worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
+    if (Layout::HasSatellite()) {
+        CubeSat_GeoScan_3U cubeSat(worldLV, nist);
+        cubeSat.ConstructCubeSat();
+    }
+    if (!engineConfig.empty()) {
+        Engine engine(worldLV, nist);
+        engine.ConstructEngine();
+        new G4PVPlacement(nullptr, Layout::EnginePosition(), engine.GetEngineLV(), "EnginePVP", worldLV, false, 0, true);
+    }
+
     ConstructDetector();
-    ConstructTunaCan();
+    if (Layout::HasTunaCan()) {
+        TunaCan tunaCan(worldLV, nist, Layout::NataliaPlacement(), detContainerSize.y());
+        tunaCan.Construct();
+    }
+
+    CheckEnvelope();
 
     return worldPVP;
 }
+
+void Geometry::CheckEnvelope() const {
+    // Every top-level volume has to lie inside the generation envelope (or the flat / isotropic normalisation
+    // misses it) and inside BoundingRadius minus the margin (or primaries can start in material).
+    // Surface points are drawn from a private engine, so the run's random sequence stays untouched.
+    CLHEP::MixMaxRng localEngine;
+    CLHEP::HepRandomEngine* runEngine = G4Random::getTheEngine();
+    G4Random::setTheEngine(&localEngine);
+
+    const G4ThreeVector centre = GenSurface::PayloadCentre();
+    const G4double rMax = GenSurface::BoundingRadius() - GenSurface::Margin();
+    constexpr G4double tolerance = 1e-3 * mm;
+    constexpr G4int nPoints = 2000;
+
+    std::ostringstream problems;
+    for (std::size_t i = 0; i < worldLV->GetNoDaughters(); ++i) {
+        const G4VPhysicalVolume* pv = worldLV->GetDaughter(i);
+        const G4VSolid* solid = pv->GetLogicalVolume()->GetSolid();
+        const G4Transform3D toWorld(pv->GetObjectRotationValue(), pv->GetObjectTranslation());
+        const G4bool needEnvelope = !GenSurface::AllowedOutsideEnvelope(pv->GetName());
+
+        auto outside = [&](const G4ThreeVector& local, G4ThreeVector& world) {
+            const G4Point3D p = toWorld * G4Point3D(local);
+            world = G4ThreeVector(p.x(), p.y(), p.z());
+            return (world - centre).mag() > rMax + tolerance || (needEnvelope && !GenSurface::InEnvelope(world,
+                tolerance));
+        };
+
+        G4ThreeVector pMin, pMax, world;
+        solid->BoundingLimits(pMin, pMax);
+        G4bool cornersInside = true;
+        for (G4int c = 0; c < 8 && cornersInside; ++c) {
+            const G4ThreeVector corner(c & 1 ? pMax.x() : pMin.x(), c & 2 ? pMax.y() : pMin.y(),
+                                       c & 4 ? pMax.z() : pMin.z());
+            cornersInside = !outside(corner, world);
+        }
+        if (cornersInside) continue;
+
+        for (G4int n = 0; n < nPoints; ++n) {
+            if (!outside(solid->GetPointOnSurface(), world)) continue;
+            problems << "\n  " << pv->GetName() << ": point (" << world.x() / mm << ", " << world.y() / mm << ", "
+                << world.z() / mm << ") mm";
+            break;
+        }
+    }
+
+    G4Random::setTheEngine(runEngine);
+
+    if (!problems.str().empty()) {
+        G4Exception("Geometry::CheckEnvelope", "OutsideEnvelope", FatalException,
+                    ("Volumes outside the generation envelope of -gc " + geometryConfig +
+                        " (update GenSurface::PayloadEnvelope / Layout::SatelliteExtentZ):" + problems.str()).c_str());
+    }
+}
+
 
 void Geometry::SetStepLimits() {
     vetoStepLimit = new G4UserLimits(0.01 * mm, DBL_MAX, DBL_MAX, 0., 0.);

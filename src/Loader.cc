@@ -6,7 +6,6 @@ Loader::Loader(int argc, char** argv) {
     numThreads = G4Threading::G4GetNumberOfCores();
     useUI = true;
     macroFile = "../run.mac";
-    geomConfigPath = "../geometry_txt";
     detectorType = "CsI";
     fluxType = "Uniform";
     fluxDirection = "isotropic";
@@ -80,8 +79,14 @@ Loader::Loader(int argc, char** argv) {
             saveSecondaries = true;
         } else if (input == "--save-photons") {
             savePhotons = true;
-        } else if (input == "-g" || input == "--geom-config") {
-            geomConfigPath = argv[i + 1];
+        } else if (input == "-gc" || input == "--geometry-config") {
+            geometryConfig = argv[i + 1];
+        } else if (input == "--engine") {
+            engineConfig = argv[i + 1];
+        } else if (input == "--camera") {
+            // the model name is optional: "--camera" alone means the default camera
+            const G4bool hasValue = i + 1 < argc && argv[i + 1][0] != '-';
+            cameraConfig = hasValue ? argv[i + 1] : "galper";
         } else if (input == "-w4" || input == "--weight4") {
             weight4 = std::stod(argv[i + 1]);
         } else if (input == "-w8" || input == "--weight8") {
@@ -124,6 +129,7 @@ Loader::Loader(int argc, char** argv) {
         beamTheta = 90 * deg;
         beamPhi = 0 * deg;
     }
+    Layout::Configure();
     genSurface = GenSurface::For(fluxDirection);
 
     configPath = "../Flux_config/" + fluxType + "_params.txt";
@@ -351,6 +357,9 @@ void Loader::SaveConfig() const {
 
     buf << "N: " << N << "\n";
     buf << "Seed: " << seed << "\n\n";
+    buf << "Geometry_config: " << geometryConfig << "\n";
+    buf << "Engine: " << (engineConfig.empty() ? "none" : engineConfig) << "\n";
+    buf << "Camera: " << (cameraConfig.empty() ? "none" : cameraConfig) << "\n\n";
     buf << "Detector_type: " << detectorType << "\n";
     buf << "Crystal_SiPM_configuration: " << crystalSiPMConfig << "\n";
     buf << "Tyvek_surface: " << (polishedTyvek ? "polished" : "diffuse") << "\n\n";
@@ -384,8 +393,13 @@ void Loader::SaveConfig() const {
     buf << "shape: " << genSurface.ShapeName() << ",\n\t";
     buf << "centre: (" << genSurface.Origin().x() / mm << ", " << genSurface.Origin().y() / mm << ", "
         << genSurface.Origin().z() / mm << ") mm,\n\t";
-    buf << "cylinder_radius: " << genSurface.CylinderRadius() / mm << " mm,\n\t";
-    buf << "cylinder_half_height: " << genSurface.CylinderHalfHeight() / mm << " mm,\n\t";
+    if (genSurface.IsBox()) {
+        buf << "box_half_size: (" << genSurface.BoxHalfSize().x() / mm << ", " << genSurface.BoxHalfSize().y() / mm
+            << ", " << genSurface.BoxHalfSize().z() / mm << ") mm,\n\t";
+    } else {
+        buf << "cylinder_radius: " << genSurface.CylinderRadius() / mm << " mm,\n\t";
+        buf << "cylinder_half_height: " << genSurface.CylinderHalfHeight() / mm << " mm,\n\t";
+    }
     if (genSurface.IsIsotropic()) {
         buf << "R_gen: " << genSurface.Radius() / mm << " mm,\n\t";
         buf << "geometric_factor: " << genSurface.GeomFactor_cm2sr() << " cm^2*sr\n";
@@ -579,7 +593,9 @@ void Loader::SaveConfig() const {
         const std::string part = ReadValue("particles:");
         filename += "_particle:" + part;
     }
-    filename += "_" + GenSurface::DirectionTag() + ".txt";
+    filename += "_" + GenSurface::DirectionTag();
+    if (!Layout::Tag().empty()) filename += "_" + Layout::Tag();
+    filename += ".txt";
     filename = sanitize(filename);
 
     std::ofstream out(filename);
@@ -617,6 +633,7 @@ void Loader::RunPostProcessing() const {
             part = "proton";
         }
         outDir += "_" + GenSurface::DirectionTag();
+        if (!Layout::Tag().empty()) outDir += "_" + Layout::Tag();
         outDir = sanitize(outDir);
         PostProcessing postProcessing(outDir, part);
 

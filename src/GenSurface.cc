@@ -8,32 +8,56 @@
 #include <Randomize.hh>
 
 #include "Configuration.hh"
+#include "geometry/CubeSatSizes.hh"
 
 using namespace Sizes;
 using namespace Configuration;
 
 
-void GenSurface::PayloadExtent(G4double& radius, G4double& zMin, G4double& zMax) {
-    radius = modelRadius;
-    zMax = modelHeight / 2.0;
-    zMin = -modelHeight / 2.0 - plateThick - plateCenterThick - bottomCapHeight;
+// The Ti plate of the bare NATALIA sticks out of the cylinder and is left out of the generation area on purpose;
+// in the satellite configurations the box contains it.
+static G4bool PlateOutsideEnvelope() {
+    return Layout::HasTunaCan() && !Layout::HasSatellite();
+}
+
+
+GenSurface::Envelope GenSurface::PayloadEnvelope() {
+    Envelope e;
+    if (Layout::HasSatellite()) {
+        e.box = true;
+        e.halfX = CubeSatSizes::CubeSat::halfX;
+        e.halfY = CubeSatSizes::CubeSat::halfY;
+        Layout::SatelliteExtentZ(e.zMin, e.zMax);
+    } else if (Layout::BareCrystal()) {
+        // detector container without the TunaCan
+        e.halfX = e.halfY = modelRadius - tunaCanThickWall;
+        e.zMax = modelHeight / 2.0 - tunaCanThickTop;
+        e.zMin = -modelHeight / 2.0 - plateThick - plateCenterThick - bottomCapHeight + bottomCapThick;
+    } else {
+        e.halfX = e.halfY = modelRadius;
+        e.zMax = modelHeight / 2.0;
+        e.zMin = -modelHeight / 2.0 - plateThick - plateCenterThick - bottomCapHeight;
+    }
+    return e;
 }
 
 
 G4ThreeVector GenSurface::PayloadCentre() {
-    G4double r, zMin, zMax;
-    PayloadExtent(r, zMin, zMax);
+    const Envelope e = PayloadEnvelope();
 
-    return {0., 0., 0.5 * (zMin + zMax)};
+    return {0., 0., 0.5 * (e.zMin + e.zMax)};
 }
 
 
 G4double GenSurface::BoundingRadius() {
-    G4double r, zMin, zMax;
-    PayloadExtent(r, zMin, zMax);
-    const G4double zc = 0.5 * (zMin + zMax);
+    const Envelope e = PayloadEnvelope();
+    const G4double zc = 0.5 * (e.zMin + e.zMax);
 
-    const G4double cylinder = std::hypot(r, 0.5 * (zMax - zMin));
+    if (e.box) return std::sqrt(e.halfX * e.halfX + e.halfY * e.halfY + 0.25 * (e.zMax - e.zMin) * (e.zMax - e.zMin))
+                      + Margin();
+
+    const G4double cylinder = std::hypot(e.halfX, 0.5 * (e.zMax - e.zMin));
+    if (!PlateOutsideEnvelope()) return cylinder + Margin();
 
     const G4double plateHalf = plateSize / 2.0 + plateCornerSize;
     const G4double plateZ = std::max(std::fabs(-modelHeight / 2.0 - plateThick - zc),
@@ -45,17 +69,33 @@ G4double GenSurface::BoundingRadius() {
 
 
 G4double GenSurface::MinSourceRadius(const G4double z) {
-    G4double r, zMin, zMax;
-    PayloadExtent(r, zMin, zMax);
+    const Envelope e = PayloadEnvelope();
+    const G4double r = e.box ? std::hypot(e.halfX, e.halfY) : e.halfX;
 
     const G4double plateTop = -modelHeight / 2.0;
     const G4double plateBottom = plateTop - plateThick;
     const G4double plateHalf = plateSize / 2.0 + plateCornerSize;
 
     G4double rMin = 0.;
-    if (z > zMin - Margin() && z < zMax + Margin()) rMin = r + Margin();
-    if (z > plateBottom - Margin() && z < plateTop + Margin()) rMin = std::sqrt(2.0) * plateHalf + Margin();
+    if (z > e.zMin - Margin() && z < e.zMax + Margin()) rMin = r + Margin();
+    if (PlateOutsideEnvelope() && z > plateBottom - Margin() && z < plateTop + Margin())
+        rMin = std::sqrt(2.0) * plateHalf + Margin();
     return rMin;
+}
+
+
+G4bool GenSurface::InEnvelope(const G4ThreeVector& p, const G4double tolerance) {
+    const Envelope e = PayloadEnvelope();
+    if (p.z() < e.zMin - tolerance || p.z() > e.zMax + tolerance) return false;
+    if (e.box) return std::fabs(p.x()) <= e.halfX + tolerance && std::fabs(p.y()) <= e.halfY + tolerance;
+    return std::hypot(p.x(), p.y()) <= e.halfX + tolerance;
+}
+
+
+G4bool GenSurface::AllowedOutsideEnvelope(const G4String& physicalVolumeName) {
+    if (!PlateOutsideEnvelope()) return false;
+    return physicalVolumeName == "PlatePVPL" || physicalVolumeName == "PlateStripLeftPVPL" ||
+           physicalVolumeName == "PlateStripRightPVPL";
 }
 
 
@@ -83,9 +123,11 @@ GenSurface GenSurface::For(const G4String& fluxDirection) {
     s.standoff = BoundingRadius();
     s.radius = s.standoff;
 
-    G4double zMin, zMax;
-    PayloadExtent(s.cylinderRadius, zMin, zMax);
-    s.cylinderHalfHeight = 0.5 * (zMax - zMin);
+    const Envelope e = PayloadEnvelope();
+    s.box = e.box;
+    s.cylinderRadius = e.box ? 0. : e.halfX;
+    s.cylinderHalfHeight = 0.5 * (e.zMax - e.zMin);
+    if (e.box) s.boxHalfSize = G4ThreeVector(e.halfX, e.halfY, s.cylinderHalfHeight);
 
     if (fluxDirection == "isotropic" || fluxDirection == "isotropic_up" || fluxDirection == "isotropic_down") {
         s.shape = Shape::Sphere;
@@ -130,6 +172,13 @@ GenSurface GenSurface::For(const G4String& fluxDirection) {
     s.u = upPerp.mag() > 1e-9 ? upPerp.unit() : G4ThreeVector(1., 0., 0.);
     s.v = s.axis.cross(s.u).unit();
 
+    if (s.box) {
+        const G4ThreeVector& h = s.boxHalfSize;
+        s.halfU = h.x() * std::fabs(s.u.x()) + h.y() * std::fabs(s.u.y()) + h.z() * std::fabs(s.u.z());
+        s.halfV = h.x() * std::fabs(s.v.x()) + h.y() * std::fabs(s.v.y()) + h.z() * std::fabs(s.v.z());
+        return s;
+    }
+
     const G4double sinTh = upPerp.mag() > 1e-12 ? upPerp.mag() : 0.;
     const G4double cosTh = std::fabs(s.axis.z()) > 1e-12 ? std::fabs(s.axis.z()) : 0.;
 
@@ -143,6 +192,24 @@ GenSurface GenSurface::For(const G4String& fluxDirection) {
 
 
 G4bool GenSurface::InSilhouette(const G4double a, const G4double b) const {
+    if (box) {
+        // the ray through origin + a*u + b*v along the axis crosses the box (slab test)
+        const G4ThreeVector p = u * a + v * b;
+        G4double tMin = -DBL_MAX;
+        G4double tMax = DBL_MAX;
+        for (G4int i = 0; i < 3; ++i) {
+            if (std::fabs(axis[i]) < 1e-12) {
+                if (std::fabs(p[i]) > boxHalfSize[i]) return false;
+                continue;
+            }
+            const G4double t1 = (-boxHalfSize[i] - p[i]) / axis[i];
+            const G4double t2 = (boxHalfSize[i] - p[i]) / axis[i];
+            tMin = std::max(tMin, std::min(t1, t2));
+            tMax = std::min(tMax, std::max(t1, t2));
+        }
+        return tMin <= tMax;
+    }
+
     if (std::fabs(b) > cylinderRadius) return false;
 
     const G4double over = std::fabs(a) - halfLength;
@@ -239,6 +306,11 @@ G4double GenSurface::SPerp_cm2() const {
     if (shape == Shape::Sphere) {
         return pi * (radius / cm) * (radius / cm);
     }
+    if (box) {
+        const G4ThreeVector h = boxHalfSize / cm;
+        return 4.0 * (h.y() * h.z() * std::fabs(axis.x()) + h.x() * h.z() * std::fabs(axis.y()) +
+                      h.x() * h.y() * std::fabs(axis.z()));
+    }
     return pi * (cylinderRadius / cm) * (capHalfU / cm) + 4.0 * (cylinderRadius / cm) * (halfLength / cm);
 }
 
@@ -260,5 +332,10 @@ G4String GenSurface::ShapeName() const {
     if (shape == Shape::Sphere) return hemisphere != 0 ? "hemisphere" : "sphere";
     if (shape == Shape::PointBeam) return "point_beam";
     if (shape == Shape::PointIso) return "point_cone";
+    if (box) {
+        const G4int faces = (std::fabs(axis.x()) > 1e-12) + (std::fabs(axis.y()) > 1e-12) +
+                            (std::fabs(axis.z()) > 1e-12);
+        return faces > 1 ? "box_silhouette" : "rectangle";
+    }
     return capHalfU > 0. && halfLength > 0. ? "cylinder_silhouette" : (halfLength > 0. ? "rectangle" : "disk");
 }

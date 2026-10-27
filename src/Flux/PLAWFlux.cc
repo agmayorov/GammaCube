@@ -7,7 +7,7 @@ PLAWFlux::PLAWFlux() {
 
     configFile = "../Flux_config/PLAW_params.txt";
     alpha = GetParam(configFile, "alpha", -1.411103);
-    Epiv = GetParam(configFile, "E_piv", 0.1) * MeV;
+    Epiv = GetParam(configFile, "E_Piv", 0.1) * MeV;
 }
 
 

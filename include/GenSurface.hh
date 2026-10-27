@@ -6,16 +6,28 @@
 #include <G4SystemOfUnits.hh>
 #include <G4PhysicalConstants.hh>
 
-#include "Sizes.hh"
+#include "geometry/Sizes.hh"
+#include "geometry/Layout.hh"
 
 
 class GenSurface {
 public:
     enum class Shape { Sphere, Flat, PointBeam, PointIso };
 
+    // Generation envelope: a cylinder around the z axis (halfX == halfY == radius) or an axis-aligned box
+    struct Envelope {
+        G4bool box{false};
+        G4double halfX{0.};
+        G4double halfY{0.};
+        G4double zMin{0.};
+        G4double zMax{0.};
+    };
+
     static GenSurface For(const G4String& fluxDirection);
 
-    static void PayloadExtent(G4double& radius, G4double& zMin, G4double& zMax);
+    static Envelope PayloadEnvelope();
+    static G4bool InEnvelope(const G4ThreeVector& p, G4double tolerance);
+    static G4bool AllowedOutsideEnvelope(const G4String& physicalVolumeName);
     static G4ThreeVector PayloadCentre();
     static G4double BoundingRadius();
     static G4double MinSourceRadius(G4double z);
@@ -34,6 +46,8 @@ public:
     [[nodiscard]] G4double Radius() const { return radius; }
     [[nodiscard]] G4double CylinderRadius() const { return cylinderRadius; }
     [[nodiscard]] G4double CylinderHalfHeight() const { return cylinderHalfHeight; }
+    [[nodiscard]] G4bool IsBox() const { return box; }
+    [[nodiscard]] const G4ThreeVector& BoxHalfSize() const { return boxHalfSize; }
     [[nodiscard]] G4double HalfLength() const { return halfLength; }
     [[nodiscard]] G4double CapHalfU() const { return capHalfU; }
     [[nodiscard]] G4double HalfU() const { return halfU; }
@@ -66,6 +80,8 @@ private:
     G4double radius{0.};
     G4double cylinderRadius{0.};
     G4double cylinderHalfHeight{0.};
+    G4bool box{false};
+    G4ThreeVector boxHalfSize{0., 0., 0.};
     G4double halfLength{0.};
     G4double capHalfU{0.};
     G4double halfU{0.};

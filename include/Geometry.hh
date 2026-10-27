@@ -22,8 +22,12 @@
 #include <utility>
 
 #include "SensitiveDetector.hh"
-#include "Detector.hh"
-#include "Sizes.hh"
+#include "geometry/Detector.hh"
+#include "geometry/Sizes.hh"
+#include "geometry/Layout.hh"
+#include "geometry/TunaCan.hh"
+#include "geometry/CubeSat_GeoScan_3U.hh"
+#include "geometry/Engine.hh"
 #include "Configuration.hh"
 #include "GenSurface.hh"
 
@@ -79,11 +83,10 @@ private:
     G4Region* vetoRegion;
     G4ProductionCuts* vetoCuts;
 
-    G4VisAttributes* tunaCanVisAttr;
     G4VisAttributes* detContVisAttr;
 
     void ConstructDetector();
-    void ConstructTunaCan();
+    void CheckEnvelope() const;
 
     void SetStepLimits();
 };

@@ -63,7 +63,42 @@ static void Arrow(G4VVisManager* vis, const G4ThreeVector& tail, const G4ThreeVe
 }
 
 
+static G4ThreeVector BoxCorner(const G4ThreeVector& centre, const G4ThreeVector& h, const G4int i) {
+    return centre + G4ThreeVector(i & 1 ? h.x() : -h.x(), i & 2 ? h.y() : -h.y(), i & 4 ? h.z() : -h.z());
+}
+
+
+static std::vector<G4TwoVector> BoxOutline(const GenSurface& s) {
+    // convex hull (monotone chain) of the box corners projected on the (u, v) plane, counter-clockwise
+    std::vector<G4TwoVector> pts;
+    for (G4int i = 0; i < 8; ++i) {
+        const G4ThreeVector c = BoxCorner(G4ThreeVector(), s.BoxHalfSize(), i);
+        pts.emplace_back(c.dot(s.U()), c.dot(s.V()));
+    }
+    std::sort(pts.begin(), pts.end(), [](const G4TwoVector& a, const G4TwoVector& b) {
+        return a.x() < b.x() || (a.x() == b.x() && a.y() < b.y());
+    });
+    auto cross = [](const G4TwoVector& o, const G4TwoVector& a, const G4TwoVector& b) {
+        return (a.x() - o.x()) * (b.y() - o.y()) - (a.y() - o.y()) * (b.x() - o.x());
+    };
+    constexpr G4double eps = 1e-9 * mm * mm;
+    std::vector<G4TwoVector> hull;
+    for (G4int pass = 0; pass < 2; ++pass) {
+        const std::size_t start = hull.size();
+        for (const auto& p : pts) {
+            while (hull.size() >= start + 2 && cross(hull[hull.size() - 2], hull.back(), p) <= eps) hull.pop_back();
+            hull.push_back(p);
+        }
+        hull.pop_back();
+        std::reverse(pts.begin(), pts.end());
+    }
+    return hull;
+}
+
+
 static std::vector<G4TwoVector> SilhouetteOutline(const GenSurface& s) {
+    if (s.IsBox()) return BoxOutline(s);
+
     std::vector<G4TwoVector> pts;
     if (s.CapHalfU() <= 0.) {
         pts.emplace_back(-s.HalfLength(), -s.HalfV());
@@ -84,9 +119,23 @@ static std::vector<G4TwoVector> SilhouetteOutline(const GenSurface& s) {
 }
 
 
-void GenSurfaceVis::DrawPayloadCylinder(G4VVisManager* vis) {
-    G4double r, zMin, zMax;
-    GenSurface::PayloadExtent(r, zMin, zMax);
+void GenSurfaceVis::DrawPayloadEnvelope(G4VVisManager* vis) {
+    const GenSurface::Envelope e = GenSurface::PayloadEnvelope();
+    if (e.box) {
+        const G4ThreeVector centre(0., 0., 0.5 * (e.zMin + e.zMax));
+        const G4ThreeVector h(e.halfX, e.halfY, 0.5 * (e.zMax - e.zMin));
+        for (G4int i = 0; i < 8; ++i) {
+            for (G4int bit = 1; bit < 8; bit <<= 1) {
+                if (i & bit) continue;
+                Segment(vis, BoxCorner(centre, h, i), BoxCorner(centre, h, i | bit), G4Colour::Grey());
+            }
+        }
+        return;
+    }
+
+    const G4double r = e.halfX;
+    const G4double zMin = e.zMin;
+    const G4double zMax = e.zMax;
     const G4ThreeVector ex(1., 0., 0.);
     const G4ThreeVector ey(0., 1., 0.);
     const G4Colour colour = G4Colour::Grey();
@@ -203,7 +252,7 @@ void GenSurfaceVis::Draw() {
 
     const GenSurface s = GenSurface::For(fluxDirection);
 
-    DrawPayloadCylinder(vis);
+    DrawPayloadEnvelope(vis);
     if (s.IsIsotropic()) DrawSphere(vis, s);
     else if (s.IsPoint()) DrawPoint(vis, s);
     else DrawFlat(vis, s);
