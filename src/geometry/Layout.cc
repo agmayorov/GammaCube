@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <G4Exception.hh>
+#include <G4Point3D.hh>
 #include <G4SystemOfUnits.hh>
 
 #include "Configuration.hh"
@@ -119,6 +120,13 @@ void Layout::SatelliteExtentZ(G4double& zMin, G4double& zMax) {
 
 G4double Layout::SatelliteTopZ() {
     return CubeSatSizes::CubeSat::halfZ - CubeSatSizes::Frame::bracketHeight;
+}
+
+
+G4ThreeVector Layout::IsotropicCentre() {
+    const G4Point3D local(0, 0, SatelliteTopZ() - TopZ());
+    const G4Point3D world = NataliaPlacement() * local;
+    return {world.x(), world.y(), world.z()};
 }
 
 

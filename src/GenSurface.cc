@@ -50,13 +50,18 @@ G4ThreeVector GenSurface::PayloadCentre() {
 
 
 G4double GenSurface::BoundingRadius() {
+    return EnclosingRadius(PayloadCentre().z());
+}
+
+
+// Distance from a centre on the axis to the farthest point of the envelope (and of the plate outside it) + margin
+G4double GenSurface::EnclosingRadius(const G4double zc) {
     const Envelope e = PayloadEnvelope();
-    const G4double zc = 0.5 * (e.zMin + e.zMax);
+    const G4double dz = std::max(e.zMax - zc, zc - e.zMin);
 
-    if (e.box) return std::sqrt(e.halfX * e.halfX + e.halfY * e.halfY + 0.25 * (e.zMax - e.zMin) * (e.zMax - e.zMin))
-                      + Margin();
+    if (e.box) return std::sqrt(e.halfX * e.halfX + e.halfY * e.halfY + dz * dz) + Margin();
 
-    const G4double cylinder = std::hypot(e.halfX, 0.5 * (e.zMax - e.zMin));
+    const G4double cylinder = std::hypot(e.halfX, dz);
     if (!PlateOutsideEnvelope()) return cylinder + Margin();
 
     const G4double plateHalf = plateSize / 2.0 + plateCornerSize;
@@ -68,22 +73,17 @@ G4double GenSurface::BoundingRadius() {
 }
 
 
-// isotropic: tunacan centres the sphere on the top of the satellite, at the detector as in default,
-// and enlarges it to hold the whole satellite; the other configurations use the envelope centre
+// isotropic: default and tunacan centre the sphere on the same detector point, just above the Ti plate,
+// so the upper hemisphere covers the detector above the plate; the sphere grows to hold the whole model.
+// The other configurations use the envelope centre.
 G4ThreeVector GenSurface::SphereCentre() {
-    if (geometryConfig == "tunacan") return {0., 0., Layout::SatelliteTopZ()};
+    if (geometryConfig == "default" || geometryConfig == "tunacan") return Layout::IsotropicCentre();
     return PayloadCentre();
 }
 
 
 G4double GenSurface::SphereRadius() {
-    if (geometryConfig != "tunacan") return BoundingRadius();
-
-    // the farthest box corner from a centre on the axis
-    const Envelope e = PayloadEnvelope();
-    const G4double zc = SphereCentre().z();
-    const G4double dz = std::max(e.zMax - zc, zc - e.zMin);
-    return std::sqrt(e.halfX * e.halfX + e.halfY * e.halfY + dz * dz) + Margin();
+    return EnclosingRadius(SphereCentre().z());
 }
 
 

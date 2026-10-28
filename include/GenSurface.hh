@@ -30,6 +30,7 @@ public:
     static G4bool AllowedOutsideEnvelope(const G4String& physicalVolumeName);
     static G4ThreeVector PayloadCentre();
     static G4double BoundingRadius();
+    static G4double EnclosingRadius(G4double zc);
     static G4ThreeVector SphereCentre();
     static G4double SphereRadius();
     static G4double MinSourceRadius(G4double z);

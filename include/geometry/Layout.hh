@@ -25,6 +25,9 @@ namespace Layout {
     void SatelliteExtentZ(G4double& zMin, G4double& zMax);
     // Top of the satellite body without the brackets: what the TunaCan plate stands on
     G4double SatelliteTopZ();
+    // The NATALIA point at SatelliteTopZ in tunacan (just above the Ti plate), in world coordinates;
+    // centre of the isotropic sphere in default and tunacan
+    G4ThreeVector IsotropicCentre();
 
     // Suffix for output names; empty for the default geometry, so its file names do not change
     G4String Tag();
