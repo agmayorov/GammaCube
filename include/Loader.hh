@@ -66,6 +66,7 @@ public:
 
 private:
     std::string configPath;
+    std::string runArguments;    // config files and command line, in the order they are applied
     G4int crystalOnly{};
     G4int crystalAndVeto{};
     G4int crystalOnlyOpt{};

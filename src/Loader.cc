@@ -1,6 +1,61 @@
 #include "Loader.hh"
 
+#include <cctype>
+
 using namespace Configuration;
+
+namespace {
+    void ArgumentError(const std::string& message) {
+        G4Exception("Loader::Loader", "Arguments", FatalException, message.c_str());
+    }
+
+    // A flag, not a value: negative numbers such as "--source-z -10" are values
+    bool IsFlag(const std::string& token) {
+        return token.size() > 1 && token[0] == '-' && !std::isdigit(static_cast<unsigned char>(token[1])) &&
+               token[1] != '.';
+    }
+
+    // The whole value must be a number of this type: "12abc" and, for an integer, "8.5" are errors
+    template <typename T>
+    T Number(const std::string& flag, const std::string& text) {
+        std::istringstream in(text);
+        T number{};
+        if (!(in >> number) || !in.eof()) ArgumentError("Flag " + flag + " has an invalid value: " + text);
+        return number;
+    }
+
+    // -c/--config file: the same flags as on the command line, split on whitespace; '#' starts a comment
+    void ReadConfigFile(const std::string& path, std::vector<std::string>& out) {
+        std::ifstream file(path);
+        if (!file.is_open()) ArgumentError("Cannot open config file: " + path);
+
+        std::string line;
+        while (std::getline(file, line)) {
+            std::istringstream tokens(line.substr(0, line.find('#')));
+            for (std::string token; tokens >> token;) {
+                if (token == "-c" || token == "--config") ArgumentError("Config files cannot include others: " + path);
+                out.push_back(token);
+            }
+        }
+    }
+
+    // Config files go first, so that any flag given on the command line overrides them wherever -c stands
+    std::vector<std::string> CollectArguments(const int argc, char** argv) {
+        std::vector<std::string> fromFiles;
+        std::vector<std::string> fromCommandLine;
+        for (int i = 1; i < argc; ++i) {
+            const std::string token(argv[i]);
+            if (token != "-c" && token != "--config") {
+                fromCommandLine.push_back(token);
+                continue;
+            }
+            if (i + 1 >= argc || IsFlag(argv[i + 1])) ArgumentError("Flag " + token + " needs a value");
+            ReadConfigFile(argv[++i], fromFiles);
+        }
+        fromFiles.insert(fromFiles.end(), fromCommandLine.begin(), fromCommandLine.end());
+        return fromFiles;
+    }
+}
 
 Loader::Loader(int argc, char** argv) {
     numThreads = G4Threading::G4GetNumberOfCores();
@@ -24,55 +79,65 @@ Loader::Loader(int argc, char** argv) {
     saveSecondaries = false;
     savePhotons = false;
 
-    for (int i = 0; i < argc; i++) {
-        if (std::string input(argv[i]); input == "-i" || input == "--input") {
-            macroFile = argv[i + 1];
+    const std::vector<std::string> args = CollectArguments(argc, argv);
+    for (const auto& arg : args) runArguments += (runArguments.empty() ? "" : " ") + arg;
+
+    for (size_t i = 0; i < args.size(); i++) {
+        const std::string& input = args[i];
+        auto value = [&]() -> std::string {
+            if (i + 1 >= args.size() || IsFlag(args[i + 1])) ArgumentError("Flag " + input + " needs a value");
+            return args[++i];
+        };
+        auto real = [&]() { return Number<G4double>(input, value()); };
+        auto integer = [&]() { return Number<G4int>(input, value()); };
+
+        if (input == "-i" || input == "--input") {
+            macroFile = value();
             useUI = false;
             viewDeg = 360 * deg;
         } else if (input == "-t" || input == "--threads") {
-            numThreads = std::stoi(argv[i + 1]);
+            numThreads = integer();
         } else if (input == "-ys" || input == "--yield-scale") {
-            yieldScale = std::stoi(argv[i + 1]);
+            yieldScale = integer();
         } else if (input == "--bins") {
-            nBins = std::stoi(argv[i + 1]);
-        } else if ((input == "-vd" || input == "--view-deg") and useUI) {
-            viewDeg = std::stod(argv[i + 1]) * deg;
+            nBins = integer();
+        } else if (input == "-vd" || input == "--view-deg") {
+            const G4double angle = real() * deg;
+            if (useUI) viewDeg = angle;
         } else if (input == "-ct" || input == "--crystal-threshold") {
-            eCrystalThreshold = std::stod(argv[i + 1]) * MeV;
+            eCrystalThreshold = real() * MeV;
         } else if (input == "-vt" || input == "--veto-threshold") {
-            eVetoThreshold = std::stod(argv[i + 1]) * MeV;
+            eVetoThreshold = real() * MeV;
         } else if (input == "-oct" || input == "--crystal-optic-threshold") {
-            oCrystalThreshold = std::stoi(argv[i + 1]);
+            oCrystalThreshold = integer();
         } else if (input == "-ovt" || input == "--veto-optic-threshold") {
-            oVetoThreshold = std::stoi(argv[i + 1]);
+            oVetoThreshold = integer();
         } else if (input == "-obvt" || input == "--bottom-veto-optic-threshold") {
-            oBottomVetoThreshold = std::stoi(argv[i + 1]);
+            oBottomVetoThreshold = integer();
         } else if (input == "-ptl" || input == "--photon-time-limit") {
-            photonTimeLimit = std::stod(argv[i + 1]) * us;
+            photonTimeLimit = real() * us;
         } else if (input == "-sc" || input == "--sipm-cells") {
-            sipmCells = std::stoi(argv[i + 1]);
+            sipmCells = integer();
         } else if (input == "-sr" || input == "--sipm-recovery") {
-            sipmRecoveryTime = std::stod(argv[i + 1]) * ns;
+            sipmRecoveryTime = real() * ns;
         } else if (input == "-xt" || input == "--sipm-crosstalk") {
-            sipmCrosstalk = std::stod(argv[i + 1]);
-        } else if ((input == "-vch" || input == "--veto-chamfer-height") and Sizes::vetoTopRoundedRadius == 0) {
-            Sizes::vetoChamferHeight = std::stod(argv[i + 1]) * mm;
-        } else if ((input == "-vtr" || input == "--veto-top-rounded") and Sizes::vetoTopRoundedRadius == 0) {
-            Sizes::vetoTopRoundedRadius = std::stod(argv[i + 1]) * mm;
-            if (Sizes::vetoTopRoundedRadius > 0)
-                Sizes::vetoChamferHeight = 0 * mm;
+            sipmCrosstalk = real();
+        } else if (input == "-vch" || input == "--veto-chamfer-height") {
+            Sizes::vetoChamferHeight = real() * mm;
+        } else if (input == "-vtr" || input == "--veto-top-rounded") {
+            Sizes::vetoTopRoundedRadius = real() * mm;
         } else if (input == "-noUI") {
             useUI = false;
         } else if (input == "--polished") {
             polishedTyvek = true;
         } else if (input == "-d" || input == "--detector") {
-            detectorType = argv[i + 1];
+            detectorType = value();
         } else if (input == "-csc" || input == "--crystal-sipm-config" || input == "-sipm") {
-            crystalSiPMConfig = argv[i + 1];
+            crystalSiPMConfig = value();
         } else if (input == "-f" || input == "--flux-type") {
-            fluxType = argv[i + 1];
+            fluxType = value();
         } else if (input == "--flux-dir" || input == "--f-dir" || input == "-fd") {
-            fluxDirection = argv[i + 1];
+            fluxDirection = value();
         } else if (input == "--use-optics") {
             useOptics = true;
         } else if (input == "--save-secondaries") {
@@ -80,48 +145,53 @@ Loader::Loader(int argc, char** argv) {
         } else if (input == "--save-photons") {
             savePhotons = true;
         } else if (input == "-gc" || input == "--geometry-config") {
-            geometryConfig = argv[i + 1];
+            geometryConfig = value();
         } else if (input == "--engine") {
-            engineConfig = argv[i + 1];
+            engineConfig = value();
         } else if (input == "--camera") {
             // the model name is optional: "--camera" alone means the default camera
-            const G4bool hasValue = i + 1 < argc && argv[i + 1][0] != '-';
-            cameraConfig = hasValue ? argv[i + 1] : "galper";
+            const G4bool hasValue = i + 1 < args.size() && !IsFlag(args[i + 1]);
+            cameraConfig = hasValue ? value() : "galper";
         } else if (input == "--trigger") {
-            triggerType = argv[i + 1];
+            triggerType = value();
         } else if (input == "-w4" || input == "--weight4") {
-            weight4 = std::stod(argv[i + 1]);
+            weight4 = real();
         } else if (input == "-w8" || input == "--weight8") {
-            weight8 = std::stod(argv[i + 1]);
+            weight8 = real();
         } else if (input == "--source-r") {
-            sourceR = std::stod(argv[i + 1]) * mm;
+            sourceR = real() * mm;
         } else if (input == "--source-z") {
-            sourceZ = std::stod(argv[i + 1]) * mm;
+            sourceZ = real() * mm;
         } else if (input == "--cone") {
-            coneAngle = std::stod(argv[i + 1]) * deg;
+            coneAngle = real() * deg;
         } else if (input == "--theta-min") {
-            sphereThetaMin = std::stod(argv[i + 1]) * deg;
+            sphereThetaMin = real() * deg;
         } else if (input == "--theta-max") {
-            sphereThetaMax = std::stod(argv[i + 1]) * deg;
+            sphereThetaMax = real() * deg;
         } else if (input == "--phi-min") {
-            spherePhiMin = std::stod(argv[i + 1]) * deg;
+            spherePhiMin = real() * deg;
         } else if (input == "--phi-max") {
-            spherePhiMax = std::stod(argv[i + 1]) * deg;
+            spherePhiMax = real() * deg;
         } else if (input == "--axis-theta") {
-            sphereAxisTheta = std::stod(argv[i + 1]) * deg;
+            sphereAxisTheta = real() * deg;
         } else if (input == "--axis-phi") {
-            sphereAxisPhi = std::stod(argv[i + 1]) * deg;
+            sphereAxisPhi = real() * deg;
         } else if (input == "--theta") {
-            beamTheta = std::stod(argv[i + 1]) * deg;
+            beamTheta = real() * deg;
         } else if (input == "--phi") {
-            beamPhi = std::stod(argv[i + 1]) * deg;
+            beamPhi = real() * deg;
         } else if (input == "-s" || input == "--seed") {
-            seed = std::stol(argv[i + 1]);
+            seed = Number<G4long>(input, value());
         } else if (input == "-o" || input == "--output-file") {
-            outputFile = argv[i + 1];
+            outputFile = value();
             outputFile += ".root";
+        } else {
+            ArgumentError("Unknown argument: " + input);
         }
     }
+
+    // the rounded top replaces the chamfer
+    if (Sizes::vetoTopRoundedRadius > 0) Sizes::vetoChamferHeight = 0 * mm;
 
     savePhotons = savePhotons and useOptics;
     if (!useOptics) {
@@ -374,7 +444,8 @@ void Loader::SaveConfig() const {
     std::ostringstream buf;
 
     buf << "N: " << N << "\n";
-    buf << "Seed: " << seed << "\n\n";
+    buf << "Seed: " << seed << "\n";
+    buf << "Arguments: " << runArguments << "\n\n";
     buf << "Geometry_config: " << geometryConfig << "\n";
     buf << "Engine: " << (engineConfig.empty() ? "none" : engineConfig) << "\n";
     buf << "Camera: " << (cameraConfig.empty() ? "none" : cameraConfig) << "\n";
