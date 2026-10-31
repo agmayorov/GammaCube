@@ -21,6 +21,13 @@ namespace Configuration
     inline G4double sourceZ{0.};
     inline G4double sourceR{-1.};
     inline G4double coneAngle{180. * deg};
+    // isotropic: part of the sphere, polar angle and azimuth around the sphere axis
+    inline G4double sphereThetaMin{0.};
+    inline G4double sphereThetaMax{180. * deg};
+    inline G4double spherePhiMin{0.};
+    inline G4double spherePhiMax{360. * deg};
+    inline G4double sphereAxisTheta{0.};
+    inline G4double sphereAxisPhi{0.};
 
     inline G4long seed{0};
 

@@ -3,6 +3,7 @@
 
 #include <G4String.hh>
 #include <G4ThreeVector.hh>
+#include <G4RotationMatrix.hh>
 #include <G4SystemOfUnits.hh>
 #include <G4PhysicalConstants.hh>
 
@@ -43,7 +44,15 @@ public:
     [[nodiscard]] G4bool IsIsotropic() const { return shape == Shape::Sphere; }
     [[nodiscard]] G4bool IsPoint() const { return shape == Shape::PointBeam || shape == Shape::PointIso; }
     [[nodiscard]] G4bool IsCone() const { return shape == Shape::PointIso; }
-    [[nodiscard]] G4int Hemisphere() const { return hemisphere; }
+    [[nodiscard]] G4bool IsSpherePart() const;
+    [[nodiscard]] G4bool FullPhi() const { return phiWidth >= twopi; }
+    [[nodiscard]] G4double ThetaMin() const { return thetaMin; }
+    [[nodiscard]] G4double ThetaMax() const { return thetaMax; }
+    [[nodiscard]] G4double PhiMin() const { return phiMin; }
+    [[nodiscard]] G4double PhiWidth() const { return phiWidth; }
+    [[nodiscard]] G4double SphereFraction() const;
+    [[nodiscard]] const G4RotationMatrix& SphereRotation() const { return sphereRotation; }
+    [[nodiscard]] G4ThreeVector SphereAxis() const { return sphereRotation * G4ThreeVector(0., 0., 1.); }
     [[nodiscard]] G4double OuterRadius() const;
 
     [[nodiscard]] G4double Radius() const { return radius; }
@@ -78,7 +87,15 @@ public:
 
 private:
     Shape shape{Shape::Sphere};
-    G4int hemisphere{0};
+    // part of the sphere: theta and phi are measured around the sphere axis
+    G4double thetaMin{0.};
+    G4double thetaMax{pi};
+    G4double phiMin{0.};
+    G4double phiWidth{twopi};
+    G4double cosThetaLow{-1.};    // cos(thetaMax)
+    G4double cosThetaHigh{1.};    // cos(thetaMin)
+    G4bool tilted{false};
+    G4RotationMatrix sphereRotation;
 
     G4double radius{0.};
     G4double cylinderRadius{0.};
@@ -101,6 +118,7 @@ private:
     G4ThreeVector u{1., 0., 0.};
     G4ThreeVector v{0., 1., 0.};
 
+    void SetSpherePart(const G4String& fluxDirection);
     void SampleSphere(G4ThreeVector& pos, G4ThreeVector& dir) const;
     void SampleFlat(G4ThreeVector& pos, G4ThreeVector& dir) const;
     void SamplePointIso(G4ThreeVector& pos, G4ThreeVector& dir) const;

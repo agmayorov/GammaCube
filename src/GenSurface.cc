@@ -124,9 +124,19 @@ G4ThreeVector GenSurface::Arrival(const G4double theta, const G4double phi) {
 
 
 G4String GenSurface::DirectionTag() {
-    if (fluxDirection.find("isotropic") != std::string::npos) return fluxDirection;
-
     std::ostringstream ss;
+    if (fluxDirection.find("isotropic") != std::string::npos) {
+        ss << fluxDirection;
+        if (fluxDirection == "isotropic" && (sphereThetaMin > 0. || sphereThetaMax < 180. * deg)) {
+            ss << "_t" << sphereThetaMin / deg << "-" << sphereThetaMax / deg;
+        }
+        if (spherePhiMin != 0. || spherePhiMax != 360. * deg) {
+            ss << "_p" << spherePhiMin / deg << "-" << spherePhiMax / deg;
+        }
+        if (sphereAxisTheta != 0.) ss << "_axis_t" << sphereAxisTheta / deg << "_p" << sphereAxisPhi / deg;
+        return ss.str();
+    }
+
     ss << fluxDirection << "_t" << beamTheta / deg << "_p" << beamPhi / deg;
     if (fluxDirection == "point_beam" || fluxDirection == "point_iso") {
         ss << "_r" << (sourceR < 0. ? BoundingRadius() : sourceR) / mm << "_z" << sourceZ / mm;
@@ -152,8 +162,7 @@ GenSurface GenSurface::For(const G4String& fluxDirection) {
         s.shape = Shape::Sphere;
         s.origin = SphereCentre();
         s.radius = s.standoff = SphereRadius();
-        if (fluxDirection == "isotropic_up") s.hemisphere = 1;
-        else if (fluxDirection == "isotropic_down") s.hemisphere = -1;
+        s.SetSpherePart(fluxDirection);
         return s;
     }
 
@@ -212,6 +221,63 @@ GenSurface GenSurface::For(const G4String& fluxDirection) {
 }
 
 
+void GenSurface::SetSpherePart(const G4String& fluxDirection) {
+    thetaMin = sphereThetaMin;
+    thetaMax = sphereThetaMax;
+    // isotropic_up / isotropic_down fix the polar range themselves
+    if (fluxDirection == "isotropic_up") {
+        thetaMin = 0.;
+        thetaMax = 90. * deg;
+    } else if (fluxDirection == "isotropic_down") {
+        thetaMin = 90. * deg;
+        thetaMax = 180. * deg;
+    }
+    if (thetaMin < 0. || thetaMax > 180. * deg || thetaMin >= thetaMax) {
+        G4Exception("GenSurface::SetSpherePart", "SpherePart", FatalException,
+                    "Polar range must satisfy 0 <= --theta-min < --theta-max <= 180 deg");
+    }
+
+    // cos(90 deg) must be exactly 0, otherwise the hemisphere area and sampling get a rounding error
+    auto cosine = [](const G4double angle) {
+        const G4double c = std::cos(angle);
+        return std::fabs(c) < 1e-15 ? 0. : c;
+    };
+    cosThetaLow = cosine(thetaMax);
+    cosThetaHigh = cosine(thetaMin);
+
+    // the azimuth range may cross 0: --phi-min 300 --phi-max 60 is 120 deg wide
+    const G4double span = spherePhiMax - spherePhiMin;
+    const G4double width = span < 0. ? span + 360. * deg : span;
+    if (std::fabs(span) > 360. * deg + 1e-9 || width <= 0.) {
+        G4Exception("GenSurface::SetSpherePart", "SpherePart", FatalException,
+                    "Azimuth range must have a non-zero width of at most 360 deg");
+    }
+    phiMin = spherePhiMin;
+    phiWidth = width >= twopi - 1e-9 ? twopi : width;
+
+    if (sphereAxisTheta < 0. || sphereAxisTheta > 180. * deg) {
+        G4Exception("GenSurface::SetSpherePart", "SpherePart", FatalException,
+                    "--axis-theta must be in [0, 180] deg");
+    }
+    tilted = sphereAxisTheta != 0.;
+    if (tilted) {
+        // the pole goes to Arrival(axis-theta, axis-phi)
+        sphereRotation.rotateY(sphereAxisTheta);
+        sphereRotation.rotateZ(sphereAxisPhi);
+    }
+}
+
+
+G4bool GenSurface::IsSpherePart() const {
+    return shape == Shape::Sphere && (SphereFraction() < 1. || tilted);
+}
+
+
+G4double GenSurface::SphereFraction() const {
+    return phiWidth / twopi * 0.5 * (cosThetaHigh - cosThetaLow);
+}
+
+
 G4bool GenSurface::InSilhouette(const G4double a, const G4double b) const {
     if (box) {
         // the ray through origin + a*u + b*v along the axis crosses the box (slab test)
@@ -258,13 +324,11 @@ void GenSurface::Sample(G4ThreeVector& pos, G4ThreeVector& dir) const {
 
 
 void GenSurface::SampleSphere(G4ThreeVector& pos, G4ThreeVector& dir) const {
-    G4double cosT = 2.0 * G4UniformRand() - 1.0;
-    if (hemisphere > 0) cosT = G4UniformRand();
-    else if (hemisphere < 0) cosT = -G4UniformRand();
-
-    const G4double psi = twopi * G4UniformRand();
+    const G4double cosT = cosThetaLow + (cosThetaHigh - cosThetaLow) * G4UniformRand();
+    const G4double psi = phiMin + phiWidth * G4UniformRand();
     const G4double l = std::sqrt(std::max(0.0, 1.0 - cosT * cosT));
-    const G4ThreeVector rhat(l * std::cos(psi), l * std::sin(psi), cosT);
+    G4ThreeVector rhat(l * std::cos(psi), l * std::sin(psi), cosT);
+    if (tilted) rhat = sphereRotation * rhat;
 
     pos = origin + radius * rhat;
 
@@ -339,7 +403,7 @@ G4double GenSurface::SPerp_cm2() const {
 G4double GenSurface::GeomFactor_cm2sr() const {
     if (shape != Shape::Sphere) return 0.0;
     const G4double r_cm = radius / cm;
-    return (hemisphere != 0 ? 2.0 : 4.0) * pi * pi * r_cm * r_cm;
+    return 4.0 * pi * pi * r_cm * r_cm * SphereFraction();
 }
 
 
@@ -350,7 +414,12 @@ G4double GenSurface::Norm_cm2() const {
 
 
 G4String GenSurface::ShapeName() const {
-    if (shape == Shape::Sphere) return hemisphere != 0 ? "hemisphere" : "sphere";
+    if (shape == Shape::Sphere) {
+        if (!FullPhi()) return "sphere_patch";
+        if (cosThetaHigh >= 1. && cosThetaLow <= -1.) return "sphere";
+        if (cosThetaHigh < 1. && cosThetaLow > -1.) return "sphere_ring";
+        return cosThetaHigh == 0. || cosThetaLow == 0. ? "hemisphere" : "sphere_cap";
+    }
     if (shape == Shape::PointBeam) return "point_beam";
     if (shape == Shape::PointIso) return "point_cone";
     if (box) {

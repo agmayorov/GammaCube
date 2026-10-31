@@ -99,6 +99,18 @@ Loader::Loader(int argc, char** argv) {
             sourceZ = std::stod(argv[i + 1]) * mm;
         } else if (input == "--cone") {
             coneAngle = std::stod(argv[i + 1]) * deg;
+        } else if (input == "--theta-min") {
+            sphereThetaMin = std::stod(argv[i + 1]) * deg;
+        } else if (input == "--theta-max") {
+            sphereThetaMax = std::stod(argv[i + 1]) * deg;
+        } else if (input == "--phi-min") {
+            spherePhiMin = std::stod(argv[i + 1]) * deg;
+        } else if (input == "--phi-max") {
+            spherePhiMax = std::stod(argv[i + 1]) * deg;
+        } else if (input == "--axis-theta") {
+            sphereAxisTheta = std::stod(argv[i + 1]) * deg;
+        } else if (input == "--axis-phi") {
+            sphereAxisPhi = std::stod(argv[i + 1]) * deg;
         } else if (input == "--theta") {
             beamTheta = std::stod(argv[i + 1]) * deg;
         } else if (input == "--phi") {
@@ -410,6 +422,15 @@ void Loader::SaveConfig() const {
     }
     if (genSurface.IsIsotropic()) {
         buf << "R_gen: " << genSurface.Radius() / mm << " mm,\n\t";
+        if (genSurface.IsSpherePart()) {
+            buf << "theta_range: (" << genSurface.ThetaMin() / deg << ", " << genSurface.ThetaMax() / deg
+                << ") deg,\n\t";
+            buf << "phi_range: (" << genSurface.PhiMin() / deg << ", "
+                << (genSurface.PhiMin() + genSurface.PhiWidth()) / deg << ") deg,\n\t";
+            buf << "sphere_axis: (" << genSurface.SphereAxis().x() << ", " << genSurface.SphereAxis().y() << ", "
+                << genSurface.SphereAxis().z() << "),\n\t";
+            buf << "sphere_fraction: " << genSurface.SphereFraction() << ",\n\t";
+        }
         buf << "geometric_factor: " << genSurface.GeomFactor_cm2sr() << " cm^2*sr\n";
     } else if (genSurface.IsPoint()) {
         buf << "theta: " << genSurface.Theta() / deg << " deg,\n\t";

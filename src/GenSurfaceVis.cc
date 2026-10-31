@@ -187,26 +187,35 @@ void GenSurfaceVis::DrawFlat(G4VVisManager* vis, const GenSurface& s) {
 void GenSurfaceVis::DrawSphere(G4VVisManager* vis, const GenSurface& s) {
     const G4ThreeVector centre = s.Origin();
     const G4double r = s.Radius();
-    const G4ThreeVector up(0., 0., 1.);
-    const G4ThreeVector ex(1., 0., 0.);
-    const G4ThreeVector ey(0., 1., 0.);
+    const G4RotationMatrix& rotation = s.SphereRotation();
+    const G4ThreeVector up = rotation * G4ThreeVector(0., 0., 1.);
+    const G4ThreeVector ex = rotation * G4ThreeVector(1., 0., 0.);
+    const G4ThreeVector ey = rotation * G4ThreeVector(0., 1., 0.);
     const G4Colour colour = G4Colour::Yellow();
 
-    G4double from = 0.;
-    G4double to = pi;
-    if (s.Hemisphere() > 0) to = halfpi;
-    else if (s.Hemisphere() < 0) from = halfpi;
+    const G4double from = s.ThetaMin();
+    const G4double to = s.ThetaMax();
+    const G4double phiFrom = s.PhiMin();
+    const G4double phiTo = s.PhiMin() + s.PhiWidth();
 
-    const G4Sphere shell("GenSurfaceShell", 0., r, 0., twopi, from, to - from);
+    // a thin shell, so that a part of the sphere is not drawn as a wedge reaching the centre
+    const G4Sphere shell("GenSurfaceShell", 0.995 * r, r, phiFrom, s.PhiWidth(), from, to - from);
     G4VisAttributes shellAttributes(G4Colour(1., 1., 0., 0.15));
     shellAttributes.SetForceSolid(true);
-    vis->Draw(shell, shellAttributes, G4Transform3D(G4RotationMatrix(), centre));
+    vis->Draw(shell, shellAttributes, G4Transform3D(rotation, centre));
 
-    Arc(vis, centre, r, ex, ey, 0., twopi, colour);
+    auto parallel = [&](const G4double theta) {
+        Arc(vis, centre + r * std::cos(theta) * up, r * std::sin(theta), ex, ey, phiFrom, phiTo, colour);
+    };
+    if (from > 0.) parallel(from);
+    if (to < pi) parallel(to);
+    if (from < halfpi && to > halfpi) parallel(halfpi);
 
-    constexpr G4int nMeridians = 12;
+    // an open sector shows its two edges, a full circle would draw the first meridian twice
+    const G4int nMeridians = s.FullPhi() ? 12 : std::max(2, static_cast<G4int>(12 * s.PhiWidth() / twopi) + 1);
     for (G4int i = 0; i < nMeridians; ++i) {
-        const G4double psi = twopi * i / nMeridians;
+        const G4double psi = s.FullPhi() ? twopi * i / nMeridians
+                                         : phiFrom + s.PhiWidth() * i / (nMeridians - 1);
         const G4ThreeVector radial = std::cos(psi) * ex + std::sin(psi) * ey;
         Arc(vis, centre, r, up, radial, from, to, colour);
     }
