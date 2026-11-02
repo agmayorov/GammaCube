@@ -238,6 +238,9 @@ void PostProcessing::ExtractNtData() {
         ExportTreeToCsv("photons_count", (fs::path(csvDir) / "photons_count.csv").string());
         ExportTreeToCsv("photons", (fs::path(csvDir) / "photons.csv").string());
     }
+    if (savePhotonTimes) {
+        ExportTreeToCsv("photon_times", (fs::path(csvDir) / "photon_times.csv").string());
+    }
 }
 
 void PostProcessing::SaveEffArea() {

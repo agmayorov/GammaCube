@@ -148,7 +148,7 @@ G4bool SiPMOpticalSD::ProcessHits(G4Step* step, G4TouchableHistory*) {
         // but do not count it.
     }
 
-    if (Configuration::savePhotons) {
+    if (Configuration::savePhotons or Configuration::savePhotonTimes) {
         if (auto* ea = dynamic_cast<EventAction*>(G4EventManager::GetEventManager()->GetUserEventAction())) {
             PhotonRec rec;
             rec.photonID = track->GetTrackID();

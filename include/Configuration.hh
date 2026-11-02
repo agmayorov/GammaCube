@@ -60,6 +60,7 @@ namespace Configuration
     inline G4String outputFile{"GammaCube.root"};
     inline G4bool saveSecondaries{false};
     inline G4bool savePhotons{false};
+    inline G4bool savePhotonTimes{false};   // photon_times: event, photon, SiPM, emission and registration time
 
     inline G4double weight4{1.};
     inline G4double weight8{1.};

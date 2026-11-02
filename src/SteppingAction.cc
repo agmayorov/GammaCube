@@ -36,7 +36,7 @@ void SteppingAction::ApplyPhotonTimeLimit(const G4Step* step, EventAction* ea) {
 void SteppingAction::UserSteppingAction(const G4Step* step) {
     auto* ea = static_cast<EventAction*>(G4EventManager::GetEventManager()->GetUserEventAction());
 
-    if ((Configuration::photonTimeLimit > 0 or Configuration::savePhotons) and ea) {
+    if ((Configuration::photonTimeLimit > 0 or Configuration::savePhotons or Configuration::savePhotonTimes) and ea) {
         UpdateEventT0(step, ea);
     }
 

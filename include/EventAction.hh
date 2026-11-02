@@ -87,6 +87,7 @@ private:
     int WriteInteractions_(int eventID);
     int WritePhotonsCount_(int eventID);
     int WritePhotons_(int eventID);
+    void WritePhotonTimes_(int eventID);
     int WriteEdepFromSD_(const G4Event *evt, int eventID);
 
     void WriteSiPMFromSD_(int eventID);

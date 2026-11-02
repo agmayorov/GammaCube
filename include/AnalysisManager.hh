@@ -38,12 +38,15 @@ public:
 
     void FillEdepRow(G4int eventID, const G4String& det_name, G4double edep_MeV);
 
-    void FillSiPMEventRow(int eventID, int npeC, int npeV, int npeB);
+    void FillSiPMEventRow(int eventID, int npeC, int npeV, int npeB, G4double t0_ns);
     void FillSiPMChannelRow(int eventID, const G4String& subdet, int ch, int npe);
 
     void FillPhotonCountRow(G4int eventID,
                             G4int npeCrystal, G4int npeVeto,
                             G4int npeBottomVeto, G4double t0_ns);
+
+    void FillPhotonTimeRow(G4int eventID, G4int photonID, const G4String& det_name, G4int det_ch,
+                           G4double t_gen_ns, G4double t_reg_ns);
 
     void FillPhotonRow(G4int eventID, G4int photonID, const G4String& det_name, G4int det_ch,
                        G4double energy_eV, G4double x_mm, G4double y_mm, G4double z_mm,
@@ -66,6 +69,7 @@ private:
     G4int interactionsNT{-1};
     G4int photonsCountNT{-1};
     G4int photonsNT{-1};
+    G4int photonTimesNT{-1};
     G4int edepNT{-1};
 
     G4int SiPMEventNT{-1};

@@ -78,6 +78,7 @@ Loader::Loader(int argc, char** argv) {
     nBins = 1000;
     saveSecondaries = false;
     savePhotons = false;
+    savePhotonTimes = false;
 
     const std::vector<std::string> args = CollectArguments(argc, argv);
     for (const auto& arg : args) runArguments += (runArguments.empty() ? "" : " ") + arg;
@@ -144,6 +145,8 @@ Loader::Loader(int argc, char** argv) {
             saveSecondaries = true;
         } else if (input == "--save-photons") {
             savePhotons = true;
+        } else if (input == "--save-photon-times") {
+            savePhotonTimes = true;
         } else if (input == "-gc" || input == "--geometry-config") {
             geometryConfig = value();
         } else if (input == "--engine") {
@@ -194,6 +197,7 @@ Loader::Loader(int argc, char** argv) {
     if (Sizes::vetoTopRoundedRadius > 0) Sizes::vetoChamferHeight = 0 * mm;
 
     savePhotons = savePhotons and useOptics;
+    savePhotonTimes = savePhotonTimes and useOptics;
     if (!useOptics) {
         photonTimeLimit = -1.;
         sipmCells = 0;

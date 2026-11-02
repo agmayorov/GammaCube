@@ -75,6 +75,8 @@ void AnalysisManager::Book() {
         analysisManager->CreateNtupleIColumn("npe_crystal");
         analysisManager->CreateNtupleIColumn("npe_veto");
         analysisManager->CreateNtupleIColumn("npe_bottom_veto");
+        // first energy deposit of the event; -1 unless photons are saved or the readout gate is on
+        analysisManager->CreateNtupleDColumn("t0_ns");
         analysisManager->FinishNtuple(SiPMEventNT);
 
         SiPMChannelNT = analysisManager->CreateNtuple("sipm_ch", "SiPM p.e. per channel");
@@ -109,6 +111,16 @@ void AnalysisManager::Book() {
             analysisManager->CreateNtupleDColumn("gen_z");
             analysisManager->CreateNtupleSColumn("process");
             analysisManager->FinishNtuple(photonsNT);
+        }
+        if (savePhotonTimes) {
+            photonTimesNT = analysisManager->CreateNtuple("photon_times", "registered photon times");
+            analysisManager->CreateNtupleIColumn("eventID");
+            analysisManager->CreateNtupleIColumn("photonID");
+            analysisManager->CreateNtupleSColumn("det_name");
+            analysisManager->CreateNtupleIColumn("det_ch");
+            analysisManager->CreateNtupleDColumn("t_gen_ns");
+            analysisManager->CreateNtupleDColumn("t_reg_ns");
+            analysisManager->FinishNtuple(photonTimesNT);
         }
     }
     if (Emin < Emax) {
@@ -218,12 +230,13 @@ void AnalysisManager::FillEdepRow(G4int eventID, const G4String& det_name, G4dou
     analysisManager->AddNtupleRow(edepNT);
 }
 
-void AnalysisManager::FillSiPMEventRow(int eventID, int npeC, int npeV, int npeBV) {
+void AnalysisManager::FillSiPMEventRow(int eventID, int npeC, int npeV, int npeBV, G4double t0_ns) {
     auto* analysisManager = G4AnalysisManager::Instance();
     analysisManager->FillNtupleIColumn(SiPMEventNT, 0, eventID);
     analysisManager->FillNtupleIColumn(SiPMEventNT, 1, npeC);
     analysisManager->FillNtupleIColumn(SiPMEventNT, 2, npeV);
     analysisManager->FillNtupleIColumn(SiPMEventNT, 3, npeBV);
+    analysisManager->FillNtupleDColumn(SiPMEventNT, 4, t0_ns);
     analysisManager->AddNtupleRow(SiPMEventNT);
 }
 
@@ -305,4 +318,17 @@ void AnalysisManager::FillSensitivityHist(G4double E_MeV, G4double value) {
 void AnalysisManager::FillSensitivityOptHist(G4double E_MeV, G4double value) {
     auto* analysisManager = G4AnalysisManager::Instance();
     analysisManager->FillH1(sensitivityOptHist, E_MeV, value);
+}
+
+
+void AnalysisManager::FillPhotonTimeRow(G4int eventID, G4int photonID, const G4String& det_name, G4int det_ch,
+                                        G4double t_gen_ns, G4double t_reg_ns) {
+    auto* analysisManager = G4AnalysisManager::Instance();
+    analysisManager->FillNtupleIColumn(photonTimesNT, 0, eventID);
+    analysisManager->FillNtupleIColumn(photonTimesNT, 1, photonID);
+    analysisManager->FillNtupleSColumn(photonTimesNT, 2, det_name);
+    analysisManager->FillNtupleIColumn(photonTimesNT, 3, det_ch);
+    analysisManager->FillNtupleDColumn(photonTimesNT, 4, t_gen_ns);
+    analysisManager->FillNtupleDColumn(photonTimesNT, 5, t_reg_ns);
+    analysisManager->AddNtupleRow(photonTimesNT);
 }
