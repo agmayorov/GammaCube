@@ -89,6 +89,7 @@ void AnalysisManager::Book() {
             analysisManager->CreateNtupleIColumn("npe_crystal");
             analysisManager->CreateNtupleIColumn("npe_veto");
             analysisManager->CreateNtupleIColumn("npe_bottom_veto");
+            analysisManager->CreateNtupleDColumn("t0_ns");
             analysisManager->FinishNtuple(photonsCountNT);
 
             photonsNT = analysisManager->CreateNtuple("photons", "photon register information");
@@ -100,6 +101,13 @@ void AnalysisManager::Book() {
             analysisManager->CreateNtupleDColumn("pos_x");
             analysisManager->CreateNtupleDColumn("pos_y");
             analysisManager->CreateNtupleDColumn("pos_z");
+            analysisManager->CreateNtupleIColumn("fired");
+            analysisManager->CreateNtupleDColumn("t_gen_ns");
+            analysisManager->CreateNtupleDColumn("t_reg_ns");
+            analysisManager->CreateNtupleDColumn("gen_x");
+            analysisManager->CreateNtupleDColumn("gen_y");
+            analysisManager->CreateNtupleDColumn("gen_z");
+            analysisManager->CreateNtupleSColumn("process");
             analysisManager->FinishNtuple(photonsNT);
         }
     }
@@ -180,7 +188,7 @@ void AnalysisManager::FillInteractionRow(G4int eventID,
                                          G4int trackID, G4int parentID,
                                          const G4String& process,
                                          const G4String& volumeName,
-                                         const G4ThreeVector& x_mm,
+                                         const G4ThreeVector& x_mm, G4double t_ns,
                                          G4int secIndex, const G4String& secName,
                                          G4double secE_MeV, const G4ThreeVector& secDir) {
     G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
@@ -192,12 +200,13 @@ void AnalysisManager::FillInteractionRow(G4int eventID,
     analysisManager->FillNtupleDColumn(interactionsNT, 5, x_mm.x());
     analysisManager->FillNtupleDColumn(interactionsNT, 6, x_mm.y());
     analysisManager->FillNtupleDColumn(interactionsNT, 7, x_mm.z());
-    analysisManager->FillNtupleIColumn(interactionsNT, 8, secIndex);
-    analysisManager->FillNtupleSColumn(interactionsNT, 9, secName);
-    analysisManager->FillNtupleDColumn(interactionsNT, 10, secE_MeV);
-    analysisManager->FillNtupleDColumn(interactionsNT, 11, secDir.x());
-    analysisManager->FillNtupleDColumn(interactionsNT, 12, secDir.y());
-    analysisManager->FillNtupleDColumn(interactionsNT, 13, secDir.z());
+    analysisManager->FillNtupleDColumn(interactionsNT, 8, t_ns);
+    analysisManager->FillNtupleIColumn(interactionsNT, 9, secIndex);
+    analysisManager->FillNtupleSColumn(interactionsNT, 10, secName);
+    analysisManager->FillNtupleDColumn(interactionsNT, 11, secE_MeV);
+    analysisManager->FillNtupleDColumn(interactionsNT, 12, secDir.x());
+    analysisManager->FillNtupleDColumn(interactionsNT, 13, secDir.y());
+    analysisManager->FillNtupleDColumn(interactionsNT, 14, secDir.z());
     analysisManager->AddNtupleRow(interactionsNT);
 }
 
@@ -229,17 +238,20 @@ void AnalysisManager::FillSiPMChannelRow(int eventID, const G4String& subdet, in
 
 void AnalysisManager::FillPhotonCountRow(G4int eventID,
                                          G4int npeCrystal, G4int npeVeto,
-                                         G4int npeBottomVeto) {
+                                         G4int npeBottomVeto, G4double t0_ns) {
     G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
     analysisManager->FillNtupleIColumn(photonsCountNT, 0, eventID);
     analysisManager->FillNtupleIColumn(photonsCountNT, 1, npeCrystal);
     analysisManager->FillNtupleIColumn(photonsCountNT, 2, npeVeto);
     analysisManager->FillNtupleIColumn(photonsCountNT, 3, npeBottomVeto);
+    analysisManager->FillNtupleDColumn(photonsCountNT, 4, t0_ns);
     analysisManager->AddNtupleRow(photonsCountNT);
 }
 
 void AnalysisManager::FillPhotonRow(G4int eventID, G4int photonID, const G4String& det_name, G4int det_ch,
-                                    G4double energy_eV, G4double x_mm, G4double y_mm, G4double z_mm) {
+                                    G4double energy_eV, G4double x_mm, G4double y_mm, G4double z_mm,
+                                    G4int fired, G4double t_gen_ns, G4double t_reg_ns,
+                                    const G4ThreeVector& gen_mm, const G4String& process) {
     auto* analysisManager = G4AnalysisManager::Instance();
     analysisManager->FillNtupleIColumn(photonsNT, 0, eventID);
     analysisManager->FillNtupleIColumn(photonsNT, 1, photonID);
@@ -249,6 +261,13 @@ void AnalysisManager::FillPhotonRow(G4int eventID, G4int photonID, const G4Strin
     analysisManager->FillNtupleDColumn(photonsNT, 5, x_mm);
     analysisManager->FillNtupleDColumn(photonsNT, 6, y_mm);
     analysisManager->FillNtupleDColumn(photonsNT, 7, z_mm);
+    analysisManager->FillNtupleIColumn(photonsNT, 8, fired);
+    analysisManager->FillNtupleDColumn(photonsNT, 9, t_gen_ns);
+    analysisManager->FillNtupleDColumn(photonsNT, 10, t_reg_ns);
+    analysisManager->FillNtupleDColumn(photonsNT, 11, gen_mm.x());
+    analysisManager->FillNtupleDColumn(photonsNT, 12, gen_mm.y());
+    analysisManager->FillNtupleDColumn(photonsNT, 13, gen_mm.z());
+    analysisManager->FillNtupleSColumn(photonsNT, 14, process);
     analysisManager->AddNtupleRow(photonsNT);
 }
 

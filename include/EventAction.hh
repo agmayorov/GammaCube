@@ -56,6 +56,11 @@ struct PhotonRec {
     G4int detCh;
     G4double energy;
     G4ThreeVector pos_mm;  // mm
+    G4int fired = 0;       // SiPM microcells fired: 0 if saturated, > 1 with crosstalk
+    G4double t_gen_ns = 0.0;   // emission of the photon, includes the scintillation delay
+    G4double t_reg_ns = 0.0;   // arrival at the SiPM window
+    G4ThreeVector gen_pos_mm;  // mm
+    G4String process;      // Scintillation, Cerenkov
 };
 
 class EventAction : public G4UserEventAction {
@@ -65,8 +70,9 @@ public:
     std::vector<G4int> photonCountBuf{0, 0, 0};
     std::vector<PhotonRec> photonBuf;
 
-    // readout gate (--photon-time-limit), filled by SteppingAction
+    // time of the first energy deposit; used by the readout gate and written to photons_count; filled by SteppingAction
     G4double eventT0{-1.};
+    // readout gate (--photon-time-limit), filled by SteppingAction
     G4int killedPhotons{0};
     G4int trackedPhotons{0};
 

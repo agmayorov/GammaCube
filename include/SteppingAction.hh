@@ -23,6 +23,7 @@ public:
     void UserSteppingAction(const G4Step* step) override;
 
 private:
+    static void UpdateEventT0(const G4Step* step, EventAction* ea);
     static void ApplyPhotonTimeLimit(const G4Step* step, EventAction* ea);
 };
 

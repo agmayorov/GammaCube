@@ -32,7 +32,7 @@ public:
                             G4int trackID, G4int parentID,
                             const G4String& process,
                             const G4String& volumeName,
-                            const G4ThreeVector& x_mm,
+                            const G4ThreeVector& x_mm, G4double t_ns,
                             G4int secIndex, const G4String& secName,
                             G4double secE_MeV, const G4ThreeVector& secDir);
 
@@ -43,10 +43,12 @@ public:
 
     void FillPhotonCountRow(G4int eventID,
                             G4int npeCrystal, G4int npeVeto,
-                            G4int npeBottomVeto);
+                            G4int npeBottomVeto, G4double t0_ns);
 
     void FillPhotonRow(G4int eventID, G4int photonID, const G4String& det_name, G4int det_ch,
-                       G4double energy_eV, G4double x_mm, G4double y_mm, G4double z_mm);
+                       G4double energy_eV, G4double x_mm, G4double y_mm, G4double z_mm,
+                       G4int fired, G4double t_gen_ns, G4double t_reg_ns,
+                       const G4ThreeVector& gen_mm, const G4String& process);
 
     void FillGenEnergyHist(G4double E_MeV, G4double weight = 1.0);
     void FillTrigEnergyHist(G4double E_MeV, G4double weight = 1.0);

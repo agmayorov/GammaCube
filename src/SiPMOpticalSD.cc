@@ -156,6 +156,12 @@ G4bool SiPMOpticalSD::ProcessHits(G4Step* step, G4TouchableHistory*) {
             rec.detCh = ch;
             rec.energy = track->GetTotalEnergy() / eV;
             rec.pos_mm = post->GetPosition();
+            rec.fired = fired;
+            rec.t_gen_ns = (track->GetGlobalTime() - track->GetLocalTime()) / ns;
+            rec.t_reg_ns = track->GetGlobalTime() / ns;
+            rec.gen_pos_mm = track->GetVertexPosition() / mm;
+            const auto* creator = track->GetCreatorProcess();
+            rec.process = creator ? creator->GetProcessName() : "unknown";
             ea->photonBuf.emplace_back(std::move(rec));
         }
     }

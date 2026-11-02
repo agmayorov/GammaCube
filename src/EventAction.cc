@@ -95,7 +95,7 @@ int EventAction::WriteInteractions_(int eventID) {
         for (const auto& r : interBuf) {
             analysisManager->FillInteractionRow(eventID,
                                                 r.trackID, r.parentID,
-                                                r.process, r.volumeName, r.pos_mm,
+                                                r.process, r.volumeName, r.pos_mm, r.t_ns,
                                                 r.secIndex, r.secName,
                                                 r.secE_MeV, r.secDir);
         }
@@ -105,7 +105,8 @@ int EventAction::WriteInteractions_(int eventID) {
 
 int EventAction::WritePhotonsCount_(int eventID) {
     if (savePhotons) {
-        analysisManager->FillPhotonCountRow(eventID, photonCountBuf[0], photonCountBuf[1], photonCountBuf[2]);
+        analysisManager->FillPhotonCountRow(eventID, photonCountBuf[0], photonCountBuf[1], photonCountBuf[2],
+                                            eventT0 < 0 ? -1. : eventT0 / ns);
     }
     return static_cast<int>(photonCountBuf.size());
 }
@@ -113,7 +114,9 @@ int EventAction::WritePhotonsCount_(int eventID) {
 int EventAction::WritePhotons_(int eventID) {
     for (const auto& photon : photonBuf) {
         analysisManager->FillPhotonRow(eventID, photon.photonID, photon.detName, photon.detCh, photon.energy,
-                                       photon.pos_mm.x(), photon.pos_mm.y(), photon.pos_mm.z());
+                                       photon.pos_mm.x(), photon.pos_mm.y(), photon.pos_mm.z(),
+                                       photon.fired, photon.t_gen_ns, photon.t_reg_ns,
+                                       photon.gen_pos_mm, photon.process);
     }
     return static_cast<int>(photonBuf.size());
 }
