@@ -75,7 +75,9 @@ private:
                      const std::string& yTitle,
                      bool filled,
                      bool log_y = false,
-                     bool weighted = false);
+                     bool weighted = false,
+                     const TH1* triggers = nullptr,
+                     double minTriggers = 0.);
 
     static double GeomCenter(double eLow, double eHigh);
     static double EffAreaErrFromCounts(double n0, double n, double effArea);

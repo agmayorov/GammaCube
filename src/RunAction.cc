@@ -180,17 +180,16 @@ void RunAction::AddTriggeredOpt(double E_MeV) {
 void RunAction::FillDerivedHists() {
     for (int i = 0; i < nBins; ++i) {
         const double nGen = genCounts[i].GetValue();
-        double nTrig = trigCounts[i].GetValue();
-        double nTrigOpt = trigOptCounts[i].GetValue();
+        const double nTrig = trigCounts[i].GetValue();
+        const double nTrigOpt = trigOptCounts[i].GetValue();
 
         const double centerE = BinCenterMeV(i);
         double aEff = 0.0;
         double aEffOpt = 0.0;
         double sens = 0.0;
         double sensOpt = 0.0;
+        // bins with few triggers are kept here (they enter Rate_Real and the CSV); N_MIN hides them on the PNG only
         if (nGen > 0.0) {
-            if (nTrig < N_MIN) nTrig = 0;
-            if (nTrigOpt < N_MIN_opt) nTrigOpt = 0;
             aEff = area * (nTrig / nGen);
             aEffOpt = area * (nTrigOpt / nGen);
             sens = aEff;

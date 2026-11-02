@@ -68,6 +68,7 @@ namespace Configuration
     inline G4double Emin{-1};
     inline G4double Emax{-1};
 
+    // effective area / sensitivity PNG: bins with fewer triggers are not drawn (the data keep them)
     inline G4double N_MIN{10};
     inline G4double N_MIN_opt{10};
 

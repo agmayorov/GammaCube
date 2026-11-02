@@ -95,8 +95,20 @@ void PostProcessing::SaveHistPng(const std::string& histName,
                                  const std::string& yTitle,
                                  const bool filled,
                                  const bool log_y,
-                                 const bool weighted) {
-    TH1* h = GetHistOrThrow(histName);
+                                 const bool weighted,
+                                 const TH1* triggers,
+                                 const double minTriggers) {
+    // Draw a copy: the histogram read from the file is shared with the CSV tables written after the picture,
+    // so scaling or hiding bins on it would change the numbers in the tables
+    std::unique_ptr<TH1> h(static_cast<TH1*>(GetHistOrThrow(histName)->Clone()));
+    h->SetDirectory(nullptr);
+
+    // bins with few triggers jump and look like peaks; they are hidden on the picture only
+    if (triggers) {
+        for (int i = 1; i <= h->GetNbinsX(); ++i) {
+            if (triggers->GetBinContent(i) < minTriggers) h->SetBinContent(i, 0.);
+        }
+    }
 
     TCanvas canvas("canvas", "canvas", 1920, 1080);
     canvas.SetLogx(isLogBin);
@@ -266,7 +278,7 @@ void PostProcessing::SaveEffArea() {
     const std::string effAxis = isPoint ? "Efficiency" : "Effective Area [cm^{2}]";
 
     SaveHistPng("effAreaHist", (fs::path(effectiveAreaDir) / "effective_area.png").string(),
-                effTitle, effAxis, false);
+                effTitle, effAxis, false, false, false, trig, N_MIN);
 
     SaveHistPng("genEnergyHist", (fs::path(histogramsDir) / "genEnergyHist.png").string(),
                 "Initial Energy", "Counts", true, true, true);
@@ -276,7 +288,7 @@ void PostProcessing::SaveEffArea() {
 
     if (useOptics) {
         SaveHistPng("effAreaOptHist", (fs::path(effectiveAreaDir) / "effective_area_opt.png").string(),
-                    effTitle, effAxis, false);
+                    effTitle, effAxis, false, false, false, trigOpt, N_MIN_opt);
         SaveHistPng("trigOptEnergyHist", (fs::path(histogramsDir) / "trigOptEnergyHist.png").string(),
                     "N_{trig, opt} vs Energy", "Counts", true);
     }
@@ -345,7 +357,7 @@ void PostProcessing::SaveSensitivity() {
     }
 
     SaveHistPng("sensitivityHist", (fs::path(sensitivityDir) / "sensitivity.png").string(),
-                "Sensitivity vs Energy", "Sensitivity [cm^{2} \\cdot sr]", false);
+                "Sensitivity vs Energy", "Sensitivity [cm^{2} \\cdot sr]", false, false, false, trig, N_MIN);
 
     SaveHistPng("genEnergyHist", (fs::path(histogramsDir) / "genEnergyHist.png").string(),
                 "Initial Energy", "Counts", true, true, true);
@@ -355,7 +367,7 @@ void PostProcessing::SaveSensitivity() {
 
     if (useOptics) {
         SaveHistPng("sensitivityOptHist", (fs::path(sensitivityDir) / "sensitivity_opt.png").string(),
-                    "Sensitivity vs Energy", "Sensitivity [cm^{2} \\cdot sr]", false);
+                    "Sensitivity vs Energy", "Sensitivity [cm^{2} \\cdot sr]", false, false, false, trigOpt, N_MIN_opt);
         SaveHistPng("trigOptEnergyHist", (fs::path(histogramsDir) / "trigOptEnergyHist.png").string(),
                     "N_{trig, opt} vs Energy", "Counts", true);
     }
@@ -365,7 +377,8 @@ void PostProcessing::SaveSensitivity() {
         throw std::runtime_error("Cannot open output CSV: sensitivity_by_energy.csv");
     }
 
-    out << "E_low,E_high,E_width,E_center_geom,N0_i,N_i,N_i_opt,sensitivity,sensitivity_opt\n";
+    out << "E_low,E_high,E_width,E_center_geom,N0_i,N_i,N_i_opt,sensitivity,sensitivity_opt,sensitivity_err,"
+           "sensitivity_opt_err\n";
     out << std::setprecision(17);
 
     auto* ax = gen->GetXaxis();
@@ -382,8 +395,10 @@ void PostProcessing::SaveSensitivity() {
 
         double s_ = sens->GetBinContent(i);
         double sOpt = sensOpt->GetBinContent(i);
+        double sErr = EffAreaErrFromCounts(n0, n, s_);
+        double sErrOpt = EffAreaErrFromCounts(n0, nOpt, sOpt);
         if (!useOptics) {
-            nOpt = sOpt = 0;
+            nOpt = sOpt = sErrOpt = 0;
         }
 
         out << eLow << ","
@@ -394,7 +409,9 @@ void PostProcessing::SaveSensitivity() {
             << n << ","
             << nOpt << ","
             << s_ << ","
-            << sOpt << "\n";
+            << sOpt << ","
+            << sErr << ","
+            << sErrOpt << "\n";
     }
 
     out.close();
