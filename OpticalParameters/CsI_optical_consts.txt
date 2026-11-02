@@ -19,12 +19,14 @@ SCINTILLATIONYIELD 61000 1/MeV
 RESOLUTIONSCALE 4.87
 
 # SCINTILLATIONTIMECONSTANT1/2: decay constants for component 1/2
-SCINTILLATIONTIMECONSTANT1 1000 ns
-#SCINTILLATIONTIMECONSTANT2 1500 ns
+# CsI(Tl) excited by gamma rays at room temperature: J.D. Valentine et al., NIM A 325 (1993) 147
+# (commercial crystals, ~0.1 mol% Tl; the same values are quoted by Knoll)
+SCINTILLATIONTIMECONSTANT1 679 ns
+SCINTILLATIONTIMECONSTANT2 3340 ns
 
-# SCINTILLATIONYIELD1/2: fraction of photons in each component (must sum ~1)
-SCINTILLATIONYIELD1 1.0
-#SCINTILLATIONYIELD2 0.0
+# SCINTILLATIONYIELD1/2: fraction of photons in each component (Geant4 normalises them by their sum)
+SCINTILLATIONYIELD1 0.638
+SCINTILLATIONYIELD2 0.362
 
 # Optional: Birks constant for ionization quenching
 BIRKSCONSTANT 0.0067 mm/MeV
