@@ -197,12 +197,13 @@ void RunAction::FillDerivedHists() {
         }
         effArea[i] = aEff;
         effAreaOpt[i] = aEffOpt;
+        // the optical histograms are booked only with --use-optics
         if (GenSurface::For(fluxDirection).IsIsotropic()) {
             analysisManager->FillSensitivityHist(centerE, sens);
-            analysisManager->FillSensitivityOptHist(centerE, sensOpt);
+            if (useOptics) analysisManager->FillSensitivityOptHist(centerE, sensOpt);
         } else {
             analysisManager->FillEffAreaHist(centerE, aEff);
-            analysisManager->FillEffAreaOptHist(centerE, aEffOpt);
+            if (useOptics) analysisManager->FillEffAreaOptHist(centerE, aEffOpt);
         }
     }
 }
