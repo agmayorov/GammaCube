@@ -275,6 +275,29 @@ Loader::Loader(int argc, char** argv) {
         Emin = std::max({energyTable.GetMinE(), Emin});
         Emax = std::min({energyTable.GetMaxE(), Emax});
     }
+    if (fluxType == "Belt") {
+        try {
+            belt = RadiationBelt::Prepare(configPath, Emin / MeV, Emax / MeV);
+        } catch (const std::exception& ex) {
+            G4Exception("Loader::Loader", "Belt", FatalException, ex.what());
+        }
+        Emin = std::max(Emin, belt.modelEmin * MeV);
+        Emax = std::min(Emax, belt.modelEmax * MeV);
+        beltSpectrumPath = belt.spectrumPath;
+        beltParticle = belt.particle;
+
+        std::cout << "Belt: " << belt.model << " (" << belt.particle << "), " << belt.position << ": " << belt.description;
+        if (belt.position == "orbit")
+            std::cout << ", trapped " << 100. * belt.trappedFraction << " % of the orbit";
+        else if (belt.position == "geo")
+            std::cout << ", L = " << belt.L << ", B = " << belt.B << " nT, B/B0 = " << belt.BoverB0;
+        else
+            std::cout << ", B/B0 = " << belt.BoverB0;
+        std::cout << "\n      omnidirectional flux " << belt.omniFlux << " cm^-2 s^-1 in " << Emin / MeV << "-" << Emax / MeV
+                  << " MeV, spectrum " << belt.spectrumPath << std::endl;
+        if (!genSurface.IsIsotropic())
+            std::cerr << "Warning: the Belt flux is a direction-averaged intensity, use an isotropic -fd" << std::endl;
+    }
 
     if (fluxType == "Uniform") {
         std::string isLogStr = ReadValue("is_log:", configPath);
@@ -400,6 +423,10 @@ void Loader::SaveConfig() const {
         fType = FluxType::TABLE;
         fp.particle = ReadValue("particle:");
         fp.table_path = ReadValue("table_path:");
+    } else if (fluxType == "Belt") {
+        fType = FluxType::TABLE;
+        fp.particle = belt.particle;
+        fp.table_path = belt.spectrumPath;
     } else {
         fType = FluxType::UNIFORM;
     }
@@ -553,6 +580,23 @@ void Loader::SaveConfig() const {
         buf << "particle: " << ReadValue("particle:") << "\n";
     } else if (fluxType == "Uniform") {
         buf << "fractions: " << ReadValue("fractions:") << "\n";
+    } else if (fluxType == "Belt") {
+        buf << "model: " << belt.model << ",\n\t";
+        buf << "particle: " << belt.particle << ",\n\t";
+        buf << "position: " << belt.position << " (" << belt.description << "),\n\t";
+        if (belt.position != "point") buf << "date: " << belt.year << ",\n\t";
+        buf << "dipole_moment: " << belt.dipoleMoment << " nT*RE^3,\n\t";
+        if (belt.position == "orbit") {
+            buf << "orbit_points: " << belt.points << ",\n\t";
+            buf << "trapped_fraction: " << belt.trappedFraction << ",\n\t";
+            buf << "orbit_profile: " << belt.profilePath << ",\n\t";
+        } else {
+            buf << "L: " << belt.L << ",\n\t";
+            buf << "B: " << belt.B << " nT,\n\t";
+            buf << "B/B0: " << belt.BoverB0 << ",\n\t";
+        }
+        buf << "omnidirectional_flux: " << belt.omniFlux << " cm^-2 * s^-1,\n\t";
+        buf << "spectrum: " << belt.spectrumPath << "\n";
     }
     buf << "}\n\n";
 
@@ -563,6 +607,8 @@ void Loader::SaveConfig() const {
         buf << "proton";
     } else if (fluxType == "Galactic" or fluxType == "Table") {
         buf << ReadValue("particle:");
+    } else if (fluxType == "Belt") {
+        buf << belt.particle;
     } else if (fluxType == "Uniform") {
         buf << ReadValue("particles:");
     }
@@ -575,6 +621,8 @@ void Loader::SaveConfig() const {
         buf << "proton: ";
     } else if (fluxType == "Galactic" or fluxType == "Table") {
         buf << ReadValue("particle:") << ": ";
+    } else if (fluxType == "Belt") {
+        buf << belt.particle << ": ";
     } else if (fluxType == "Uniform") {
         std::vector<G4String> particles = Split(ReadValue("particles:"));
         std::vector<G4String> EminVec = Split(ReadValue("E_min:"));
@@ -696,6 +744,8 @@ void Loader::SaveConfig() const {
     } else if (fluxType == "Uniform") {
         const std::string part = ReadValue("particles:");
         filename += "_particle:" + part;
+    } else if (fluxType == "Belt") {
+        filename += "_" + belt.tag;
     }
     filename += "_" + GenSurface::DirectionTag();
     if (!Layout::Tag().empty()) filename += "_" + Layout::Tag();
@@ -736,6 +786,9 @@ void Loader::RunPostProcessing() const {
             part = "gamma";
         } else if (fluxType == "SEP") {
             part = "proton";
+        } else if (fluxType == "Belt") {
+            part = belt.particle;
+            outDir += "_" + belt.tag;
         }
         outDir += "_" + GenSurface::DirectionTag();
         if (!Layout::Tag().empty()) outDir += "_" + Layout::Tag();

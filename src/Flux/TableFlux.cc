@@ -123,6 +123,11 @@ TableFlux::TableFlux() {
     BuildCDF();
 }
 
+TableFlux::TableFlux(const G4String& tablePath, const G4String& particleName) : path(tablePath) {
+    particle = particleName;
+    BuildCDF();
+}
+
 void TableFlux::BuildCDF() {
     EList.clear();
     FluxList.clear();

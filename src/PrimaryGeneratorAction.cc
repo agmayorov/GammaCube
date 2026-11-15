@@ -7,10 +7,10 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(G4String fDir, const G4String& fl
       eCrystalThreshold(cThreshold) {
     genSurface = GenSurface::For(fluxDirection);
 
-    std::vector<G4String> fluxTypeList = {"Uniform", "PLAW", "COMP", "SEP", "Galactic", "Table"};
+    std::vector<G4String> fluxTypeList = {"Uniform", "PLAW", "COMP", "SEP", "Galactic", "Table", "Belt"};
     if (std::find(fluxTypeList.begin(), fluxTypeList.end(), fluxType) == fluxTypeList.end()) {
         G4Exception("PrimaryGeneratorAction::GeneratePrimaries", "FluxType", FatalException,
-                    ("Flux type not found: " + fluxType + ".\nAvailable flux types: Uniform, PLAW, SEP, Galactic")
+                    ("Flux type not found: " + fluxType + ".\nAvailable flux types: Uniform, PLAW, COMP, SEP, Galactic, Table, Belt")
                     .
                     c_str());
     }
@@ -27,6 +27,8 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(G4String fDir, const G4String& fl
         flux = new GalacticFlux();
     } else if (fluxType == "Table") {
         flux = new TableFlux();
+    } else if (fluxType == "Belt") {
+        flux = new TableFlux(Configuration::beltSpectrumPath, Configuration::beltParticle);
     }
 }
 

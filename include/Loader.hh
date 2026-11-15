@@ -34,6 +34,7 @@
 #include "PostProcessing.hh"
 #include "GenSurface.hh"
 #include "GenSurfaceVis.hh"
+#include "Flux/RadiationBelt.hh"
 
 #ifdef G4MULTITHREADED
 #include <G4MTRunManager.hh>
@@ -75,6 +76,7 @@ private:
     G4double trackedPhotons{};
 
     GenSurface genSurface;
+    RadiationBelt::Result belt;   // Belt: положение, спектр <J>(E) и его файлы
 
     [[nodiscard]] std::string ReadValue(const std::string &, const std::string &) const;
     void SaveConfig() const;

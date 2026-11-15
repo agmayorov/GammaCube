@@ -1,0 +1,31 @@
+# Поток Belt — захваченные частицы радиационных поясов.
+# Модель — таблица ../RadiationBelts/<имя>.txt (пишет Processing/convert_belt_mat.py), частица берётся из неё:
+#   AP8MIN, AP8MAX (протоны), AE8MIN, AE8MAX (электроны), PSB97, CRRESPROquite, CRRESPROactive (протоны)
+model: PSB97
+
+# Положение:
+#   point — оболочка и поле заданы прямо: L, B_nT
+#   geo   — точка над Землёй: latitude_deg, longitude_deg (геодезические), altitude_km, date
+#   orbit — круговая орбита: altitude_km, inclination_deg, date, orbit_days, orbit_points, node_longitude_deg;
+#           спектр усредняется по времени на орбите, профиль по точкам пишется в belt_<...>_orbit.csv
+position: orbit
+
+L: 1.3
+B_nT: 19263
+
+latitude_deg: -25
+longitude_deg: -50
+altitude_km: 500
+date: 2026-01-01
+
+inclination_deg: 51.6
+orbit_days: 1
+orbit_points: 2000
+node_longitude_deg: 0
+
+# Момент диполя, в котором заданы L и B0 = M/L^3 у моделей (AP8/AE8: 31165.3 нТ*R_E^3)
+dipole_moment_nT: 31165.3
+
+# Диапазон энергий, МэВ; ограничивается диапазоном модели
+E_min: 0
+E_max: 1e9
