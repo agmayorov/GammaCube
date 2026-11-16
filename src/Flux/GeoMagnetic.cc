@@ -37,8 +37,6 @@ namespace GeoMagnetic {
                 (N * (1. - e2) + altitudeKm) * std::sin(lat)};
     }
 
-    // ---------------------------------------------------------------- IGRF
-
     IGRF::IGRF(const std::string& shcPath, const double requestedYear) : year(requestedYear) {
         std::ifstream in(shcPath);
         if (!in) throw std::runtime_error("Не удалось открыть " + shcPath);
@@ -51,7 +49,6 @@ namespace GeoMagnetic {
             return false;
         };
 
-        // заголовок: nmin nmax ntimes spline_order steps [start end], затем строка эпох
         int nmin = 0, ntimes = 0;
         if (!nextDataLine()) throw std::runtime_error(shcPath + ": нет заголовка");
         std::istringstream(line) >> nmin >> nmax >> ntimes;
@@ -93,7 +90,6 @@ namespace GeoMagnetic {
                          h[Index(1, 1)] * h[Index(1, 1)]);
     }
 
-    // B = −∇V, V = a Σ (a/r)^{n+1} Σ (g cos mφ + h sin mφ) P_n^m(cos θ), P — квазинормированные по Шмидту
     G4ThreeVector IGRF::Field(const G4ThreeVector& x) const {
         const double r = x.mag();
         const double cosT = x.z() / r;
@@ -113,7 +109,6 @@ namespace GeoMagnetic {
 
         P[Index(0, 0)] = 1.;
         for (int n = 1; n <= nmax; ++n) {
-            // диагональ P_n^n
             if (n == 1) {
                 P[Index(1, 1)] = sinT;
                 dP[Index(1, 1)] = cosT;
@@ -122,7 +117,6 @@ namespace GeoMagnetic {
                 P[Index(n, n)] = k * sinT * P[Index(n - 1, n - 1)];
                 dP[Index(n, n)] = k * (cosT * P[Index(n - 1, n - 1)] + sinT * dP[Index(n - 1, n - 1)]);
             }
-            // P_n^m, m < n
             for (int m = 0; m < n; ++m) {
                 const double denom = std::sqrt(static_cast<double>(n * n - m * m));
                 const double a = (2. * n - 1.) / denom;
@@ -136,7 +130,7 @@ namespace GeoMagnetic {
 
         double Br = 0., Bt = 0., Bp = 0.;
         const double ratio = kEarthRadius / r;
-        double ar = ratio * ratio;   // (a/r)^{n+2}, n = 0
+        double ar = ratio * ratio;
         for (int n = 1; n <= nmax; ++n) {
             ar *= ratio;
             for (int m = 0; m <= n; ++m) {
@@ -149,14 +143,11 @@ namespace GeoMagnetic {
         }
 
         const double cosP = std::cos(phi), sinP = std::sin(phi);
-        const double rho = Br * sinT + Bt * cosT;   // компонента в экваториальной плоскости
+        const double rho = Br * sinT + Bt * cosT;
         return {rho * cosP - Bp * sinP, rho * sinP + Bp * cosP, Br * cosT - Bt * sinT};
     }
 
-    // ---------------------------------------------------------------- L Мак-Илвейна
-
     double McIlwainFunction(const double I, const double Bm, const double dipoleMoment) {
-        // Коэффициенты аппроксимации Y(X) функции Мак-Илвейна по шести диапазонам X (как в GTsimulation/IRBEM)
         static const double a[10][6] = {
             {3.0062102e-1, 6.2337691e-1, 6.228644e-1, 6.222355e-1, 2.0007187, -3.0460681},
             {3.33338e-1, 4.3432642e-1, 4.3352788e-1, 4.3510529e-1, -1.8461796e-1, 1},
@@ -186,8 +177,7 @@ namespace GeoMagnetic {
         out.B = Bm;
         out.Bmin = Bm;
 
-        // идём вдоль линии туда, где |B| убывает; если растёт в обе стороны — точка в минимуме, I = 0
-        const double probe = 1.;   // км
+        const double probe = 1.;
         double sign = 1.;
         if (field.Field(start + probe * b0.unit()).mag() >= Bm) {
             if (field.Field(start - probe * b0.unit()).mag() >= Bm) {
@@ -208,7 +198,7 @@ namespace GeoMagnetic {
                 out.L = std::numeric_limits<double>::infinity();
                 return out;
             }
-            const double ds = std::clamp(0.005 * r, 1., 100.);   // км: ~32 км у Земли
+            const double ds = std::clamp(0.005 * r, 1., 100.);
             const G4ThreeVector k1 = sign * bx.unit();
             const G4ThreeVector k2 = direction(x + 0.5 * ds * k1);
             const G4ThreeVector k3 = direction(x + 0.5 * ds * k2);
@@ -218,7 +208,6 @@ namespace GeoMagnetic {
             const double Bn = bn.mag();
 
             if (Bn >= Bm) {
-                // сопряжённая точка отражения внутри шага: подынтегральное √(1 − B/B_m) спадает до нуля как √s
                 const double t = Bn > Bprev ? std::clamp((Bm - Bprev) / (Bn - Bprev), 0., 1.) : 1.;
                 I += 2. / 3. * qprev * t * ds;
                 out.I = I / kEarthRadius;
@@ -226,7 +215,6 @@ namespace GeoMagnetic {
                 return out;
             }
             const double q = std::sqrt(1. - Bn / Bm);
-            // первый шаг начинается в точке отражения (q = 0, рост как √s), дальше — трапеции
             I += step == 0 ? 2. / 3. * q * ds : 0.5 * (qprev + q) * ds;
             out.Bmin = std::min(out.Bmin, Bn);
             x = xn;

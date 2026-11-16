@@ -20,7 +20,6 @@ namespace RadiationBelt {
             return s.substr(a, s.find_last_not_of(" \t\r\n") - a + 1);
         }
 
-        // "<n> v1 … vn" после ключа оси
         std::vector<double> ReadAxis(const std::string& text, const std::string& key, const std::string& path) {
             std::istringstream in(text);
             size_t n = 0;
@@ -52,7 +51,6 @@ namespace RadiationBelt {
             return it == p.end() ? fallback : it->second;
         }
 
-        // 4π ∫ <J> dE на [lo, hi] с лог-лог интерполяцией между узлами (как у TableFlux)
         double OmniFlux(const std::vector<double>& E, const std::vector<double>& J, const double lo, const double hi) {
             if (!(hi > lo)) return 0.;
             auto at = [&](const double e) {
@@ -100,8 +98,6 @@ namespace RadiationBelt {
         return params;
     }
 
-    // ---------------------------------------------------------------- модель
-
     Model::Model(const std::string& path) {
         std::ifstream in(path);
         if (!in) throw std::runtime_error("Не удалось открыть модель пояса " + path + " (её пишет Processing/convert_belt_mat.py)");
@@ -134,7 +130,6 @@ namespace RadiationBelt {
         std::vector<double> mean(nE, 0.);
         if (!(Lvalue >= L.front() && Lvalue <= L.back()) || !(BoverB0 > 0.)) return mean;
 
-        // J(α_eq, E) на оболочке L: лог-интерполяция между соседними L (линейная, если есть нуль)
         const size_t il = std::min<size_t>(std::upper_bound(L.begin(), L.end(), Lvalue) - L.begin() - 1, L.size() - 2);
         const double w = (Lvalue - L[il]) / (L[il + 1] - L[il]);
         std::vector<double> onShell(alpha.size() * nE);
@@ -144,7 +139,6 @@ namespace RadiationBelt {
                 onShell[ia * nE + ie] = a > 0. && b > 0. ? a * std::pow(b / a, w) : a + w * (b - a);
             }
 
-        // ∫₀^{π/2} J(α_eq(α)) sin α dα, sin α_eq = sin α / √(B/B0); ниже первого α_eq таблицы — конус потерь
         const int steps = 900;
         const double dAlpha = 0.5 * M_PI / steps;
         for (int k = 0; k < steps; ++k) {
@@ -162,9 +156,7 @@ namespace RadiationBelt {
         return mean;
     }
 
-    // ---------------------------------------------------------------- подготовка спектра
-
-    Result Prepare(const std::string& configPath, const double EminMeV, const double EmaxMeV) {
+    Result Prepare(const std::string& configPath, const double EminMeV, const double EmaxMeV, const ManualPoint& manual) {
         const auto p = ReadParams(configPath);
         Result r;
 
@@ -181,6 +173,9 @@ namespace RadiationBelt {
         r.modelEmax = model.Energies().back();
         r.dipoleMoment = Real(p, "dipole_moment_nT", GeoMagnetic::kDipoleMomentAP8);
         r.position = Text(p, "position", "point");
+        if ((manual.B > 0. || manual.BoverB0 > 0.) && !(manual.L > 0.))
+            throw std::runtime_error("--belt-B и --belt-BB0 задаются вместе с --belt-L");
+        if (manual.L > 0.) r.position = "point";
 
         const double lo = std::max(EminMeV, r.modelEmin), hi = std::min(EmaxMeV, r.modelEmax);
         const auto& E = model.Energies();
@@ -189,13 +184,24 @@ namespace RadiationBelt {
         auto bOverB0 = [&](const double L, const double B) { return B * L * L * L / r.dipoleMoment; };
 
         if (r.position == "point") {
-            r.L = Real(p, "L");
-            r.B = Real(p, "B_nT");
-            if (!(r.L > 0.) || !(r.B > 0.)) throw std::runtime_error("Belt_params.txt: L и B_nT должны быть > 0");
-            r.BoverB0 = bOverB0(r.L, r.B);
+            r.L = manual.L > 0. ? manual.L : Real(p, "L");
+            double B = -1., ratio = -1.;
+            if (manual.B > 0. || manual.BoverB0 > 0.) {
+                B = manual.B;
+                ratio = manual.BoverB0;
+            } else {
+                B = Real(p, "B_nT", -1.);
+                ratio = Real(p, "B_B0", -1.);
+            }
+            if (B > 0. && ratio > 0.) throw std::runtime_error("Belt: задайте поле одним способом — B (нТ) или B/B0");
+            if (!(r.L > 0.) || !(B > 0. || ratio > 0.))
+                throw std::runtime_error("Belt, position: point — нужны L > 0 и B_nT > 0 (или B_B0 > 0)");
+            const bool byRatio = ratio > 0.;
+            r.BoverB0 = byRatio ? ratio : bOverB0(r.L, B);
+            r.B = byRatio ? ratio * r.dipoleMoment / (r.L * r.L * r.L) : B;
             spectrum = model.MeanIntensity(r.L, r.BoverB0);
-            r.description = "L = " + Fixed(r.L, 4) + ", B = " + Fixed(r.B, 1) + " nT";
-            r.tag = r.model + "_L" + Fixed(r.L, 3) + "_B" + Fixed(r.B, 0) + "nT";
+            r.description = byRatio ? "L and B/B0 given" : "L and B given";
+            r.tag = r.model + "_L" + Fixed(r.L, 3) + (byRatio ? "_BB0-" + Fixed(r.BoverB0, 3) : "_B" + Fixed(r.B, 0) + "nT");
         } else if (r.position == "geo" || r.position == "orbit") {
             r.year = GeoMagnetic::FractionalYear(Text(p, "date", "2026-01-01"));
             const GeoMagnetic::IGRF field(Text(p, "igrf_path", "../RadiationBelts/IGRF14.shc"), r.year);
@@ -231,7 +237,6 @@ namespace RadiationBelt {
                 std::vector<std::vector<double>> sums;
                 std::vector<int> trapped;
 
-                // точки независимы — считаются параллельно, сумма спектров — по потокам
                 const unsigned workers = std::max(1u, std::min<unsigned>(std::thread::hardware_concurrency(), n));
                 sums.assign(workers, std::vector<double>(E.size(), 0.));
                 trapped.assign(workers, 0);

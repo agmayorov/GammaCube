@@ -76,7 +76,7 @@ private:
     G4double trackedPhotons{};
 
     GenSurface genSurface;
-    RadiationBelt::Result belt;   // Belt: положение, спектр <J>(E) и его файлы
+    RadiationBelt::Result belt;
 
     [[nodiscard]] std::string ReadValue(const std::string &, const std::string &) const;
     void SaveConfig() const;

@@ -20,7 +20,6 @@
 class TableFlux : public Flux {
 public:
     explicit TableFlux();
-    // готовый спектр «E, поток» (поток Belt пишет его в Loader до запуска)
     TableFlux(const G4String& tablePath, const G4String& particleName);
 
 private:

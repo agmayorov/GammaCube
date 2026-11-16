@@ -16,8 +16,11 @@ namespace Configuration
 
     inline G4String fluxType{"Uniform"};
     inline G4String fluxDirection{"isotropic"};
-    inline G4String beltSpectrumPath{};   // Belt: спектр <J>(E), который Loader считает до запуска (CSV в текущем каталоге)
+    inline G4String beltSpectrumPath{};
     inline G4String beltParticle{};
+    inline G4double beltL{-1.};
+    inline G4double beltB{-1.};
+    inline G4double beltBB0{-1.};
     inline G4double beamTheta{0.};
     inline G4double beamPhi{0.};
     inline G4double sourceZ{0.};

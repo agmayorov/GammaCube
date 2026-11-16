@@ -4,14 +4,16 @@
 model: PSB97
 
 # Положение:
-#   point — оболочка и поле заданы прямо: L, B_nT
+#   point — оболочка и поле заданы прямо: L и B_nT (поле в точке, нТ) или L и B_B0 (B/B0, B0 = M/L^3);
+#           то же из командной строки: --belt-L 1.3 --belt-B 19263 (или --belt-BB0 1.4), они важнее файла
 #   geo   — точка над Землёй: latitude_deg, longitude_deg (геодезические), altitude_km, date
 #   orbit — круговая орбита: altitude_km, inclination_deg, date, orbit_days, orbit_points, node_longitude_deg;
 #           спектр усредняется по времени на орбите, профиль по точкам пишется в belt_<...>_orbit.csv
-position: orbit
+position: point
 
 L: 1.3
-B_nT: 19263
+# B_nT: 19263
+B_B0: 1.4
 
 latitude_deg: -25
 longitude_deg: -50

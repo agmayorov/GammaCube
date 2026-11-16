@@ -155,6 +155,12 @@ Loader::Loader(int argc, char** argv) {
             // the model name is optional: "--camera" alone means the default camera
             const G4bool hasValue = i + 1 < args.size() && !IsFlag(args[i + 1]);
             cameraConfig = hasValue ? value() : "galper";
+        } else if (input == "--belt-L") {
+            beltL = real();
+        } else if (input == "--belt-B") {
+            beltB = real();
+        } else if (input == "--belt-BB0") {
+            beltBB0 = real();
         } else if (input == "--trigger") {
             triggerType = value();
         } else if (input == "-w4" || input == "--weight4") {
@@ -277,7 +283,7 @@ Loader::Loader(int argc, char** argv) {
     }
     if (fluxType == "Belt") {
         try {
-            belt = RadiationBelt::Prepare(configPath, Emin / MeV, Emax / MeV);
+            belt = RadiationBelt::Prepare(configPath, Emin / MeV, Emax / MeV, {beltL, beltB, beltBB0});
         } catch (const std::exception& ex) {
             G4Exception("Loader::Loader", "Belt", FatalException, ex.what());
         }
@@ -289,10 +295,8 @@ Loader::Loader(int argc, char** argv) {
         std::cout << "Belt: " << belt.model << " (" << belt.particle << "), " << belt.position << ": " << belt.description;
         if (belt.position == "orbit")
             std::cout << ", trapped " << 100. * belt.trappedFraction << " % of the orbit";
-        else if (belt.position == "geo")
-            std::cout << ", L = " << belt.L << ", B = " << belt.B << " nT, B/B0 = " << belt.BoverB0;
         else
-            std::cout << ", B/B0 = " << belt.BoverB0;
+            std::cout << ", L = " << belt.L << ", B = " << belt.B << " nT, B/B0 = " << belt.BoverB0;
         std::cout << "\n      omnidirectional flux " << belt.omniFlux << " cm^-2 s^-1 in " << Emin / MeV << "-" << Emax / MeV
                   << " MeV, spectrum " << belt.spectrumPath << std::endl;
         if (!genSurface.IsIsotropic())
