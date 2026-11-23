@@ -1,6 +1,7 @@
 # Поток Belt — захваченные частицы радиационных поясов.
 # Модель — таблица ../RadiationBelts/<имя>.txt (пишет Processing/convert_belt_mat.py), частица берётся из неё:
-#   AP8MIN, AP8MAX (протоны), AE8MIN, AE8MAX (электроны), PSB97, CRRESPROquite, CRRESPROactive (протоны)
+#   AP8MIN, AP8MAX (протоны), AE8MIN, AE8MAX (электроны), PSB97, CRRESPROquite, CRRESPROactive (протоны);
+#   флаг --belt-model важнее этой строки
 model: PSB97
 
 # Положение:

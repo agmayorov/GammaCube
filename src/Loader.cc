@@ -155,6 +155,8 @@ Loader::Loader(int argc, char** argv) {
             // the model name is optional: "--camera" alone means the default camera
             const G4bool hasValue = i + 1 < args.size() && !IsFlag(args[i + 1]);
             cameraConfig = hasValue ? value() : "galper";
+        } else if (input == "--belt-model") {
+            beltModel = value();
         } else if (input == "--belt-L") {
             beltL = real();
         } else if (input == "--belt-B") {
@@ -283,7 +285,7 @@ Loader::Loader(int argc, char** argv) {
     }
     if (fluxType == "Belt") {
         try {
-            belt = RadiationBelt::Prepare(configPath, Emin / MeV, Emax / MeV, {beltL, beltB, beltBB0});
+            belt = RadiationBelt::Prepare(configPath, Emin / MeV, Emax / MeV, {beltModel, beltL, beltB, beltBB0});
         } catch (const std::exception& ex) {
             G4Exception("Loader::Loader", "Belt", FatalException, ex.what());
         }

@@ -44,11 +44,12 @@ namespace RadiationBelt {
         double modelEmin{0.}, modelEmax{0.};
     };
 
-    struct ManualPoint {
+    struct Overrides {
+        std::string model;
         double L{-1.}, B{-1.}, BoverB0{-1.};
     };
 
-    Result Prepare(const std::string& configPath, double EminMeV, double EmaxMeV, const ManualPoint& manual = {});
+    Result Prepare(const std::string& configPath, double EminMeV, double EmaxMeV, const Overrides& manual = {});
 
     std::map<std::string, std::string> ReadParams(const std::string& path);
 }

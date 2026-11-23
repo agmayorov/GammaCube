@@ -203,6 +203,11 @@
   Полуугол раскрытия конуса (градусы, `0 < α ≤ 180`). Для `point_iso`.  
   По умолчанию: `180`.
 
+- `--belt-model`  
+  Модель пояса для `-f Belt` (`AP8MIN`, `AP8MAX`, `AE8MIN`, `AE8MAX`, `PSB97`, `CRRESPROquite`, `CRRESPROactive`
+  или путь к таблице). Важнее `model` в `Flux_config/Belt_params.txt`.  
+  По умолчанию: из файла.
+
 - `--belt-L`  
   L-оболочка для `-f Belt`, задаётся вручную. Включает `position: point` и важнее `Flux_config/Belt_params.txt`
   (см. «Радиационные пояса»).  
@@ -281,7 +286,7 @@ t_reg_ns - t0_ns       полное время от взаимодействия
 | `PSB97` | протоны (SAMPEX/PET) | 25–495 | 1.1–2 |
 | `CRRESPROquite`, `CRRESPROactive` | протоны (CRRES), спокойная / возмущённая магнитосфера | 15–85 | 1.1–4.1 |
 
-Параметры — в `Flux_config/Belt_params.txt`: `model`, `position` и `E_min`/`E_max` (ограничиваются диапазоном
+Параметры — в `Flux_config/Belt_params.txt`: `model` (или флаг `--belt-model`), `position` и `E_min`/`E_max` (ограничиваются диапазоном
 модели). Положение задаётся одним из трёх способов:
 
 - `point` — `L` и поле в точке: `B_nT` (модуль, нТ) или `B_B0` (B/B0, где B0 = M/L³). То же можно задать

@@ -156,12 +156,12 @@ namespace RadiationBelt {
         return mean;
     }
 
-    Result Prepare(const std::string& configPath, const double EminMeV, const double EmaxMeV, const ManualPoint& manual) {
+    Result Prepare(const std::string& configPath, const double EminMeV, const double EmaxMeV, const Overrides& manual) {
         const auto p = ReadParams(configPath);
         Result r;
 
-        r.model = Text(p, "model", "");
-        if (r.model.empty()) throw std::runtime_error("В Belt_params.txt не задана модель (model)");
+        r.model = manual.model.empty() ? Text(p, "model", "") : manual.model;
+        if (r.model.empty()) throw std::runtime_error("Не задана модель пояса (model в Belt_params.txt или --belt-model)");
         const std::string modelPath = r.model.find('/') != std::string::npos || r.model.size() > 4 &&
                                       r.model.substr(r.model.size() - 4) == ".txt"
                                           ? r.model

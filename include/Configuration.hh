@@ -18,6 +18,7 @@ namespace Configuration
     inline G4String fluxDirection{"isotropic"};
     inline G4String beltSpectrumPath{};
     inline G4String beltParticle{};
+    inline G4String beltModel{};
     inline G4double beltL{-1.};
     inline G4double beltB{-1.};
     inline G4double beltBB0{-1.};
